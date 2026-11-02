@@ -13,6 +13,7 @@ import { Avatar, Badge, Button, Card, CardHeader, cx, Dot, Empty, Field, IconBub
 import { SwipeRow } from '@/components/interact'
 import { withUndo } from '@/lib/undo'
 import { CountUp, SkyBlock, Sparkle } from '@/components/step1'
+import { CabanasScene } from '@/components/scenes'
 import { ReservationSheet } from '@/components/stays/ReservationSheet'
 import { LostFoundList } from '@/components/stays/LostFound'
 
@@ -190,8 +191,8 @@ export default function RecepcionPanel() {
       {/* ── Cielo de recepción ── */}
       <Section className="md:col-span-2 xl:col-span-12">
         <section className="grain relative overflow-hidden rounded-[var(--r-slab)] bg-paper ring-1 ring-line">
-          <SkyBlock height="clamp(120px, 18vh, 170px)" luzSize="clamp(56px, 9vw, 88px)" />
-          <div className="relative -mt-4 px-6 pb-7 sm:px-9 xl:px-12">
+          <SkyBlock height="clamp(120px, 18vh, 170px)" luzSize="clamp(56px, 9vw, 88px)" scene={<CabanasScene />} />
+          <div className="relative mt-1 px-6 pb-7 sm:px-9 xl:px-12">
             <p className="eyebrow">{capitalize(fmtDateLong(T))}</p>
             <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -405,7 +406,7 @@ export default function RecepcionPanel() {
         <Card className="h-full">
           <CardHeader eyebrow="Cobranza" title="Saldos de hospedaje" subtitle={balances.length ? `${mxn(totalDue)} en los próximos 30 días` : 'Todo cobrado'} icon={<IconBubble tone="butter"><Wallet size={20} strokeWidth={1.6} /></IconBubble>} />
           <ul className="flex flex-col p-3 md:p-4">
-            {balances.length === 0 && <Empty title="Sin saldos pendientes" body="Cuando una reserva tenga saldo, aparece aquí para cobrarlo." />}
+            {balances.length === 0 && <Empty kind="pagos" title="Sin saldos pendientes" body="Cuando una reserva tenga saldo, aparece aquí para cobrarlo." />}
             {balances.map((r) => {
               const u = data.units[r.unitId]
               const bal = balanceOf(r)

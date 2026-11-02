@@ -121,7 +121,7 @@ export function GuestListView({ ev, onChange, onEdit, onWhatsApp }: { ev: RanchE
 
       {filtered.length === 0 ? (
         <Card>
-          <Empty title={guests.length ? 'Nadie coincide con estos filtros' : 'Aún no hay invitados'} body={guests.length ? 'Prueba quitando algún filtro.' : 'Importa la lista que te mandó la clienta o agrega invitados uno por uno.'} />
+          <Empty kind="invitados" title={guests.length ? 'Nadie coincide con estos filtros' : 'Aún no hay invitados'} body={guests.length ? 'Prueba quitando algún filtro.' : 'Importa la lista que te mandó la clienta o agrega invitados uno por uno.'} />
         </Card>
       ) : (
         groups.map((grp) => (

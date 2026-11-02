@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Moon, Sun } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { ease, haptic } from '@/lib/motion'
+import { quiet } from '@/lib/transitions'
 import { cx } from './ui'
 
 function useSystemDark() {
@@ -40,8 +41,8 @@ export function ThemeToggle({ className }: { className?: string }) {
       // Aplica de inmediato para que la transición capture el estado final
       document.documentElement.setAttribute('data-theme', next)
     }
-    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown }
-    if (doc.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) doc.startViewTransition(() => flushSync(apply))
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => Parameters<typeof quiet>[0] }
+    if (doc.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) quiet(doc.startViewTransition(() => flushSync(apply)))
     else apply()
   }
 

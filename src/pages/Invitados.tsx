@@ -64,7 +64,7 @@ export default function Invitados() {
       <div>
         <PageHeader eyebrow="Estación de invitados" title="Invitados" />
         <Card>
-          <Empty title="Aún no hay eventos" body="Cuando apartes una fecha podrás llevar aquí su lista de invitados, mesas y recepción." />
+          <Empty kind="evento" title="Aún no hay eventos" body="Cuando apartes una fecha podrás llevar aquí su lista de invitados, mesas y recepción." />
         </Card>
       </div>
     )

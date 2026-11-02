@@ -42,14 +42,16 @@ export const FOLLOW_META: Record<FollowBucket, { label: string; tone: 'rose' | '
   'sin-fecha': { label: 'Sin seguimiento', tone: 'lavender' },
 }
 
-/** Próximos N sábados con su estado por recinto */
+/** Próximos N fines de semana (viernes a domingo, marcados por su sábado) con su estado por recinto */
 export function upcomingSaturdays(events: RanchEvent[], count = 8) {
   const d = parseISO(today())
   const add = (6 - d.getDay() + 7) % 7
   let iso = addDaysISO(today(), add)
   const out: { date: string; salon?: RanchEvent; jardin?: RanchEvent }[] = []
   for (let i = 0; i < count; i++) {
-    const day = events.filter((e) => e.date === iso && e.status !== 'cancelado')
+    const from = addDaysISO(iso, -1)
+    const to = addDaysISO(iso, 1)
+    const day = events.filter((e) => e.date >= from && e.date <= to && e.status !== 'cancelado')
     out.push({
       date: iso,
       salon: day.find((e) => eventVenues(e).includes('salon')),

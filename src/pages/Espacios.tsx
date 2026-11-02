@@ -4,7 +4,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Armchair, Box, CalendarPlus, ChevronRight, Eye, Footprints, LayoutGrid, Maximize2, Minimize2, Plus, Ruler, Sparkles, Trees, Undo2, Users, UtensilsCrossed } from 'lucide-react'
-import { db, useCollection } from '@/lib/store'
+import { db, useCollection, useMe } from '@/lib/store'
 import { EVENT_STATUS, EVENT_TYPE, TONE, VENUE } from '@/lib/meta'
 import { ITEM_SPECS, MAIN_SCENE_ID, SCENE_KIND, eventScenes, eventVenues, layoutStats, newScene, sceneForVenue } from '@/lib/floorplan'
 import { VENUE_SPACES } from '@/lib/layout'
@@ -12,7 +12,7 @@ import { upcomingSaturdays } from '@/lib/planner'
 import { daysUntil, fmt, fmtDate, today } from '@/lib/format'
 import { ease, fadeRise, stagger } from '@/lib/motion'
 import type { FloorItem, RanchEvent, SceneKind, Venue } from '@/lib/types'
-import { Badge, Button, Card, CardHeader, cx, Empty, IconBubble, PageHeader, ProgressBar, Segmented, toast } from '@/components/ui'
+import { Badge, Button, Card, CardHeader, cx, Empty, IconBubble, PageHeader, ProgressBar, Segmented, toast, useMedia } from '@/components/ui'
 import { Sparkle } from '@/components/step1'
 import { EventOrb, PaletteDots } from '@/components/events/EventOrb'
 import { NewEventSheet } from '@/components/events/NewEventSheet'
@@ -46,7 +46,12 @@ export default function Espacios() {
   const events = useCollection('events')
   const [params, setParams] = useSearchParams()
   const venue = (params.get('v') === 'jardin' ? 'jardin' : 'salon') as Venue
-  const [view, setView] = useState<'2d' | '3d'>(() => (params.get('vista') === '3d' ? '3d' : '2d'))
+  const [view3, setView] = useState<'2d' | '3d'>(() => (params.get('vista') === '3d' ? '3d' : '2d'))
+  // El montaje 3D solo para el dueño en pantalla grande; en celular y para el equipo, el plano (más ligero y claro)
+  const meRole = useMe()?.role
+  const bigScreen = useMedia('(min-width: 1024px)')
+  const can3d = meRole === 'admin' && bigScreen
+  const view = can3d ? view3 : '2d'
   const [selected, setSelected] = useState<string | null>(null)
   const [newOpen, setNewOpen] = useState(false)
   const [big, setBig] = useState(false)
@@ -235,7 +240,7 @@ export default function Espacios() {
 
       {!ev ? (
         <Card>
-          <Empty title={`No hay eventos próximos en el ${VENUE[venue].label.toLowerCase()}`} body="Crea uno y aquí podrás acomodar sus mesas y verlo en 3D." action={<Button onClick={() => setNewOpen(true)}>Crear evento</Button>} />
+          <Empty kind="evento" title={`No hay eventos próximos en el ${VENUE[venue].label.toLowerCase()}`} body="Crea uno y aquí podrás acomodar sus mesas y verlo en 3D." action={<Button onClick={() => setNewOpen(true)}>Crear evento</Button>} />
         </Card>
       ) : (
         <>
@@ -258,14 +263,14 @@ export default function Espacios() {
             </div>
             {scene && (
               <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                <Segmented
+                {can3d && <Segmented
                   value={view}
                   onChange={setView}
                   options={[
                     { value: '2d', label: <><LayoutGrid size={15} strokeWidth={1.6} /> Plano</> },
                     { value: '3d', label: <><Box size={15} strokeWidth={1.6} /> Montaje 3D</> },
                   ]}
-                />
+                />}
                 {view === '3d' && (
                   <>
                     <Button

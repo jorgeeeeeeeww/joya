@@ -87,7 +87,7 @@ export default function Proveedores() {
 
       {list.length === 0 ? (
         <Card>
-          <Empty title={vendors.length ? 'Nadie coincide con el filtro' : 'Aún no hay proveedores'} body="Guarda aquí a tus proveedores de confianza para asignarlos a cada evento." action={<Button onClick={() => setEdit(null)}>Agregar proveedor</Button>} />
+          <Empty kind="proveedores" title={vendors.length ? 'Nadie coincide con el filtro' : 'Aún no hay proveedores'} body="Guarda aquí a tus proveedores de confianza para asignarlos a cada evento." action={<Button onClick={() => setEdit(null)}>Agregar proveedor</Button>} />
         </Card>
       ) : (
         <motion.div layout className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -208,7 +208,7 @@ function VendorSheet({ vendor, onClose }: { vendor: Vendor | null | undefined; o
         <div className="flex flex-col gap-4">
           <TextField label="Nombre" value={f.name ?? ''} onChange={(v) => set({ name: v })} placeholder="Banquetes Los Altos" required requiredMsg="Escribe el nombre del proveedor" capitalizeWords />
           <Choices label="Categoría" size="sm" value={f.category} onChange={(v) => set({ category: v })} options={(Object.keys(VENDOR_CATEGORY) as VendorCategory[]).map((c) => ({ value: c, label: VENDOR_CATEGORY[c].label, tone: VENDOR_CATEGORY[c].tone }))} />
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @xl:grid-cols-2">
             <MoneyField label="Precio desde" value={f.priceFrom} onChange={(v) => set({ priceFrom: v || undefined })} />
             <TextField label="Persona de contacto" value={f.contact ?? ''} onChange={(v) => set({ contact: v || undefined })} capitalizeWords />
             <PhoneField label="Teléfono o WhatsApp" value={f.phone} onChange={(v) => set({ phone: v || undefined })} />

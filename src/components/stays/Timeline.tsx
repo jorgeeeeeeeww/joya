@@ -269,7 +269,7 @@ export function Timeline({ units, reservations, start, days, onCell, onBar, onCr
                         title={`${r.guestName} · ${r.checkIn} → ${r.checkOut}${movable ? ' · arrastra para mover' : ''}`}
                       >
                         <span className={cx('h-1.5 w-1.5 shrink-0 rounded-full', block ? 'bg-ink-faint' : TONE[tone].solid)} />
-                        <span className="truncate">{block ? 'Bloqueado' : r.guestName}</span>
+                        <span className="truncate keep-truncate">{block ? 'Bloqueado' : r.guestName}</span>
                         {inHouse && <span className="ml-auto shrink-0 text-[10px] opacity-75">en casa</span>}
                       </button>
                       {movable && (
@@ -288,7 +288,7 @@ export function Timeline({ units, reservations, start, days, onCell, onBar, onCr
                   className={cx('pointer-events-none absolute top-1/2 z-[7] flex h-10 -translate-y-1/2 items-center gap-2 overflow-hidden rounded-full px-3 text-xs font-semibold whitespace-nowrap shadow-[var(--shadow-3)] ring-2', draft.conflict ? 'bg-[color-mix(in_oklab,var(--danger)_14%,var(--surface))] text-danger ring-danger' : 'bg-surface text-ink ring-primary shadow-[0_0_24px_color-mix(in_oklab,var(--luz)_55%,transparent)]')}
                   style={barGeom(draft.checkIn, draft.checkOut)}
                 >
-                  <span className="truncate">
+                  <span className="truncate keep-truncate">
                     {draft.conflict ? `Choca con ${draft.conflict.guestName.split(' ')[0]}` : `${draft.n} ${draft.n === 1 ? 'noche' : 'noches'}`}
                     {!draft.conflict && money && ` · ${mxn(draft.price)}`}
                     {!draft.conflict && draft.overCapacity && ' · excede capacidad'}

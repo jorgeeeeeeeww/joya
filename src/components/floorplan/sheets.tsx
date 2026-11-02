@@ -512,7 +512,7 @@ export function ArraySheet({ open, onClose, onApply }: { open: boolean; onClose:
 export function TemplateSheet({ open, onClose, onApply, guests, venue }: { open: boolean; onClose: () => void; onApply: (s: LayoutStyle) => void; guests: number; venue: Venue }) {
   return (
     <Sheet open={open} onClose={onClose} title="Plantillas de acomodo" subtitle={`Reemplaza el plano de esta escena · ${guests} invitados en ${VENUE[venue].label.toLowerCase()}`} side="center">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 @xl:grid-cols-2">
         {(Object.keys(LAYOUT_STYLES) as LayoutStyle[]).map((s) => (
           <button key={s} onClick={() => onApply(s)} className="card lift pressable p-5 text-left">
             <div className="heading text-xl">{LAYOUT_STYLES[s].label}</div>

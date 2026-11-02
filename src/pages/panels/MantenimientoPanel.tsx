@@ -12,6 +12,7 @@ import { featureByUnit } from '@/lib/layout'
 import type { Task } from '@/lib/types'
 import { Badge, Button, Card, CardHeader, cx, ProgressBar } from '@/components/ui'
 import { NightSlab, Reveal, Sparkle } from '@/components/step1'
+import { TallerScene } from '@/components/scenes'
 import { ReportProblemSheet } from '@/components/stays/CleaningFlow'
 import { PhotoThumb } from '@/components/Photos'
 import { SwipeRow } from '@/components/interact'
@@ -69,7 +70,7 @@ export default function MantenimientoPanel() {
   return (
     <div className="flex flex-col gap-7">
       {/* Losa noche con la luz */}
-      <NightSlab className="px-6 pt-8 pb-28 md:px-10 md:pt-10 md:pb-32" luzSize="clamp(48px, 12vw, 128px)">
+      <NightSlab scene={<TallerScene />} className="px-6 pt-8 pb-28 md:px-10 md:pt-10 md:pb-32" luzSize="clamp(48px, 12vw, 128px)">
         <motion.p variants={fadeRise} initial="hidden" animate="show" className="eyebrow !text-on-night-soft">
           {capitalize(fmtDateLong(t))}
         </motion.p>

@@ -98,7 +98,7 @@ export function RsvpStack({ ev, onChange, onWhatsApp }: { ev: RanchEvent; onChan
     withUndo(v === 'confirmado' ? `${g.name} confirmó` : `${g.name} no asiste`, () => onChange(prev, `Deshizo la respuesta de ${g.name}`))
   }
 
-  if (!ev.guestList.length) return <Empty title="Aún no hay invitados" body="Agrega o importa la lista para empezar a confirmar." />
+  if (!ev.guestList.length) return <Empty kind="invitados" title="Aún no hay invitados" body="Agrega o importa la lista para empezar a confirmar." />
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-5">

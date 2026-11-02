@@ -65,9 +65,19 @@ export function useCountUp(to: number, { duration = 1.2, decimals = 0 } = {}) {
 }
 
 /** Háptico ligero (Android/Chrome). iOS Safari no lo soporta y se ignora. */
+// Vibración breve; solo después de que la persona tocó la pantalla (si no, Chrome lo marca como error)
+const buzz = (p: number | number[]) => {
+  const ua = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation
+  if (ua && !ua.hasBeenActive) return
+  try {
+    navigator.vibrate?.(p)
+  } catch {
+    /* sin vibración */
+  }
+}
 export const haptic = {
-  light: () => navigator.vibrate?.(8),
-  select: () => navigator.vibrate?.(4),
-  success: () => navigator.vibrate?.([10, 40, 18]),
-  warning: () => navigator.vibrate?.([24, 50, 24]),
+  light: () => buzz(8),
+  select: () => buzz(4),
+  success: () => buzz([10, 40, 18]),
+  warning: () => buzz([24, 50, 24]),
 }

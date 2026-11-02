@@ -184,7 +184,7 @@ export function TaskSheet({ taskId, open, onClose, draft }: { taskId?: string; o
             options={(Object.keys(TASK_TYPE) as TaskType[]).map((k) => ({ value: k, label: TASK_TYPE[k].label, tone: TASK_TYPE[k].tone, disabled: !canEditAll }))}
           />
           <Choices label="Prioridad" value={form.priority} onChange={(v) => set({ priority: v })} size="sm" options={(Object.keys(PRIORITY) as Priority[]).map((k) => ({ value: k, label: PRIORITY[k].label, tone: PRIORITY[k].tone, disabled: !canEditAll }))} />
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @xl:grid-cols-2">
             <Combobox
               label="Responsable"
               icon={<User />}
@@ -472,7 +472,7 @@ export default function Tareas() {
         </>
       ) : (
         <div className="flex flex-col gap-7">
-          {open.length === 0 && toVerify.length === 0 && <Empty title="Sin pendientes" body="No hay tareas abiertas con estos filtros. Buen trabajo." action={<Button size="sm" onClick={() => setNewOpen(true)}>Crear tarea</Button>} />}
+          {open.length === 0 && toVerify.length === 0 && <Empty kind="tareas" title="Sin pendientes" body="No hay tareas abiertas con estos filtros. Buen trabajo." action={<Button size="sm" onClick={() => setNewOpen(true)}>Crear tarea</Button>} />}
           {toVerify.length > 0 && isManager && (
             <section>
               <h2 className="mb-3 flex items-center gap-2 text-sm font-medium">

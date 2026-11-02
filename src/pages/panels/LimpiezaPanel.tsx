@@ -1,23 +1,36 @@
-// "Mi día" — panel de limpieza (móvil primero): cielo arriba, saludo serif, anillo del día,
-// la siguiente unidad como tarjeta héroe y la acción principal en la zona del pulgar.
-import { useMemo, useState } from 'react'
+// "Mi día" — limpieza, un paso a la vez: la ruta del día ordenada por quién llega primero, una sola casa
+// en grande con su reloj de llegada y deslizar para empezar. Sin cifras que no ayudan a quien limpia.
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock, PackageSearch, Play, Sparkles, Users, Wrench } from 'lucide-react'
-import { useCollection, useMe } from '@/lib/store'
-import { PRIORITY, TASK_STATUS, UNIT_STATUS } from '@/lib/meta'
-import { ago, capitalize, fmtDateLong, greeting, toISODate, today } from '@/lib/format'
-import { ease, fadeRise, heroRise, stagger } from '@/lib/motion'
-import type { ID } from '@/lib/types'
-import { Badge, Button, Card, cx, ProgressBar, ProgressRing } from '@/components/ui'
-import { Reveal, SkyBlock, Sparkle } from '@/components/step1'
-import { arrivalText, CleaningSheet, nextArrival, ReportProblemSheet, useElapsed } from '@/components/stays/CleaningFlow'
-import { CleaningRow, sortCleaning } from '@/components/stays/CleaningCards'
+import { ArrowRight, BedDouble, Bath, Check, CheckCircle2, Clock, PackageSearch, ShoppingBasket, Users, Wrench } from 'lucide-react'
+import { db, useCollection, useMe } from '@/lib/store'
+import { TASK_STATUS } from '@/lib/meta'
+import { ago, capitalize, fmtDateLong, greeting, nowIso, relativeDay, toISODate, today, uid } from '@/lib/format'
+import { fadeRise, haptic, stagger } from '@/lib/motion'
+import type { ID, Reservation, Task, Unit } from '@/lib/types'
+import { Badge, Button, Card, cx, Sheet, toast } from '@/components/ui'
+import { SlideToConfirm } from '@/components/interact'
+import { CleaningSheet, nextArrival, ReportProblemSheet, useElapsed } from '@/components/stays/CleaningFlow'
 import { LostItemSheet, LOST_STATUS } from '@/components/stays/LostFound'
 import { PhotoThumb } from '@/components/Photos'
 
 /** Fecha local (YYYY-MM-DD) de un ISO en UTC: evita que lo de la noche cuente como "mañana" */
 const localDay = (iso?: string) => (iso ? toISODate(new Date(iso)) : '')
+
+/** Momento de la próxima llegada (o muy lejos si no hay) para ordenar la ruta */
+const arrivalAt = (r?: Reservation) => (r ? new Date(`${r.checkIn}T${r.arrivalTime ?? '15:00'}:00`).getTime() : Number.MAX_SAFE_INTEGER)
+
+function useNow(every = 30_000) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    const iv = setInterval(() => setNow(Date.now()), every)
+    return () => clearInterval(iv)
+  }, [every])
+  return now
+}
+
+const SUPPLIES = ['Papel de baño', 'Jabón', 'Shampoo', 'Bolsas de basura', 'Café', 'Lavatrastes', 'Toallas', 'Blancos']
 
 export default function LimpiezaPanel() {
   const me = useMe()
@@ -28,205 +41,149 @@ export default function LimpiezaPanel() {
   const [openTask, setOpenTask] = useState<ID>()
   const [report, setReport] = useState(false)
   const [lostOpen, setLostOpen] = useState(false)
+  const [supplyOpen, setSupplyOpen] = useState(false)
+  const now = useNow()
   const t = today()
 
-  const mine = useMemo(
-    () =>
-      tasks
-        .filter((x) => x.type === 'limpieza' && x.assigneeId === me?.id)
-        .filter((x) => x.status === 'pendiente' || x.status === 'en-progreso' || localDay(x.completedAt) === t || localDay(x.verifiedAt) === t)
-        .sort(sortCleaning),
-    [tasks, me?.id, t],
-  )
-  const open = mine.filter((x) => x.status === 'pendiente' || x.status === 'en-progreso')
-  const finished = mine.filter((x) => x.status === 'hecha' || x.status === 'verificada')
-  const next = open[0]
-  const nextUnit = next ? units.find((u) => u.id === next.unitId) : undefined
-  const nextGuest = nextUnit ? nextArrival(reservations, nextUnit.id) : undefined
-  const nextDone = next ? next.checklist.filter((c) => c.done).length : 0
-  const elapsed = useElapsed(next?.startedAt, next?.completedAt)
-  const dayProgress = mine.length ? finished.length / mine.length : 0
-  const myLost = lost.filter((l) => l.foundById === me?.id).sort((a, b) => b.foundAt.localeCompare(a.foundAt)).slice(0, 3)
-  const otherTasks = tasks.filter((x) => x.type !== 'limpieza' && x.assigneeId === me?.id && (x.status === 'pendiente' || x.status === 'en-progreso'))
-  const firstName = me?.name.split(' ')[0] ?? ''
+  const route = useMemo(() => {
+    const mine = tasks.filter((x) => x.type === 'limpieza' && x.assigneeId === me?.id)
+    const open = mine.filter((x) => x.status === 'pendiente' || x.status === 'en-progreso')
+    const finished = mine.filter((x) => (x.status === 'hecha' || x.status === 'verificada') && (localDay(x.completedAt) === t || localDay(x.verifiedAt) === t))
+    const withArrival = (x: Task) => ({ task: x, unit: units.find((u) => u.id === x.unitId), guest: x.unitId ? nextArrival(reservations, x.unitId) : undefined })
+    const openSorted = open.map(withArrival).sort((a, b) => Number(b.task.status === 'en-progreso') - Number(a.task.status === 'en-progreso') || arrivalAt(a.guest) - arrivalAt(b.guest))
+    return { finished: finished.map(withArrival), open: openSorted }
+  }, [tasks, units, reservations, me?.id, t])
 
-  const durations = finished.filter((x) => x.startedAt && x.completedAt).map((x) => (new Date(x.completedAt!).getTime() - new Date(x.startedAt!).getTime()) / 60000)
-  const avg = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null
+  const current = route.open[0]
+  const later = route.open.slice(1)
+  const otherTasks = tasks.filter((x) => x.type !== 'limpieza' && x.assigneeId === me?.id && (x.status === 'pendiente' || x.status === 'en-progreso'))
+  const myLost = lost.filter((l) => l.foundById === me?.id).sort((a, b) => b.foundAt.localeCompare(a.foundAt)).slice(0, 3)
+  const firstName = me?.name.split(' ')[0] ?? ''
+  const all = route.finished.length + route.open.length
+
+  const startOrOpen = (task: Task) => {
+    if (task.status === 'pendiente') db.patch('tasks', task.id, { status: 'en-progreso', startedAt: task.startedAt ?? nowIso(), assigneeId: task.assigneeId ?? me?.id })
+    haptic.light()
+    setOpenTask(task.id)
+  }
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      {/* Cielo que se funde con el papel */}
-      <div className="-mx-4 -mt-5 overflow-hidden sm:-mx-6 md:mx-0 md:mt-0 md:rounded-[var(--r-slab)]">
-        <SkyBlock height="clamp(150px, 24vh, 220px)" />
-      </div>
-
-      <motion.div variants={stagger} initial="hidden" animate="show" className="relative -mt-4 text-center">
-        <motion.p variants={fadeRise} className="eyebrow">
-          {capitalize(fmtDateLong(t))}
-        </motion.p>
-        <motion.h1 variants={heroRise} className="heading mt-2 text-[clamp(2.2rem,1.8rem+2vw,3rem)]">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+      {/* Saludo corto */}
+      <motion.header variants={fadeRise} className="pt-1">
+        <p className="eyebrow">{capitalize(fmtDateLong(t))}</p>
+        <h1 className="heading mt-2 text-[clamp(2.1rem,1.7rem+2vw,2.9rem)] leading-[1.05]">
           {greeting()}, {firstName}
-        </motion.h1>
-        <motion.p variants={fadeRise} className="mx-auto mt-2 max-w-[34ch] text-[15px] text-ink-soft">
-          {open.length === 0 ? (finished.length ? 'Terminaste tus limpiezas de hoy. Gracias.' : 'Por ahora no tienes limpiezas asignadas.') : open.length === 1 ? 'Te queda una limpieza hoy.' : `Te quedan ${open.length} limpiezas hoy.`}
-        </motion.p>
-      </motion.div>
+        </h1>
+        <p className="mt-2 text-[17px] leading-snug text-ink-soft">
+          {route.open.length === 0 ? (route.finished.length ? 'Terminaste tus casas de hoy. Gracias.' : 'Por ahora no tienes casas asignadas.') : route.open.length === 1 ? 'Te queda una casa.' : `Te quedan ${route.open.length} casas.`}
+        </p>
+      </motion.header>
 
-      {/* Anillo del día */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.48, ease: ease.calma, delay: 0.15 } }}>
-        <Card className="mt-6 flex items-center gap-5 p-5">
-          <ProgressRing value={dayProgress} size={88} stroke={6} gradient>
-            <span className="flex flex-col items-center leading-none">
-              <span className="display-num text-[1.7rem]">
-                {finished.length}
-                <span className="text-ink-3">/{mine.length || 0}</span>
-              </span>
-              <span className="mt-1 text-[10px] text-ink-soft">hechas</span>
-            </span>
-          </ProgressRing>
-          <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-4 gap-y-3">
-            <MiniStat label="Pendientes" value={open.length} />
-            <MiniStat label="Promedio" value={avg ? `${avg} min` : '—'} />
-            <MiniStat label="Otras tareas" value={otherTasks.length} />
-            <MiniStat label="Objetos hoy" value={lost.filter((l) => l.foundById === me?.id && localDay(l.foundAt) === t).length} />
-          </div>
-        </Card>
-      </motion.div>
-
-      {/* Siguiente unidad */}
-      {next && nextUnit ? (
-        <motion.section initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.48, ease: ease.calma, delay: 0.25 } }} className="mt-6">
-          <p className="eyebrow mb-3 flex items-center gap-2 px-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-chispa-soft shadow-[0_0_10px_var(--luz)]" />
-            {next.status === 'en-progreso' ? 'Estás limpiando' : 'Sigue'}
-          </p>
-          <Card className="overflow-hidden">
-            <button onClick={() => setOpenTask(next.id)} className="block w-full p-5 text-left md:p-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge tone={UNIT_STATUS[nextUnit.status].tone} dot>
-                  {UNIT_STATUS[nextUnit.status].label}
-                </Badge>
-                {(next.priority === 'urgente' || next.priority === 'alta') && <Badge tone={PRIORITY[next.priority].tone}>Prioridad {PRIORITY[next.priority].label.toLowerCase()}</Badge>}
-                {next.status === 'en-progreso' && elapsed && (
-                  <span className="ml-auto inline-flex items-center gap-1.5 text-sm text-ink-soft tabular">
-                    <Clock size={14} strokeWidth={1.6} /> {elapsed}
-                  </span>
-                )}
-              </div>
-              <h2 className="heading mt-4 text-[clamp(2rem,1.7rem+1.6vw,2.6rem)]">{nextUnit.name}</h2>
-              <p className="mt-1 text-sm text-ink-soft">
-                {nextUnit.kind === 'cabana' ? 'Cabaña' : 'Casa'} · {nextUnit.bedrooms} {nextUnit.bedrooms === 1 ? 'recámara' : 'recámaras'} · {nextUnit.baths} {nextUnit.baths === 1 ? 'baño' : 'baños'}
-              </p>
-              <div className={cx('mt-5 flex items-start gap-3 rounded-[18px] p-4', nextGuest?.checkIn === t ? 'bg-butter-soft' : 'bg-sunken')}>
-                {nextGuest?.checkIn === t ? <AlertTriangle size={20} strokeWidth={1.6} className="mt-0.5 shrink-0 text-warning" /> : <Users size={20} strokeWidth={1.6} className="mt-0.5 shrink-0 text-ink-soft" />}
-                <div className="min-w-0">
-                  <p className={cx('font-medium', nextGuest?.checkIn === t && 'text-warning')}>{arrivalText(nextGuest)}</p>
-                  {nextGuest && (
-                    <p className="truncate text-sm text-ink-soft">
-                      {nextGuest.guestName} · {nextGuest.guests} {nextGuest.guests === 1 ? 'persona' : 'personas'}
-                    </p>
-                  )}
-                </div>
-              </div>
-              {next.checklist.length > 0 && (
-                <div className="mt-5">
-                  <div className="mb-2 flex items-baseline justify-between text-sm">
-                    <span className="text-ink-soft">Checklist</span>
-                    <span className="tabular">
-                      {nextDone} de {next.checklist.length} pasos
-                    </span>
-                  </div>
-                  <ProgressBar value={nextDone / next.checklist.length} />
-                </div>
-              )}
-              {next.notes && <p className="mt-4 text-sm text-ink-soft">“{next.notes}”</p>}
-            </button>
-            {/* En tablet/escritorio la acción va dentro de la tarjeta */}
-            <div className="hidden px-6 pb-6 md:block">
-              <Button size="lg" variant="tinta" className="w-full" icon={next.status === 'en-progreso' ? <Sparkles size={20} strokeWidth={1.6} /> : <Play size={20} strokeWidth={1.6} />} onClick={() => setOpenTask(next.id)}>
-                {next.status === 'en-progreso' ? 'Continuar limpieza' : 'Empezar limpieza'}
-              </Button>
-            </div>
-          </Card>
+      {/* Tu ruta: casas en orden, sin deslizar de lado */}
+      {all > 0 && (
+        <motion.section variants={fadeRise} aria-label="Tu ruta de hoy">
+          <p className="eyebrow mb-3">Tu ruta de hoy · {route.finished.length} de {all}</p>
+          <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+            {[...route.finished.map((r) => ({ ...r, state: 'done' as const })), ...route.open.map((r, i) => ({ ...r, state: i === 0 ? ('now' as const) : ('next' as const) }))].map((r, i, arr) => (
+              <li key={r.task.id} className="flex items-center gap-1.5">
+                <button onClick={() => setOpenTask(r.task.id)} className={cx('pressable inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[15px]', r.state === 'done' ? 'bg-[color-mix(in_oklab,var(--success)_14%,var(--surface))] text-success' : r.state === 'now' ? 'bg-ink font-semibold text-paper shadow-[var(--shadow-2)]' : 'bg-surface ring-1 ring-line-strong ring-inset')}>
+                  {r.state === 'done' ? <Check size={16} strokeWidth={2} /> : r.state === 'now' ? <span className="h-2 w-2 rounded-full bg-luz shadow-[0_0_10px_2px_var(--luz)]" /> : null}
+                  {r.unit?.name ?? r.task.title}
+                </button>
+                {i < arr.length - 1 && <ArrowRight size={16} strokeWidth={1.6} className="text-ink-3" aria-hidden />}
+              </li>
+            ))}
+          </ol>
         </motion.section>
+      )}
+
+      {/* La casa de ahora, en grande */}
+      {current?.unit ? (
+        <motion.div variants={fadeRise}>
+          <CurrentHouse task={current.task} unit={current.unit} guest={current.guest} now={now} onGo={() => startOrOpen(current.task)} />
+        </motion.div>
       ) : (
-        <Card className="mt-6 flex flex-col items-center px-6 py-10 text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--luz)_55%,var(--surface))] text-night ring-[6px] ring-[color-mix(in_oklab,var(--luz)_22%,transparent)]">
-            <CheckCircle2 size={28} strokeWidth={1.6} />
-          </span>
-          <p className="heading mt-5 text-[1.6rem]">{finished.length ? 'Todo listo por hoy' : 'Todo limpio por ahora'}</p>
-          <p className="mt-1 max-w-[30ch] text-sm text-ink-soft">Cuando un huésped haga check-out, tu siguiente limpieza aparecerá aquí sola.</p>
-          <p className="mt-3 text-chispa-soft">
-            <Sparkle />
-          </p>
-        </Card>
+        <motion.div variants={fadeRise}>
+          <Card className="flex flex-col items-center px-6 py-10 text-center">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--luz)_55%,var(--surface))] text-night ring-[6px] ring-[color-mix(in_oklab,var(--luz)_22%,transparent)]">
+              <CheckCircle2 size={28} strokeWidth={1.6} />
+            </span>
+            <p className="heading mt-5 text-[1.7rem]">{route.finished.length ? 'Todo listo por hoy' : 'Todo limpio por ahora'}</p>
+            <p className="mt-1 max-w-[32ch] text-[15px] text-ink-soft">Cuando un huésped se vaya, tu siguiente casa aparecerá aquí sola.</p>
+          </Card>
+        </motion.div>
       )}
 
-      {/* Mis limpiezas */}
-      {mine.some((x) => x.id !== next?.id) && (
-        <section className="mt-8">
-          <h2 className="heading mb-3 px-1 text-[1.55rem]">Mis limpiezas</h2>
-          <Reveal className="flex flex-col gap-3">
-            {mine
-              .filter((x) => x.id !== next?.id)
-              .map((task) => (
-                <CleaningRow key={task.id} task={task} unit={units.find((u) => u.id === task.unitId)} reservations={reservations} onOpen={() => setOpenTask(task.id)} />
-              ))}
-          </Reveal>
-        </section>
+      {/* Lo que sigue después */}
+      {later.length > 0 && (
+        <motion.section variants={fadeRise} aria-label="Después">
+          <h2 className="heading mb-3 text-[1.5rem]">Después</h2>
+          <div className="flex flex-col gap-2.5">
+            {later.map((r) => (
+              <button key={r.task.id} onClick={() => setOpenTask(r.task.id)} className="card pressable flex items-center gap-4 p-4 text-left">
+                <span className="heading flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary text-lg text-primary">{(r.unit?.name ?? '?').replace(/^(Casa|Cabaña)\s+/, '')[0]}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[17px] font-semibold">{r.unit?.name ?? r.task.title}</span>
+                  <span className="block text-[15px] text-ink-soft">{arrivalLine(r.guest)}</span>
+                </span>
+                <ArrowRight size={20} strokeWidth={1.6} className="text-ink-3" />
+              </button>
+            ))}
+          </div>
+        </motion.section>
       )}
 
-      {/* Otras tareas asignadas */}
+      {/* Botones grandes: reportar, objeto olvidado y falta material */}
+      <motion.section variants={fadeRise} aria-label="Ayuda rápida" className="grid grid-cols-3 gap-2.5">
+        <BigTile icon={<Wrench size={22} strokeWidth={1.6} />} label="Reportar algo" tone="rose" onClick={() => setReport(true)} />
+        <BigTile icon={<PackageSearch size={22} strokeWidth={1.6} />} label="Objeto olvidado" tone="butter" onClick={() => setLostOpen(true)} />
+        <BigTile icon={<ShoppingBasket size={22} strokeWidth={1.6} />} label="Falta material" tone="sage" onClick={() => setSupplyOpen(true)} />
+      </motion.section>
+
       {otherTasks.length > 0 && (
-        <section className="mt-8">
-          <h2 className="heading mb-3 px-1 text-[1.55rem]">También te toca</h2>
+        <motion.section variants={fadeRise} aria-label="También te toca">
+          <h2 className="heading mb-3 text-[1.5rem]">También te toca</h2>
           <Card className="divide-y divide-line">
             {otherTasks.map((x) => (
-              <Link key={x.id} to={`/tareas?t=${x.id}`} className="flex items-center gap-3 px-5 py-4 hover:bg-wash">
-                <span className={cx('h-2 w-2 shrink-0 rounded-full', x.status === 'en-progreso' ? 'bg-butter' : 'bg-peach')} />
+              <Link key={x.id} to={`/tareas?t=${x.id}`} className="flex min-h-14 items-center gap-3 px-5 py-3 hover:bg-wash">
+                <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', x.status === 'en-progreso' ? 'bg-butter' : 'bg-peach')} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{x.title}</span>
-                  <span className="block text-xs text-ink-soft">{TASK_STATUS[x.status].label}</span>
+                  <span className="block text-[16px] font-medium">{x.title}</span>
+                  <span className="block text-sm text-ink-soft">{TASK_STATUS[x.status].label}</span>
                 </span>
                 <ArrowRight size={18} strokeWidth={1.6} className="text-ink-3" />
               </Link>
             ))}
           </Card>
-        </section>
+        </motion.section>
       )}
 
-      {/* Acciones secundarias */}
-      <section className="mt-8 grid grid-cols-2 gap-3">
-        <button onClick={() => setReport(true)} className="card lift pressable flex flex-col items-start gap-3 p-4 text-left">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-soft text-rose-ink">
-            <Wrench size={19} strokeWidth={1.6} />
-          </span>
-          <span>
-            <span className="block font-medium">Reportar problema</span>
-            <span className="block text-xs text-ink-soft">Llega a mantenimiento</span>
-          </span>
-        </button>
-        <button onClick={() => setLostOpen(true)} className="card lift pressable flex flex-col items-start gap-3 p-4 text-left">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-butter-soft text-butter-ink">
-            <PackageSearch size={19} strokeWidth={1.6} />
-          </span>
-          <span>
-            <span className="block font-medium">Objeto olvidado</span>
-            <span className="block text-xs text-ink-soft">Regístralo con foto</span>
-          </span>
-        </button>
-      </section>
+      {route.finished.length > 0 && (
+        <motion.section variants={fadeRise} aria-label="Terminadas hoy">
+          <p className="eyebrow mb-2">Terminadas hoy</p>
+          <div className="flex flex-col gap-2">
+            {route.finished.map((r) => (
+              <button key={r.task.id} onClick={() => setOpenTask(r.task.id)} className="pressable flex min-h-14 items-center gap-3 rounded-[18px] bg-[color-mix(in_oklab,var(--success)_9%,var(--surface))] px-4 text-left">
+                <Check size={18} strokeWidth={2} className="text-success" />
+                <span className="flex-1 font-medium">{r.unit?.name}</span>
+                <Badge tone={r.task.status === 'verificada' ? 'sage' : 'butter'}>{r.task.status === 'verificada' ? 'Revisada' : 'Por revisar'}</Badge>
+              </button>
+            ))}
+          </div>
+        </motion.section>
+      )}
 
       {myLost.length > 0 && (
-        <section className="mt-6">
-          <p className="eyebrow mb-2 px-1">Lo que encontraste</p>
+        <motion.section variants={fadeRise}>
+          <p className="eyebrow mb-2">Lo que encontraste</p>
           <Card className="divide-y divide-line">
             {myLost.map((l) => (
               <div key={l.id} className="flex items-center gap-3 px-4 py-3">
                 {l.photoId ? <PhotoThumb id={l.photoId} size={44} /> : <PackageSearch size={20} strokeWidth={1.6} className="mx-3 text-ink-soft" />}
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{l.description}</span>
-                  <span className="block text-xs text-ink-soft">
+                  <span className="block font-medium">{l.description}</span>
+                  <span className="block text-sm text-ink-soft">
                     {units.find((u) => u.id === l.unitId)?.name ?? 'Área común'} · {ago(l.foundAt)}
                   </span>
                 </span>
@@ -234,33 +191,165 @@ export default function LimpiezaPanel() {
               </div>
             ))}
           </Card>
-        </section>
-      )}
-
-      {/* Espacio para que el CTA fijo no tape el contenido */}
-      {next && <div className="h-20 md:hidden" />}
-
-      {/* CTA en la zona del pulgar (móvil) */}
-      {next && (
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.48, ease: ease.calma, delay: 0.35 } }} className="fixed inset-x-4 bottom-[calc(92px+env(safe-area-inset-bottom))] z-30 md:hidden">
-          <Button size="lg" variant="tinta" className="w-full !h-14 shadow-[var(--shadow-3)]" icon={next.status === 'en-progreso' ? <Sparkles size={20} strokeWidth={1.6} /> : <Play size={20} strokeWidth={1.6} />} onClick={() => setOpenTask(next.id)}>
-            {next.status === 'en-progreso' ? `Continuar · ${nextUnit?.short ?? ''}` : `Empezar limpieza · ${nextUnit?.short ?? ''}`}
-          </Button>
-        </motion.div>
+        </motion.section>
       )}
 
       <CleaningSheet taskId={openTask} onClose={() => setOpenTask(undefined)} />
-      <ReportProblemSheet open={report} onClose={() => setReport(false)} />
-      <LostItemSheet open={lostOpen} onClose={() => setLostOpen(false)} />
-    </div>
+      <ReportProblemSheet open={report} onClose={() => setReport(false)} unitId={current?.unit?.id} />
+      <LostItemSheet open={lostOpen} onClose={() => setLostOpen(false)} unitId={current?.unit?.id} />
+      <SupplySheet open={supplyOpen} onClose={() => setSupplyOpen(false)} unit={current?.unit} />
+    </motion.div>
   )
 }
 
-function MiniStat({ label, value }: { label: string; value: React.ReactNode }) {
+function arrivalLine(r?: Reservation) {
+  if (!r) return 'Sin llegada próxima'
+  const day = r.checkIn === today() ? 'hoy' : relativeDay(r.checkIn).toLowerCase()
+  return `Llegan ${day}${r.arrivalTime ? ` a las ${r.arrivalTime}` : ''} · ${r.guests} ${r.guests === 1 ? 'persona' : 'personas'}`
+}
+
+/** La casa de ahora: nombre en grande, reloj de llegada y deslizar para empezar */
+function CurrentHouse({ task, unit, guest, now, onGo }: { task: Task; unit: Unit; guest?: Reservation; now: number; onGo: () => void }) {
+  const elapsed = useElapsed(task.startedAt, task.completedAt)
+  const done = task.checklist.filter((c) => c.done).length
+  const total = task.checklist.length
+  const at = arrivalAt(guest)
+  const left = at - now
+  const hours = left / 3_600_000
+  const today_ = guest?.checkIn === today()
+  // Reloj: la barra se llena conforme se acerca la llegada (ventana de 8 horas); color según urgencia
+  const urgency = !guest ? 'calm' : left <= 0 ? 'late' : hours < 2 ? 'hot' : hours < 5 ? 'warm' : 'calm'
+  const fill = !guest ? 0 : Math.min(1, Math.max(0, 1 - hours / 8))
+  const timeLeft = left <= 0 ? 'Ya es la hora de llegada' : hours >= 24 ? `En ${Math.round(hours / 24)} ${Math.round(hours / 24) === 1 ? 'día' : 'días'}` : `En ${Math.floor(hours)} h ${Math.round((hours % 1) * 60)} min`
+  const working = task.status === 'en-progreso'
   return (
-    <div>
-      <div className="display-num text-[1.5rem]">{value}</div>
-      <div className="mt-0.5 text-xs text-ink-soft">{label}</div>
-    </div>
+    <Card className="overflow-hidden">
+      <div className="p-5 md:p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="eyebrow flex items-center gap-2">
+            <span className={cx('h-2 w-2 rounded-full', working ? 'bg-butter shadow-[0_0_10px_var(--luz)]' : 'bg-chispa-soft')} />
+            {working ? 'Estás limpiando' : 'Sigue esta casa'}
+          </span>
+          {working && elapsed && (
+            <span className="ml-auto inline-flex items-center gap-1.5 text-[15px] text-ink-soft tabular">
+              <Clock size={16} strokeWidth={1.6} /> {elapsed}
+            </span>
+          )}
+        </div>
+        <h2 className="heading mt-3 text-[clamp(2.4rem,2rem+2.4vw,3.4rem)] leading-[1.02]">{unit.name}</h2>
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[16px] text-ink-soft">
+          <span className="inline-flex items-center gap-1.5">
+            <BedDouble size={18} strokeWidth={1.6} /> {unit.bedrooms} {unit.bedrooms === 1 ? 'recámara' : 'recámaras'}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Bath size={18} strokeWidth={1.6} /> {unit.baths} {unit.baths === 1 ? 'baño' : 'baños'}
+          </span>
+          {guest && (
+            <span className="inline-flex items-center gap-1.5">
+              <Users size={18} strokeWidth={1.6} /> {guest.guests} {guest.guests === 1 ? 'huésped' : 'huéspedes'}
+            </span>
+          )}
+        </div>
+
+        {/* Reloj de llegada */}
+        <div className={cx('mt-5 rounded-[20px] p-4', urgency === 'late' || urgency === 'hot' ? 'bg-[color-mix(in_oklab,var(--danger)_10%,var(--surface))]' : urgency === 'warm' ? 'bg-[color-mix(in_oklab,var(--warning)_12%,var(--surface))]' : 'bg-sunken')}>
+          <p className={cx('text-[17px] font-semibold leading-snug', urgency === 'late' || urgency === 'hot' ? 'text-danger' : urgency === 'warm' ? 'text-warning' : 'text-ink')}>{arrivalLine(guest)}</p>
+          {guest && <p className="mt-0.5 text-[15px] text-ink-soft">{today_ || hours < 24 ? timeLeft : `${guest.guestName}`}</p>}
+          {guest && (
+            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--ink)_8%,transparent)]" role="img" aria-label={`Tiempo para la llegada: ${timeLeft}`}>
+              <div className={cx('h-full rounded-full transition-[width] duration-700', urgency === 'late' || urgency === 'hot' ? 'bg-danger' : urgency === 'warm' ? 'bg-warning' : 'bg-success')} style={{ width: `${Math.max(4, fill * 100)}%` }} />
+            </div>
+          )}
+        </div>
+
+        {task.notes && <p className="mt-4 rounded-[16px] bg-[color-mix(in_oklab,var(--warning)_10%,var(--surface))] p-3.5 text-[15px] leading-snug text-warning">“{task.notes}”</p>}
+
+        {total > 0 && (
+          <div className="mt-5">
+            <div className="mb-2 flex items-baseline justify-between text-[15px]">
+              <span className="text-ink-soft">Avance</span>
+              <span className="font-semibold tabular">
+                {done} de {total}
+              </span>
+            </div>
+            <div className="flex gap-1" aria-hidden>
+              {task.checklist.map((c) => (
+                <span key={c.id} className={cx('h-2 flex-1 rounded-full', c.done ? 'bg-primary' : 'bg-sunken')} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="px-5 pb-5 md:px-6 md:pb-6">
+        {working ? (
+          <Button size="lg" variant="tinta" className="!h-16 w-full text-[17px]" onClick={onGo}>
+            Seguir limpiando {unit.name}
+          </Button>
+        ) : (
+          <SlideToConfirm label="Desliza para empezar" onConfirm={onGo} />
+        )}
+      </div>
+    </Card>
+  )
+}
+
+function BigTile({ icon, label, tone, onClick }: { icon: React.ReactNode; label: string; tone: 'rose' | 'butter' | 'sage'; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="card pressable flex min-h-[112px] flex-col items-center justify-center gap-2.5 p-3 text-center">
+      <span className={cx('flex h-12 w-12 items-center justify-center rounded-2xl', tone === 'rose' ? 'bg-rose-soft text-rose-ink' : tone === 'butter' ? 'bg-butter-soft text-butter-ink' : 'bg-sage-soft text-sage-ink')}>{icon}</span>
+      <span className="text-[15px] leading-tight font-semibold">{label}</span>
+    </button>
+  )
+}
+
+/** Avisar que falta material: un toque por cosa, se crea la compra para administración */
+function SupplySheet({ open, onClose, unit }: { open: boolean; onClose: () => void; unit?: Unit }) {
+  const me = useMe()
+  const [picked, setPicked] = useState<string[]>([])
+  useEffect(() => {
+    if (open) setPicked([])
+  }, [open])
+  const send = () => {
+    if (!picked.length) return
+    db.upsert('tasks', {
+      id: uid('t_'),
+      title: `Falta material${unit ? ` · ${unit.name}` : ''}`,
+      type: 'compra',
+      status: 'pendiente',
+      priority: 'alta',
+      checklist: picked.map((p) => ({ id: uid('chk_'), text: p, done: false })),
+      photoIds: [],
+      unitId: unit?.id,
+      createdById: me?.id,
+      notes: `Lo pidió ${me?.name ?? 'limpieza'}`,
+    })
+    haptic.success()
+    toast.success('Aviso enviado', `${picked.length} ${picked.length === 1 ? 'cosa' : 'cosas'} para comprar`)
+    onClose()
+  }
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="¿Qué falta?"
+      subtitle="Toca lo que se terminó y avisamos a administración"
+      footer={
+        <Button size="lg" className="w-full" disabled={!picked.length} onClick={send}>
+          {picked.length ? `Avisar (${picked.length})` : 'Elige lo que falta'}
+        </Button>
+      }
+    >
+      <div className="grid grid-cols-2 gap-2.5">
+        {SUPPLIES.map((s) => {
+          const on = picked.includes(s)
+          return (
+            <button key={s} onClick={() => setPicked((p) => (on ? p.filter((x) => x !== s) : [...p, s]))} aria-pressed={on} className={cx('pressable flex min-h-16 items-center gap-3 rounded-[18px] px-4 text-left text-[16px] font-medium', on ? 'bg-primary text-on-primary' : 'bg-surface ring-1 ring-line-strong ring-inset')}>
+              <span className={cx('flex h-6 w-6 shrink-0 items-center justify-center rounded-md', on ? 'bg-on-primary/20' : 'ring-[1.5px] ring-line-strong ring-inset')}>{on && <Check size={16} strokeWidth={2.4} />}</span>
+              {s}
+            </button>
+          )
+        })}
+      </div>
+    </Sheet>
   )
 }

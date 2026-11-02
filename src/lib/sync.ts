@@ -12,7 +12,7 @@
 import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
-import { onLocalChange, useStore } from './store'
+import { emptyData, onLocalChange, useStore } from './store'
 import type { CollectionName, Collections, Photo, Role } from './types'
 import { COLLECTIONS } from './types'
 
@@ -102,6 +102,17 @@ export async function connectCloud(url: string, anonKey: string, email: string, 
   const { data: profile, error: pErr } = await sb.from('profiles').select('role, employee_id').maybeSingle()
   if (pErr || !profile) throw new Error('La cuenta no tiene rol asignado. Agrégala a la tabla "profiles".')
   log('info', `Dispositivo vinculado como ${profile.role}`)
+  // Primer vínculo de este dispositivo: si la nube ya tiene datos, se usan esos y se descartan los de ejemplo
+  // de este equipo (si no, aparecerían casas, eventos y personas duplicadas)
+  if (!localStorage.getItem(LAST_PULL_KEY)) {
+    const { count } = await sb.from('documents').select('id', { count: 'exact', head: true })
+    if (count && count > 0) {
+      useStore.getState().replaceAll(emptyData())
+      useStore.getState().clearDirty(Object.keys(useStore.getState().dirty))
+      useStore.getState().logout()
+      log('info', `La nube ya tiene ${count} registros: este dispositivo usará esos`)
+    }
+  }
   restartSync()
   return profile as { role: string; employee_id: string | null }
 }
@@ -185,6 +196,8 @@ export async function push(): Promise<void> {
     for (let i = 0; i < keys.length; i += 200) {
       const batch = keys.slice(i, i + 200)
       const rows: { collection: string; id: string; data: unknown; deleted: boolean; updated_at: string }[] = []
+      // Versión que se envió de cada documento: si alguien lo edita mientras se sube, no se borra su marca
+      const sentVersion = new Map<string, string>()
       for (const k of batch) {
         const sep = k.indexOf(':')
         const col = k.slice(0, sep) as CollectionName
@@ -196,6 +209,7 @@ export async function push(): Promise<void> {
           const { dataUrl: _omit, ...rest } = p
           doc = rest as Photo
         }
+        sentVersion.set(k, doc.updatedAt)
         rows.push({ collection: col, id, data: doc, deleted: !!doc.deleted, updated_at: doc.updatedAt })
       }
       if (rows.length) {
@@ -213,13 +227,22 @@ export async function push(): Promise<void> {
         }
       }
       sent += rows.length
-      useStore.getState().clearDirty(batch)
+      const now = useStore.getState().data
+      useStore.getState().clearDirty(
+        batch.filter((k) => {
+          const sep = k.indexOf(':')
+          const cur = now[k.slice(0, sep) as CollectionName]?.[k.slice(sep + 1)] as { updatedAt?: string } | undefined
+          // Se limpia si no cambió desde que se envió (o ya no existe); si cambió, se sube en la siguiente vuelta
+          return !cur || !sentVersion.has(k) || cur.updatedAt === sentVersion.get(k)
+        }),
+      )
     }
     attempt = 0
     clearTimeout(retryTimer)
     const now = new Date().toISOString()
     setSync({ status: 'idle', lastPushAt: now, lastSyncAt: now, error: undefined, nextRetryAt: undefined, pushed: useStore.getState().sync.pushed + sent, rejected: [...rejected].slice(-50) })
     if (sent) log('info', `Subidos ${sent} cambios`)
+    if (Object.keys(useStore.getState().dirty).length) setTimeout(() => void push(), 400)
   } catch (e: any) {
     const msg = e?.message || String(e)
     setSync({ status: 'error', error: msg })
@@ -334,9 +357,11 @@ async function bootEngine(isDisposed: () => boolean, onChannel: (c: RealtimeChan
   presenceChannel
     .on('presence', { event: 'sync' }, () => {
       const state = presenceChannel!.presenceState<PresenceUser>()
-      const users = Object.values(state)
+      const all = Object.values(state)
         .map((arr) => arr[0])
         .filter(Boolean) as PresenceUser[]
+      // La misma persona abierta en dos dispositivos cuenta una sola vez
+      const users = [...new Map(all.map((u) => [u.userId, u])).values()]
       usePresence.setState({ users })
     })
     .subscribe((status) => {

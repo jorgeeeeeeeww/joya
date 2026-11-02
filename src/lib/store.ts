@@ -10,6 +10,7 @@ import type { AppNotification, AuditEntry, BaseDoc, CollectionName, Collections,
 import { COLLECTIONS } from './types'
 import { nowIso, today, uid } from './format'
 import { hashPin } from './crypto'
+import { logError } from './errorLog'
 import { runAutomations, type AutomationApi } from './automations'
 
 const KEY_COL = 'lajoya:v2:col:'
@@ -253,7 +254,8 @@ export const useStore = create<StoreState>()((set, get) => {
       COLLECTIONS.forEach((c, i) => {
         if (cols[i]) (data as any)[c] = cols[i]
       })
-      if (!Object.keys(data.employees).length) {
+      // Un dispositivo vinculado a la nube nunca inventa datos de ejemplo: espera a bajar los reales
+      if (!Object.keys(data.employees).length && !settings?.supabaseUrl) {
         // Migración desde el formato v1 (un solo bloque) o datos de demostración
         const v1 = await idbGet<DataState>(KEY_V1_DATA)
         if (v1 && Object.keys(v1.employees || {}).length) {
@@ -270,6 +272,8 @@ export const useStore = create<StoreState>()((set, get) => {
       const idleMin = (Date.now() - (s.lastActive || 0)) / 60000
       if (s.userId && mergedSettings.autoLockMinutes && idleMin > mergedSettings.autoLockMinutes) s.locked = true
       set({ data, settings: mergedSettings, session: s, dirty: dirty ?? {}, ready: true })
+      // Marca para medir el arranque (Rendimiento en las herramientas del navegador)
+      performance.mark?.('la-joya:datos-listos')
       void dailySnapshot(data)
     },
 
@@ -407,7 +411,11 @@ export const useStore = create<StoreState>()((set, get) => {
 
     setSync: (sync) => set((s) => ({ sync: { ...s.sync, ...sync } })),
 
-    syncLog: (level, msg) => set((s) => ({ sync: { ...s.sync, log: [{ at: nowIso(), level, msg }, ...s.sync.log].slice(0, 40) } })),
+    syncLog: (level, msg) => {
+      // Los errores de sincronización también quedan en la bitácora del dispositivo (panel de desarrollador)
+      if (level === 'error') logError('sync', msg)
+      set((s) => ({ sync: { ...s.sync, log: [{ at: nowIso(), level, msg }, ...s.sync.log].slice(0, 40) } }))
+    },
 
     log: (action, collection, summary, docId) => {
       const id = uid('aud_')
@@ -478,6 +486,8 @@ export async function restoreSnapshot(key: string) {
 }
 
 export async function resetDemo() {
+  // Con la nube conectada, los datos de ejemplo se subirían como si fueran reales: no se permite
+  if (useStore.getState().settings.supabaseUrl) throw new Error('Este dispositivo está conectado a la nube. Desvincúlalo antes de cargar datos de demostración.')
   const { createSeed } = await import('./seed')
   useStore.getState().replaceAll(createSeed())
 }

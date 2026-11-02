@@ -155,37 +155,49 @@
   --info:    light-dark(#2F5A61, #9CC2BD);
 }
 
-/* FLOR — florero: rosa polvo, terracota, borgoña, verde oliva */
+/* FLOR — versión formal para La Joya: marfil, piedra, salvia, azul gris y arena.
+   Pastel sobrio de negocio; un solo acento terracota apagado para lo que más importa.
+   Claro: marfil que no encandila de noche. Oscuro: grafito cálido con pasteles suaves. */
 [data-atmos="flor"] {
-  --paper:          light-dark(#F6EAE3, #24161A);
-  --surface:        light-dark(#FCF6F1, #2F1D22);
-  --sunken:         light-dark(#EEDBD0, #1C1114);
-  --ink:            light-dark(#43222A, #F4E2D6);
-  --ink-soft:       light-dark(#74484E, #C9ABA8);
-  --primary:        light-dark(#8A4649, #E7B5A4);
-  --primary-hover:  light-dark(#743A3E, #F0C6B7);
-  --on-primary:     light-dark(#F8E8DA, #24161A);
-  --secondary:      light-dark(#EBD2CB, #3E2A2E);
-  --matiz:          light-dark(#D49F8D, #8C8B63);
-  --matiz-ink:      light-dark(#7F473A, #BDBD94);
-  --olive:          light-dark(#6B6A4B, #A7A77E);
-  --chispa:         light-dark(#B04D3D, #F0A08E);
-  --chispa-soft:    light-dark(#D98474, #C07A6C);
-  --on-chispa:      light-dark(#FBEFDF, #24161A);
-  --luz:            light-dark(#F3D8BC, #F3D8BC);
-  --night:          light-dark(#24161A, #150C0E);
-  --on-night:       #F4E2D6;
-  --on-night-soft:  #C9ABA8;
-  --horizon:        light-dark(#8A4649, #0E0708);
-  --shade:          light-dark(#43222A, #080304);
-  --sky-1: light-dark(#B66F6A, #24161A);
-  --sky-2: light-dark(#D49F8D, #3A2227);
-  --sky-3: light-dark(#E2AF9A, #5A3336);
-  --sky-4: light-dark(#F3D2B4, #7A4A45);
-  --success: light-dark(#4C5E42, #A5BC95);
-  --warning: light-dark(#825718, #E6B77A);
-  --danger:  light-dark(#963636, #EE9A92);
-  --info:    light-dark(#5A5E80, #B4B7D6);
+  --paper:          light-dark(#ECE8E1, #1B1D21);
+  --surface:        light-dark(#F5F2EC, #24272C);
+  --sunken:         light-dark(#E0DBD2, #141619);
+  --ink:            light-dark(#2A2B30, #ECE8E1);
+  --ink-soft:       light-dark(#5B5C64, #B6B3AD);
+  --primary:        light-dark(#46525E, #C8D1D9);
+  --primary-hover:  light-dark(#3A4550, #DAE1E7);
+  --on-primary:     light-dark(#F5F2EC, #1B1D21);
+  --secondary:      light-dark(#DADBD3, #2E3238);
+  --matiz:          light-dark(#9FAE9A, #8E9F8A);
+  --matiz-ink:      light-dark(#4F5C4B, #BDCAB7);
+  --olive:          light-dark(#686B55, #A8AB8E);
+  --chispa:         light-dark(#965A46, #DDA58E);
+  --chispa-soft:    light-dark(#C9A190, #B38E7E);
+  --on-chispa:      light-dark(#F8F1EA, #1B1D21);
+  --luz:            light-dark(#EADBC2, #EADCC4);
+  --night:          light-dark(#25282E, #111316);
+  --on-night:       #EEEAE3;
+  --on-night-soft:  #B4B2B4;
+  --horizon:        light-dark(#46525E, #0B0C0F);
+  --shade:          light-dark(#2A2B30, #030405);
+  --sky-1: light-dark(#7A8592, #1B1D21);
+  --sky-2: light-dark(#A2A8AE, #272B32);
+  --sky-3: light-dark(#C7C1B4, #3A414A);
+  --sky-4: light-dark(#E4D9C6, #5B6470);
+  --success: light-dark(#4B6350, #A0BB9C);
+  --warning: light-dark(#76592A, #DDBC88);
+  --danger:  light-dark(#8A3F3A, #E39E95);
+  --info:    light-dark(#46525E, #B3C0CD);
+}
+
+/* Colores de datos y etiquetas más apagados en la atmósfera formal (más específico que la base de abajo) */
+:root[data-atmos="flor"] {
+  --data-1: light-dark(#6E7B8B, #A9B5C6);
+  --data-2: light-dark(#B49796, #D7B5B3);
+  --data-3: light-dark(#BFA06E, #DCC293);
+  --data-4: light-dark(#5E7D79, #96B5B1);
+  --data-5: light-dark(#998FA4, #C2B9D0);
+  --data-6: light-dark(#83826A, #B4B394);
 }
 
 /* NOCTURNO — montañas bajo la luna: pizarra, azul noche, lavanda, luna crema */

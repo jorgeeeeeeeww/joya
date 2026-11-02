@@ -433,7 +433,7 @@ function ListView({ events, money, showMoney, onOpen }: { events: RanchEvent[]; 
           })}
         />
       </div>
-      {list.length === 0 && <Empty title="Sin eventos aquí" body="Cambia los filtros o crea un evento nuevo." />}
+      {list.length === 0 && <Empty kind="evento" title="Sin eventos aquí" body="Cambia los filtros o crea un evento nuevo." />}
       <div className="flex flex-col gap-7">
         {Array.from(groups.entries()).map(([ym, evs]) => (
           <section key={ym}>

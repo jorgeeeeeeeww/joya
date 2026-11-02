@@ -94,7 +94,7 @@ export function SeatingView({ ev, onChange }: { ev: RanchEvent; onChange: (next:
   if (!tables.length)
     return (
       <Card>
-        <Empty title="Este evento aún no tiene mesas" body="Dibuja el plano en el evento (pestaña Plano de mesas) o elige una plantilla, y aquí podrás sentar a cada invitado." />
+        <Empty kind="mesas" title="Este evento aún no tiene mesas" body="Dibuja el plano en el evento (pestaña Plano de mesas) o elige una plantilla, y aquí podrás sentar a cada invitado." />
       </Card>
     )
 

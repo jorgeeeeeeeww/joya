@@ -7,6 +7,9 @@ import { AlertTriangle, ArrowLeft, ArrowRight, Check, Clock, Home, Trees, Users,
 import type { EventType, LeadSource, RanchEvent, Venue } from '@/lib/types'
 import { db, useCollection, useMe, useStore } from '@/lib/store'
 import { EVENT_TYPE, LEAD_SOURCE, VENUE, seesMoney } from '@/lib/meta'
+import { priceOf, usePackagePrices } from '@/lib/packages'
+import { defaultModules, type EventModule } from '@/lib/modules'
+import { ModulesPicker } from './ModulesPicker'
 import { DEFAULT_TIMELINE, EVENT_PACKAGES, eventChecklist } from '@/lib/templates'
 import { autoLayout } from '@/lib/floorplan'
 import { addDaysISO, fmtDateLong, mxn, today, uid } from '@/lib/format'
@@ -42,6 +45,9 @@ export function NewEventSheet({ open, onClose, initialDate, initialVenue, asLead
   const [coordinatorId, setCoordinator] = useState<string>('')
   const [leadSource, setLeadSource] = useState<LeadSource>('whatsapp')
   const [budget, setBudget] = useState(0)
+  // Qué partes usará el evento; cambia con el tipo hasta que la persona toque algún interruptor
+  const [modsTouched, setModsTouched] = useState<Partial<Record<EventModule, boolean>>>({})
+  const mods = { ...defaultModules(type), ...modsTouched }
 
   useEffect(() => {
     if (open) {
@@ -54,6 +60,7 @@ export function NewEventSheet({ open, onClose, initialDate, initialVenue, asLead
       setTitle('')
       setNotes('')
       setBudget(0)
+      setModsTouched({})
     }
   }, [open, initialDate, initialVenue])
 
@@ -69,7 +76,10 @@ export function NewEventSheet({ open, onClose, initialDate, initialVenue, asLead
   const pkg = EVENT_PACKAGES.find((p) => p.id === packageId)!
   const coordinators = employees.filter((e) => e.active && (e.role === 'eventos' || e.role === 'admin'))
   const autoTitle = `${EVENT_TYPE[type].label}${clientName ? ' de ' + clientName.split(' ')[0] : ''}`
-  const estimate = pkg.perPerson * guests
+  const prices = usePackagePrices()
+  const price = priceOf(prices, packageId)
+  // Solo hay estimado si el rancho ya puso el precio de ese paquete
+  const estimate = price !== undefined ? price * guests : undefined
   const tables = Math.ceil(guests / 10)
 
   const go = (to: number) => {
@@ -100,7 +110,8 @@ export function NewEventSheet({ open, onClose, initialDate, initialVenue, asLead
       phone: phone || undefined,
       status: 'prospecto',
       packageId,
-      lineItems: [{ id: uid('li_'), concept: `Paquete ${pkg.name}`, category: 'Paquete', qty: guests, price: pkg.perPerson }],
+      modules: modsTouched,
+      lineItems: [{ id: uid('li_'), concept: `Paquete ${pkg.name}`, category: 'Paquete', qty: guests, price: price ?? 0 }],
       discount: 0,
       includeIva: false,
       layout: autoLayout(venue, guests, type === 'empresarial' ? 'imperial' : 'banquete'),
@@ -137,7 +148,7 @@ export function NewEventSheet({ open, onClose, initialDate, initialVenue, asLead
         <span className="flex items-center gap-1.5 text-ink-soft">
           <Users size={14} strokeWidth={1.6} /> {guests} · {tables} mesas
         </span>
-        {showMoney && (
+        {showMoney && estimate !== undefined && (
           <span className="flex items-center gap-1.5 font-medium tabular">
             <Wallet size={14} strokeWidth={1.6} className="text-ink-soft" /> {mxn(estimate)}
           </span>
@@ -152,7 +163,7 @@ export function NewEventSheet({ open, onClose, initialDate, initialVenue, asLead
       open={open}
       onClose={onClose}
       title={asLead ? 'Nuevo prospecto' : 'Nuevo evento'}
-      subtitle="Se crea con cotización, plano, programa y checklist listos"
+      subtitle="En 3 pasos. Se crea con lo que elijas listo: cotización, plano, programa y pendientes"
       wide
       footer={
         <div className="flex items-center justify-between gap-3">
@@ -165,7 +176,7 @@ export function NewEventSheet({ open, onClose, initialDate, initialVenue, asLead
               Cancelar
             </Button>
           )}
-          {showMoney && <span className="hidden text-sm text-ink-soft sm:inline">Estimado <span className="text-ink tabular">{mxn(estimate)}</span> · IVA {ivaPercent}% opcional</span>}
+          {showMoney && estimate !== undefined && <span className="hidden text-sm text-ink-soft sm:inline">Estimado <span className="text-ink tabular">{mxn(estimate)}</span> · IVA {ivaPercent}% opcional</span>}
           {step < STEPS.length - 1 ? (
             <Button onClick={() => go(step + 1)} iconRight={<ArrowRight size={17} strokeWidth={1.6} />}>
               Siguiente
@@ -243,13 +254,19 @@ export function NewEventSheet({ open, onClose, initialDate, initialVenue, asLead
                         <button key={p.id} role="radio" aria-checked={packageId === p.id} onClick={() => setPackage(p.id)} className={cx('pressable rounded-[14px] p-3.5 text-left ring-inset', packageId === p.id ? 'bg-[color-mix(in_oklab,var(--primary)_8%,var(--surface))] ring-[1.5px] ring-primary' : 'ring-1 ring-line hover:bg-wash')}>
                           <div className="flex items-baseline justify-between gap-2">
                             <span className="text-[15px] font-semibold">{p.name}</span>
-                            {showMoney && <span className="text-xs tabular">{mxn(p.perPerson)}/pers.</span>}
+                            {showMoney && priceOf(prices, p.id) !== undefined && <span className="text-xs tabular">{mxn(priceOf(prices, p.id)!)}/pers.</span>}
                           </div>
                           <p className="mt-1 text-xs text-ink-soft">{p.description}</p>
-                          {showMoney && <p className="mt-2 text-[13px] font-medium tabular">{mxn(p.perPerson * guests)}</p>}
+                          {showMoney && priceOf(prices, p.id) !== undefined && <p className="mt-2 text-[13px] font-medium tabular">{mxn(priceOf(prices, p.id)! * guests)}</p>}
                         </button>
                       ))}
                     </div>
+                    {showMoney && price === undefined && <p className="mt-2 text-xs text-ink-soft">Este paquete aún no tiene precio. Ponlo en Ajustes → Rancho → Paquetes y precios; mientras, la cotización queda en blanco para llenarla a mano.</p>}
+                  </div>
+                  <div>
+                    <span className="mb-1 block text-[13px] font-medium">¿Qué vas a usar en este evento?</span>
+                    <p className="mb-2.5 text-xs text-ink-soft">Viene listo según el tipo de evento. Apaga lo que no necesites; lo puedes cambiar después.</p>
+                    <ModulesPicker value={mods} showMoney={showMoney} onChange={(m, on) => setModsTouched((x) => ({ ...x, [m]: on }))} />
                   </div>
                   <NotesField label="Notas" value={notes} onChange={setNotes} placeholder="Temática, colores, peticiones especiales…" templates={['Quiere visitar el rancho', 'Ceremonia en el jardín', 'Barra libre', 'Menú infantil']} minRows={2} />
                 </>

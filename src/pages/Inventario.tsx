@@ -72,7 +72,7 @@ function ItemSheet({ item, open, onClose, initialBarcode }: { item?: InventoryIt
         <div className="flex flex-col gap-4">
           <TextField label="Nombre" value={form.name ?? ''} onChange={(v) => set({ name: v })} placeholder="Ej. Toallas de baño" required requiredMsg="Escribe cómo se llama el artículo" />
           <Choices label="Categoría" size="sm" value={form.category} onChange={(v) => set({ category: v })} options={(Object.keys(INVENTORY_CATEGORY) as InventoryCategory[]).map((k) => ({ value: k, label: INVENTORY_CATEGORY[k].label, tone: INVENTORY_CATEGORY[k].tone }))} />
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @xl:grid-cols-2">
             <Stepper label="Existencia" value={form.stock ?? 0} onChange={(v) => set({ stock: v })} unit={form.unit} />
             <Stepper label="Mínimo" value={form.min ?? 0} onChange={(v) => set({ min: v })} unit="se avisa al bajar de aquí" />
             <Combobox label="Unidad" value={form.unit ?? ''} onChange={(v) => set({ unit: v || 'pza' })} options={units.map((u) => ({ value: u, label: u }))} onCreate={(q) => q.toLowerCase()} createLabel={(q) => `Usar «${q}»`} />
@@ -180,7 +180,7 @@ export default function Inventario() {
         </div>
       </div>
 
-      {list.length === 0 && <Empty title="Sin artículos aquí" body={q ? `Nada coincide con “${q}”.` : 'Agrega tu primer artículo para empezar a llevar el control.'} />}
+      {list.length === 0 && <Empty kind="inventario" title="Sin artículos aquí" body={q ? `Nada coincide con “${q}”.` : 'Agrega tu primer artículo para empezar a llevar el control.'} />}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <AnimatePresence initial={false}>
           {list.map((i) => {

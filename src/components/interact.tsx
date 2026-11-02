@@ -567,3 +567,72 @@ export function SortableList<T>({ items, getId, onReorder, renderItem, className
     </Reorder.Group>
   )
 }
+
+// ── Deslizar para confirmar ──────────────────────────────
+/**
+ * Botón grande que se confirma deslizando la luz hasta el final (evita toques accidentales con guantes).
+ * Con teclado o lector de pantalla funciona como un botón normal (Enter o Espacio).
+ */
+export function SlideToConfirm({ label, onConfirm, className, tone = 'tinta' }: { label: string; onConfirm: () => void; className?: string; tone?: 'tinta' | 'luz' }) {
+  const track = useRef<HTMLDivElement>(null)
+  const x = useMotionValue(0)
+  const [max, setMax] = useState(200)
+  const drag = useRef<{ x0: number; id: number } | null>(null)
+  const fill = useTransform(x, (v) => v + 56)
+  const labelOpacity = useTransform(x, (v) => 1 - Math.min(1, v / Math.max(1, max * 0.6)))
+  useLayoutEffect(() => {
+    const el = track.current
+    if (!el) return
+    const measure = () => setMax(Math.max(80, el.offsetWidth - 64))
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const done = () => {
+    haptic.success()
+    animate(x, max, { duration: 0.18 })
+    setTimeout(() => {
+      onConfirm()
+      animate(x, 0, { duration: 0.42, ease: ease.calma })
+    }, 160)
+  }
+  const night = tone === 'tinta'
+  return (
+    <div ref={track} className={cx('relative h-16 w-full select-none overflow-hidden rounded-full', night ? 'bg-ink text-paper' : 'bg-luz text-[color:var(--ink-base,var(--ink))]', className)}>
+      <motion.span aria-hidden style={{ width: fill }} className={cx('absolute inset-y-0 left-0 rounded-full', night ? 'bg-[color-mix(in_oklab,var(--luz)_22%,transparent)]' : 'bg-[color-mix(in_oklab,var(--ink)_10%,transparent)]')} />
+      <motion.span aria-hidden style={{ opacity: labelOpacity }} className="pointer-events-none absolute inset-0 flex items-center justify-center pr-2 pl-16 text-[16px] font-semibold">
+        {label} →
+      </motion.span>
+      <motion.button
+        type="button"
+        aria-label={label}
+        style={{ x }}
+        onClick={(e) => {
+          // Clic sin arrastre (mouse, teclado o lector): confirma igual
+          if (e.detail === 0 || x.get() < 4) done()
+        }}
+        onPointerDown={(e) => {
+          drag.current = { x0: e.clientX - x.get(), id: e.pointerId }
+          ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+        }}
+        onPointerMove={(e) => {
+          if (!drag.current) return
+          x.set(Math.max(0, Math.min(max, e.clientX - drag.current.x0)))
+        }}
+        onPointerUp={() => {
+          if (!drag.current) return
+          drag.current = null
+          if (x.get() > max * 0.82) done()
+          else animate(x, 0, { duration: 0.42, ease: ease.calma })
+        }}
+        onPointerCancel={() => ((drag.current = null), animate(x, 0, { duration: 0.3 }))}
+        className="absolute top-1.5 left-1.5 flex h-[52px] w-[52px] touch-none items-center justify-center rounded-full bg-luz text-night shadow-[0_0_22px_-2px_color-mix(in_oklab,var(--luz)_80%,transparent)]"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </motion.button>
+    </div>
+  )
+}

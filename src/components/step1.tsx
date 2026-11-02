@@ -118,7 +118,7 @@ export function LightDots({ className = '' }: { className?: string }) {
 }
 
 // ── Losa noche: hero de los paneles (luz + estrellas + horizonte) ──
-export function NightSlab({ children, className = '', stars = true, luz = true, horizon = true, luzSize = 'clamp(48px, 11vw, 150px)', luzClassName = 'absolute top-[3%] right-[5%] md:top-[12%] md:right-[7%]' }: { children: ReactNode; className?: string; stars?: boolean; luz?: boolean; horizon?: boolean; luzSize?: string; luzClassName?: string }) {
+export function NightSlab({ children, className = '', stars = true, luz = true, horizon = true, scene, luzSize = 'clamp(48px, 11vw, 150px)', luzClassName = 'absolute top-[3%] right-[5%] md:top-[12%] md:right-[7%]' }: { children: ReactNode; className?: string; stars?: boolean; luz?: boolean; horizon?: boolean; /** Escena ilustrada del panel (en lugar del horizonte genérico) */ scene?: ReactNode; luzSize?: string; luzClassName?: string }) {
   return (
     <section
       className={`losa--noche grain relative isolate overflow-hidden rounded-[var(--r-slab)] ${className}`}
@@ -126,19 +126,19 @@ export function NightSlab({ children, className = '', stars = true, luz = true, 
     >
       {stars && <Stars />}
       {luz && <Luz size={luzSize} className={luzClassName} />}
-      {horizon && <Horizon tonos={NIGHT_TONES} className="absolute inset-x-0 bottom-0 h-[38%] opacity-90" />}
+      {horizon && (scene ? <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(30%,150px)] opacity-95 sm:h-[min(40%,210px)] lg:h-[46%]">{scene}</div> : <Horizon tonos={NIGHT_TONES} className="absolute inset-x-0 bottom-0 h-[38%] opacity-90" />)}
       <div className="relative z-[2]">{children}</div>
     </section>
   )
 }
 
 // ── Cielo: bloque superior que se funde con el papel (onboarding / panel móvil) ──
-export function SkyBlock({ height = 'clamp(150px, 26vh, 240px)', className = '', luzSize = 'clamp(64px, 18vw, 104px)', children }: { height?: string; className?: string; luzSize?: string; children?: ReactNode }) {
+export function SkyBlock({ height = 'clamp(150px, 26vh, 240px)', className = '', luzSize = 'clamp(64px, 18vw, 104px)', scene, children }: { height?: string; className?: string; luzSize?: string; scene?: ReactNode; children?: ReactNode }) {
   return (
     <div className={`relative isolate overflow-hidden ${className}`} style={{ height }}>
       <div className="bg-cielo absolute inset-0" />
       <Luz size={luzSize} className="absolute top-[18%] left-1/2 -translate-x-1/2" />
-      <Horizon variante="nubes" tonos={PAPER_TONES} drift className="absolute inset-x-0 bottom-[-2px] h-[62%]" />
+      {scene ? <div aria-hidden="true" className="absolute inset-x-0 bottom-[-2px] h-[72%]">{scene}</div> : <Horizon variante="nubes" tonos={PAPER_TONES} drift className="absolute inset-x-0 bottom-[-2px] h-[62%]" />}
       {children && <div className="relative z-[2] h-full">{children}</div>}
     </div>
   )

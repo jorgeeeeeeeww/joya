@@ -93,3 +93,18 @@ Lo que no cambia de step1: papel cálido, paleta Flor, una sola Luz por vista, l
 | Red de seguridad | `src/components/ErrorBoundary.tsx` | Si una pantalla falla, aviso tranquilo y reintentar |
 
 Reglas: una acción principal por vista (`PageHeader primary`, que en el celular es el botón flotante) y lo demás en el menú "…". Opciones de 6 o menos como pills o tarjetas; listas largas con buscador. Lo que se edita en vivo se guarda solo.
+
+## Reglas móviles (iOS HIG + Material 3)
+
+Toda pantalla se revisa a 375 px de ancho antes de entregarse.
+
+| Regla | Cómo se aplica en La Joya |
+|---|---|
+| Rejilla de 8 | Margen lateral de 16 px; espacios de 8, 16 y 24 px. |
+| Renglones de lista | Ícono de 40 px · título (15–17 px) y texto de apoyo (13–14 px) · acciones al final, siempre en el mismo lugar. Nunca botones que bajan a otra fila. |
+| Filtros | De 2 a 4 opciones: control segmentado con celdas iguales (cifra arriba, nombre abajo). Más de 4: buscador o lista. |
+| Áreas táctiles | 44 px mínimo (iOS) y 48 px en acciones principales. |
+| Formularios | Una sola columna en celular; en hojas se usa `@xl:grid-cols-2` (columnas según el ancho de la hoja, no de la pantalla). El valor de un campo va en una línea. |
+| Texto | Nunca «…»: si no cabe, baja de línea (`.truncate` envuelve en toda la app; solo las barras del calendario usan `.keep-truncate`). |
+| Desplazamiento | Nada se mueve de lado; sin carruseles que dejen tarjetas a medias en la orilla. |
+| Acción principal | Una por vista: botón flotante en celular, botón en el encabezado en PC. |

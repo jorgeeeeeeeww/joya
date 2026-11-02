@@ -136,7 +136,7 @@ export function GuestsTab({ ev }: { ev: RanchEvent }) {
 
       {guests.length === 0 ? (
         <Card>
-          <Empty title="Aún no hay invitados" body="Agrégalos uno por uno o pega la lista que te mandó la clienta." action={<Button icon={<ClipboardPaste size={18} strokeWidth={1.6} />} onClick={() => setImportOpen(true)}>Pegar lista</Button>} />
+          <Empty kind="invitados" title="Aún no hay invitados" body="Agrégalos uno por uno o pega la lista que te mandó la clienta." action={<Button icon={<ClipboardPaste size={18} strokeWidth={1.6} />} onClick={() => setImportOpen(true)}>Pegar lista</Button>} />
         </Card>
       ) : (
         <Card className="divide-y divide-line overflow-hidden">
@@ -330,7 +330,7 @@ export function TimelineTab({ ev }: { ev: RanchEvent }) {
             )
           }}
         />
-        {items.length === 0 && <Empty title="Sin actividades" body="Agrega el programa del día para que todo el equipo lo vea." />}
+        {items.length === 0 && <Empty kind="tareas" title="Sin actividades" body="Agrega el programa del día para que todo el equipo lo vea." />}
       </Card>
 
       <div className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
@@ -402,9 +402,9 @@ export function ChecklistTab({ ev }: { ev: RanchEvent }) {
       </Card>
 
       <Card>
-        <CardHeader title="Proveedores rápidos" subtitle={providers.length ? `${providers.filter((p) => p.confirmed).length} de ${providers.length} confirmados` : 'Para los que no están en el directorio'} action={<Button size="sm" variant="secondary" icon={<Plus size={16} strokeWidth={1.6} />} onClick={() => setProvOpen(true)}>Agregar</Button>} />
+        <CardHeader title="Proveedores rápidos" subtitle={providers.length ? `${providers.filter((p) => p.confirmed).length} de ${providers.length} confirmados` : 'Para los que no están en el directorio'} action={<Button size="sm" variant="secondary" icon={<Plus size={16} strokeWidth={1.6} />} onClick={() => setProvOpen(true)}>Agregar proveedor</Button>} />
         <div className="flex flex-col gap-2 p-3 md:p-4">
-          {providers.length === 0 && <Empty title="Sin proveedores" body="Banquete, DJ, decoración, fotografía…" />}
+          {providers.length === 0 && <Empty kind="proveedores" title="Sin proveedores" body="Banquete, DJ, decoración, fotografía…" />}
           {providers.map((p) => (
             <div key={p.id} className="flex items-center gap-3 rounded-[14px] bg-sunken/70 p-3">
               <RoundCheck done={p.confirmed} onClick={() => setProviders(providers.map((x) => (x.id === p.id ? { ...x, confirmed: !x.confirmed } : x)))} label={p.confirmed ? `Quitar confirmación de ${p.name}` : `Confirmar a ${p.name}`} />

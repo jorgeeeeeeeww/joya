@@ -102,6 +102,26 @@ export function ReadyNotice({ unitId, className }: { unitId: ID; className?: str
   )
 }
 
+
+// ── El checklist agrupado por cuartos: menos lectura, se ve qué cuarto falta ──
+const ROOMS: { name: string; words: string[] }[] = [
+  { name: 'Recámaras', words: ['cama', 'blanco', 'toalla', 'almohad'] },
+  { name: 'Baño', words: ['baño', 'regadera', 'papel', 'jabon', 'jabón', 'shampoo', 'wc'] },
+  { name: 'Cocina', words: ['traste', 'cocina', 'refri', 'estufa', 'cafe', 'café'] },
+  { name: 'Sala y pisos', words: ['barrer', 'trapear', 'piso', 'sacudir', 'mueble', 'ventana', 'cancel'] },
+  { name: 'Afuera', words: ['terraza', 'asador', 'basura', 'jardin', 'jardín'] },
+]
+export function roomsOf<T extends { text: string }>(items: T[]) {
+  const groups = new Map<string, T[]>()
+  for (const it of items) {
+    const t = it.text.toLowerCase()
+    const room = ROOMS.find((r) => r.words.some((w) => t.includes(w)))?.name ?? 'Revisión final'
+    groups.set(room, [...(groups.get(room) ?? []), it])
+  }
+  const order = [...ROOMS.map((r) => r.name), 'Revisión final']
+  return order.filter((n) => groups.has(n)).map((name) => ({ name, items: groups.get(name)! }))
+}
+
 export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () => void }) {
   const task = useDoc('tasks', taskId)
   const unit = useDoc('units', task?.unitId)
@@ -242,30 +262,46 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
               </ProgressRing>
               <div>
                 <h3 className="heading text-[1.4rem]">Checklist</h3>
-                <p className="text-sm text-ink-soft">{locked ? 'Limpieza terminada' : 'Desliza a la derecha o toca cada paso al terminarlo'}</p>
+                <p className="text-sm text-ink-soft">{locked ? 'Limpieza terminada' : 'Cuarto por cuarto: toca o desliza cada paso al terminarlo'}</p>
               </div>
             </div>
-            <div className="flex flex-col gap-2">
-              {task.checklist.map((c, i) => (
-                <SwipeRow key={c.id} className="!rounded-[18px]" disabled={locked} hintKey={i === 0 && !c.done ? 'checklist-limpieza' : undefined} left={{ label: c.done ? 'Desmarcar' : 'Hecho', icon: <Check />, tone: c.done ? 'butter' : 'success', onTrigger: () => toggle(c.id) }}>
-                <motion.button
-                  whileTap={locked ? undefined : { scale: 0.98 }}
-                  disabled={locked}
-                  onClick={() => toggle(c.id)}
-                  aria-pressed={c.done}
-                  className={cx(
-                    'flex min-h-[60px] w-full items-center gap-3.5 rounded-[18px] px-4 py-3 text-left text-[15px] transition-colors duration-[var(--dur-3)]',
-                    c.done ? 'bg-secondary text-ink' : 'bg-surface ring-1 ring-line ring-inset hover:bg-wash',
-                    locked && 'cursor-default',
-                  )}
-                >
-                  <span className={cx('flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[8px] transition-colors duration-[var(--dur-3)]', c.done ? 'bg-primary text-on-primary' : 'ring-[1.5px] ring-line-strong ring-inset')}>
-                    <AnimatePresence>{c.done && <CheckDraw size={17} strokeWidth={2.6} />}</AnimatePresence>
-                  </span>
-                  <span className={cx(c.done && 'text-ink-soft line-through decoration-1')}>{c.text}</span>
-                </motion.button>
-                </SwipeRow>
-              ))}
+            <div className="flex flex-col gap-5">
+              {roomsOf(task.checklist).map((room, ri) => {
+                const rDone = room.items.filter((c) => c.done).length
+                return (
+                  <section key={room.name} aria-label={room.name}>
+                    <div className="mb-2 flex items-center gap-2.5">
+                      <span className={cx('flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold', rDone === room.items.length ? 'bg-success text-paper' : 'bg-sunken text-ink-soft')}>{rDone === room.items.length ? <Check size={15} strokeWidth={2.4} /> : rDone}</span>
+                      <h4 className="flex-1 text-[16px] font-semibold">{room.name}</h4>
+                      <span className="text-sm text-ink-soft tabular">
+                        {rDone} de {room.items.length}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {room.items.map((c, i) => (
+                        <SwipeRow key={c.id} className="!rounded-[18px]" disabled={locked} hintKey={i === 0 && ri === 0 && !c.done ? 'checklist-limpieza' : undefined} left={{ label: c.done ? 'Desmarcar' : 'Hecho', icon: <Check />, tone: c.done ? 'butter' : 'success', onTrigger: () => toggle(c.id) }}>
+                          <motion.button
+                            whileTap={locked ? undefined : { scale: 0.98 }}
+                            disabled={locked}
+                            onClick={() => toggle(c.id)}
+                            aria-pressed={c.done}
+                            className={cx(
+                              'flex min-h-[60px] w-full items-center gap-3.5 rounded-[18px] px-4 py-3 text-left text-[16px] transition-colors duration-[var(--dur-3)]',
+                              c.done ? 'bg-secondary text-ink' : 'bg-surface ring-1 ring-line ring-inset hover:bg-wash',
+                              locked && 'cursor-default',
+                            )}
+                          >
+                            <span className={cx('flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-[8px] transition-colors duration-[var(--dur-3)]', c.done ? 'bg-primary text-on-primary' : 'ring-[1.5px] ring-line-strong ring-inset')}>
+                              <AnimatePresence>{c.done && <CheckDraw size={17} strokeWidth={2.6} />}</AnimatePresence>
+                            </span>
+                            <span className={cx(c.done && 'text-ink-soft line-through decoration-1')}>{c.text}</span>
+                          </motion.button>
+                        </SwipeRow>
+                      ))}
+                    </div>
+                  </section>
+                )
+              })}
             </div>
 
             <div className="mt-7">

@@ -30,6 +30,7 @@ const Inventario = lazy(() => import('@/pages/Inventario'))
 const Equipo = lazy(() => import('@/pages/Equipo'))
 const Ajustes = lazy(() => import('@/pages/Ajustes'))
 const Diseno = lazy(() => import('@/pages/Diseno'))
+const Desarrollador = lazy(() => import('@/pages/Desarrollador'))
 
 function PageFallback() {
   return (
@@ -129,6 +130,21 @@ export default function App() {
     if (ready) return startSync()
   }, [ready])
 
+  // Precarga en un momento libre la pantalla más pesada que esta persona usa (mapa 3D o plano de mesas),
+  // salvo con ahorro de datos: así se abre al instante cuando la toquen
+  useEffect(() => {
+    if (!me) return
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
+    if (conn?.saveData || conn?.effectiveType === '2g' || conn?.effectiveType === 'slow-2g') return
+    const run = () => {
+      if (can(me.role, 'mapa')) void import('@/pages/MapPage')
+      if (can(me.role, 'espacios')) void import('@/pages/Espacios')
+    }
+    const idle = 'requestIdleCallback' in window
+    const id = idle ? window.requestIdleCallback(run, { timeout: 8000 }) : window.setTimeout(run, 4000)
+    return () => (idle ? window.cancelIdleCallback(id) : clearTimeout(id))
+  }, [me])
+
   if (!ready)
     return (
       <div className="flex h-dvh flex-col items-center justify-center gap-6">
@@ -168,6 +184,7 @@ export default function App() {
                 <Route path="inventario" element={<Guard section="inventario"><Inventario /></Guard>} />
                 <Route path="equipo" element={<Guard section="equipo"><Equipo /></Guard>} />
                 <Route path="ajustes" element={<Guard section="ajustes"><Ajustes /></Guard>} />
+                <Route path="desarrollador" element={<Guard section="finanzas"><Desarrollador /></Guard>} />
                 <Route path="diseno" element={<Suspense fallback={<PageFallback />}><Diseno /></Suspense>} />
                 <Route path="*" element={<Navigate to={home} replace />} />
               </Route>

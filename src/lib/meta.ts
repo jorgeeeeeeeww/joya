@@ -191,7 +191,8 @@ export const ROLE_SECTIONS: Record<Role, Section[]> = {
   // La Wedding planner no ve el mapa del rancho: solo sus espacios (salón y jardín)
   eventos: ['inicio', 'eventos', 'invitados', 'espacios', 'mensajes', 'tareas', 'proveedores', 'inventario', 'ajustes'],
   recepcion: ['inicio', 'hospedaje', 'limpieza', 'mapa', 'tareas', 'ajustes'],
-  limpieza: ['inicio', 'limpieza', 'mapa', 'tareas', 'ajustes'],
+  // Limpieza: solo su día y sus tareas (la sección Limpieza repetía el mismo contenido)
+  limpieza: ['inicio', 'tareas', 'ajustes'],
   mantenimiento: ['inicio', 'tareas', 'mapa', 'limpieza', 'inventario', 'ajustes'],
 }
 

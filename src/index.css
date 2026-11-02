@@ -223,7 +223,8 @@
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  /* Las etiquetas pequeñas (detalles) llevan su propio color para separarse del texto importante */
+  color: var(--matiz-ink);
 }
 /* Degradados de cielo de step1 (bg-sky / bg-sky-soft quedan para el tono "sky") */
 @utility bg-cielo {
@@ -445,7 +446,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--matiz-ink);
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
@@ -705,3 +706,20 @@ html.is-dragging * {
     inset 0 0 0 1.5px var(--primary),
     0 0 0 4px color-mix(in oklab, var(--primary) 14%, transparent);
 }
+
+/* ── Regla de La Joya: ningún texto se corta con «…». Si no cabe, baja de línea.
+   Solo las barras del calendario de hospedaje y la miga de pan conservan el recorte (.keep-truncate). */
+.truncate:not(.keep-truncate) {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* Mapa ilustrado: alguien barriendo y burbujas de jabón */
+.iso-barrer { transform-box: fill-box; transform-origin: 0% 0%; animation: iso-barrer 0.9s var(--ease-marea) infinite alternate; }
+@keyframes iso-barrer { from { transform: rotate(-16deg); } to { transform: rotate(18deg); } }
+.iso-burbuja { transform-box: fill-box; transform-origin: center; animation: iso-burbuja 2.4s ease-out infinite; }
+.iso-burbuja-2 { animation-delay: 1.1s; }
+@keyframes iso-burbuja { 0% { transform: translateY(0) scale(.6); opacity: 0; } 25% { opacity: .9; } 100% { transform: translateY(-3px) scale(1.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .iso-barrer, .iso-burbuja { animation: none; } }

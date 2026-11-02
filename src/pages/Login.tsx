@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChevronLeft, ShieldCheck, CloudOff } from 'lucide-react'
 import { useCollection, useStore } from '@/lib/store'
@@ -9,7 +9,12 @@ import { Avatar, cx } from '@/components/ui'
 import { PinPad } from '@/components/PinPad'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { NightSlab, SkyBlock, Sparkle } from '@/components/step1'
+import { PortonScene, SKY_TONES } from '@/components/scenes'
 import type { Employee } from '@/lib/types'
+import { pendingLink } from '@/lib/sync'
+
+// Celular nuevo abierto desde el código QR: se conecta aquí mismo, sin entrar a ningún menú técnico
+const ConnectWizard = lazy(() => import('@/components/CloudCenter').then((m) => ({ default: m.ConnectWizard })))
 
 const DEMO_PINS: Record<string, string> = { e_admin: '1234', e_lupita: '2222', e_maria: '3333', e_carmen: '4444', e_chuy: '5555', e_ana: '6666' }
 const ORDER: Employee['role'][] = ['admin', 'eventos', 'recepcion', 'limpieza', 'mantenimiento']
@@ -52,7 +57,18 @@ export default function Login() {
   const [selected, setSelected] = useState<Employee | null>(null)
   const people = [...employees].sort((a, b) => ORDER.indexOf(a.role) - ORDER.indexOf(b.role))
 
-  const right = (
+  const [linking, setLinking] = useState(() => !!pendingLink())
+  const right = linking ? (
+    <div className="mx-auto w-full max-w-[560px] px-5 py-6">
+      <p className="eyebrow text-center">Celular nuevo</p>
+      <h1 className="heading mt-2 mb-5 text-center text-[clamp(1.9rem,1.5rem+2vw,2.8rem)]">Conectar este celular al rancho</h1>
+      <div className="card p-5">
+        <Suspense fallback={<p className="text-sm text-ink-soft">Cargando…</p>}>
+          <ConnectWizard onDone={() => setLinking(false)} />
+        </Suspense>
+      </div>
+    </div>
+  ) : (
     <div className="mx-auto w-full max-w-[560px] px-5">
       <AnimatePresence mode="wait">
         {!selected ? (
@@ -98,7 +114,7 @@ export default function Login() {
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[1.05fr_1fr] lg:gap-0 lg:p-[var(--frame)]">
       {/* Escritorio: losa noche con la luz y el horizonte */}
-      <NightSlab className="hidden lg:flex lg:min-h-[calc(100dvh-2*var(--frame))] lg:flex-col lg:justify-between lg:p-14" luzSize="clamp(96px, 9vw, 168px)" luzClassName="absolute right-[9%] bottom-[33%]">
+      <NightSlab scene={<PortonScene />} className="hidden lg:flex lg:min-h-[calc(100dvh-2*var(--frame))] lg:flex-col lg:justify-between lg:p-14" luzSize="clamp(96px, 9vw, 168px)" luzClassName="absolute right-[9%] bottom-[33%]">
         <div className="flex items-center gap-2.5 text-on-night">
           <Sparkle className="text-luz" />
           <span className="heading text-xl">La Joya</span>
@@ -118,7 +134,7 @@ export default function Login() {
 
       {/* Móvil: cielo arriba que se funde con el papel */}
       <div className="lg:hidden">
-        <SkyBlock height="clamp(170px, 30vh, 260px)" />
+        <SkyBlock height="clamp(170px, 30vh, 260px)" scene={<PortonScene tones={SKY_TONES} />} />
       </div>
       <div className="relative flex flex-col justify-center pt-safe lg:min-h-[calc(100dvh-2*var(--frame))] lg:pt-10">
         <div className="absolute top-[calc(env(safe-area-inset-top)+10px)] right-3 z-10">

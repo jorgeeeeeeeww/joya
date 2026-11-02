@@ -170,18 +170,19 @@ export function DayLine({ units, reservations, events, tasks, settings, items }:
             const here = nearest?.id === it.id && Math.abs(m - t) <= 45
             const Icon = it.icon
             return (
-              <li key={it.id}>
-                <Link to={it.to} onClick={(e) => e.stopPropagation()} className={cx('flex items-start gap-2.5 rounded-[12px] px-2.5 py-2 transition-[background-color,opacity] duration-[var(--dur-2)] hover:bg-wash', past && !here && 'opacity-45', here && 'bg-[color-mix(in_oklab,var(--luz)_26%,var(--surface))] ring-1 ring-[color-mix(in_oklab,var(--luz)_60%,transparent)]')}>
-                  <button type="button" onClick={(e) => (e.preventDefault(), e.stopPropagation(), setT(Math.min(END, Math.max(START, m))))} className="w-10 shrink-0 pt-0.5 text-left text-xs text-ink-soft tabular hover:text-ink" title="Ir a esta hora">
-                    {it.time}
-                  </button>
+              <li key={it.id} className={cx('flex items-start gap-1 rounded-[12px] transition-[background-color,opacity] duration-[var(--dur-2)] hover:bg-wash', past && !here && 'opacity-45', here && 'bg-[color-mix(in_oklab,var(--luz)_26%,var(--surface))] ring-1 ring-[color-mix(in_oklab,var(--luz)_60%,transparent)]')}>
+                {/* La hora mueve la línea del día; el resto abre el detalle (botón y enlace separados: HTML válido) */}
+                <button type="button" onClick={() => setT(Math.min(END, Math.max(START, m)))} className="min-h-10 w-12 shrink-0 rounded-[10px] px-2 pt-2.5 text-left text-xs text-ink-soft tabular hover:text-ink" title="Ir a esta hora" aria-label={`Ir a las ${it.time}`}>
+                  {it.time}
+                </button>
+                <Link to={it.to} className="flex min-w-0 flex-1 items-start gap-2.5 py-2 pr-2.5">
                   <span className={cx('mt-1.5 h-2 w-2 shrink-0 rounded-full', TONE[it.tone].solid)} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
                       <Icon size={13} strokeWidth={1.6} className="shrink-0 text-ink-soft" />
-                      <span className="truncate text-[14px] font-medium">{it.title}</span>
+                      <span className="text-[14px] font-medium">{it.title}</span>
                     </span>
-                    <span className="block truncate text-[12.5px] text-ink-soft">{it.sub}</span>
+                    <span className="block text-[12.5px] text-ink-soft">{it.sub}</span>
                   </span>
                 </Link>
               </li>

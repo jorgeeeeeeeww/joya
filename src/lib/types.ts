@@ -325,6 +325,8 @@ export interface RanchEvent extends BaseDoc {
   paymentPlan?: PaymentPlanItem[]
   signatures?: Signature[]
   vendorIds?: ID[]
+  /** Qué partes usa este evento (lista de invitados, plano, pagos…); lo que falta toma el valor del tipo de evento */
+  modules?: Partial<Record<'invitados' | 'plano' | 'cotizacion' | 'pagos' | 'presupuesto' | 'inspiracion' | 'programa' | 'beo' | 'proveedores' | 'checklist', boolean>>
 }
 
 // ── Proveedores (directorio del wedding planner) ─────────
@@ -464,6 +466,10 @@ export interface Settings {
   /** Llave pública VAPID para notificaciones push (opcional) */
   vapidPublicKey?: string
   lastBackupAt?: ISODateTime
+  /** Precio por persona de cada paquete (los pone el rancho; sin precio no se muestran estimados) */
+  packagePrices?: Record<string, number>
+  /** PIN aparte para el panel de desarrollador (solo el dueño) */
+  devPinHash?: string
   /** Muestra opciones técnicas (cómo funciona, vitrina de diseño, diagnósticos) */
   techMode?: boolean
 }

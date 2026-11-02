@@ -273,7 +273,7 @@ export function computeAlerts(state: StoreState): Alert[] {
     if (r.checkIn === t && (r.status === 'confirmada' || r.status === 'pendiente'))
       out.push({ id: 'ci' + r.id, title: `Llegada hoy · ${unit?.name}`, body: `${r.guestName}, ${r.guests} huéspedes${r.arrivalTime ? ' a las ' + r.arrivalTime : ''}.`, tone: 'lavender', link: '/hospedaje' })
     if (r.checkIn === t && unit && unit.status !== 'lista' && unit.status !== 'ocupada')
-      out.push({ id: 'nr' + r.id, title: `${unit.name} aún no está lista`, body: `Llega ${r.guestName} hoy. Estado: ${unit.status}.`, tone: 'rose', link: '/limpieza' })
+      out.push({ id: 'nr' + r.id, title: `${unit.name} aún no está lista`, body: `Llega ${r.guestName} hoy${r.arrivalTime ? ` a las ${r.arrivalTime}` : ''} y la casa está ${({ sucia: 'por limpiar', limpiando: 'en limpieza', inspeccion: 'por revisar', mantenimiento: 'en mantenimiento', ocupada: 'ocupada', lista: 'lista' } as Record<string, string>)[unit.status] ?? unit.status}.`, tone: 'rose', link: '/limpieza' })
   }
 
   if (state.settings.automations.paymentReminders) {
@@ -295,7 +295,7 @@ export function computeAlerts(state: StoreState): Alert[] {
 
   const low = Object.values(state.data.inventory).filter((i: InventoryItem) => !i.deleted && i.stock <= i.min)
   if (low.length)
-    out.push({ id: 'inv', title: `${low.length} insumos por debajo del mínimo`, body: low.slice(0, 3).map((i) => i.name).join(', ') + (low.length > 3 ? '…' : ''), tone: 'rose', link: '/inventario' })
+    out.push({ id: 'inv', title: low.length === 1 ? `${low[0]!.name} está por debajo del mínimo` : `${low.length} insumos por debajo del mínimo`, body: low.length > 3 ? `${low.slice(0, 3).map((i) => i.name).join(', ')} y ${low.length - 3} más` : low.map((i) => i.name).join(', '), tone: 'rose', link: '/inventario' })
 
   return out
 }

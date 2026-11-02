@@ -1074,7 +1074,7 @@ export function Combobox<T extends string>({
       >
         <button type="button" id={fid} disabled={disabled} aria-haspopup="listbox" aria-expanded={open} aria-invalid={!!v.message || undefined} className="fx-value flex w-full items-center gap-2 text-left outline-none">
           {selected?.tone && <span className={cx('h-2 w-2 shrink-0 rounded-full', TONE[selected.tone].solid)} />}
-          <span className="truncate">{selected?.label ?? ''}</span>
+          <span className="keep-truncate truncate">{selected?.label ?? ''}</span>
         </button>
       </Shell>
       <Popover open={open} onClose={() => setOpen(false)} anchor={boxRef} width="anchor" title={label} label={label}>
@@ -1496,8 +1496,8 @@ export function DateRangeField({
         footer={
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[14px] font-medium">{summaryNode}</div>
-              {warn ? <div className="text-xs text-danger">{warn}</div> : draft.s && <div className="truncate text-xs text-ink-3 first-letter:uppercase">{dateLabel(draft.s)} → {draft.e ? dateLabel(draft.e) : '…'}</div>}
+              <div className="keep-truncate truncate text-[14px] font-medium">{summaryNode}</div>
+              {warn ? <div className="text-xs text-danger">{warn}</div> : draft.s && <div className="keep-truncate truncate text-xs text-ink-3 first-letter:uppercase">{dateLabel(draft.s)} → {draft.e ? dateLabel(draft.e) : '…'}</div>}
             </div>
             {isMobile && (
               <Button size="sm" onClick={() => setOpen(false)} disabled={!draft.e}>

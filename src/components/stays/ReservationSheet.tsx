@@ -207,7 +207,7 @@ export function ReservationSheet({ open, onClose, reservationId, defaults = {} }
             error={conflicts.length ? `Se empalma con ${conflicts.map((c) => `${c.guestName} (${fmtDate(c.checkIn)} → ${fmtDate(c.checkOut)})`).join(', ')}` : undefined}
             hint="Las noches tachadas ya están ocupadas"
           />
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 @xl:grid-cols-2">
             <TextField label="Huésped" value={form.guestName} onChange={(v) => set('guestName', v)} autoFocus={!reservationId} capitalizeWords required requiredMsg="Escribe el nombre del huésped" autoComplete="name" />
             <Stepper label="Huéspedes" value={form.guests} onChange={(v) => set('guests', v)} min={1} max={30} unit={unit ? `máximo ${unit.capacity}` : undefined} hint={overCapacity ? <span className="text-warning">Supera la capacidad de {unit?.capacity}: elige otra unidad o ajusta el número.</span> : undefined} />
             <PhoneField label="Teléfono (WhatsApp)" value={form.phone} onChange={(v) => set('phone', v)} whatsappText={welcome} />

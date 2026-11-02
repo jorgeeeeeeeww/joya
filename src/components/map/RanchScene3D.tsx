@@ -4,7 +4,8 @@
 // Rendimiento móvil: render bajo demanda, instancing, 2 luces, ambiente a 24 fps solo si hace falta.
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ElementRef } from 'react'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { CameraControls, Html, Line } from '@react-three/drei'
+import { CameraControls, Line } from '@react-three/drei'
+import { Html3D } from './Html3D'
 import * as THREE from 'three'
 import { FEATURES, LOT_POLYGON, PATHS, TREES, VENUE_SPACES, type MapFeature, type TreeKind } from '@/lib/layout'
 import { ITEM_SPECS } from '@/lib/floorplan'
@@ -18,6 +19,8 @@ export interface UnitInfo {
   guest?: string
   detail?: string
   cleaning?: number // 0..1
+  /** Una línea útil que se ve siempre sobre la casa: "Sale hoy 12:00", "Llegan 17:00", "Limpiando · 40%" */
+  short?: string
 }
 
 export interface RanchScene3DProps {
@@ -35,6 +38,12 @@ export interface RanchScene3DProps {
   touring?: boolean
   /** Ángulo de la cámara alrededor del eje vertical (para la brújula) */
   onAzimuth?: (rad: number) => void
+  /** Píxeles que tapa un panel a la derecha (+) o a la izquierda (−): la casa elegida se centra en lo que queda libre */
+  focusShiftPx?: number
+  /** Píxeles que tapa abajo una tarjeta (celular) menos los que tapan los controles de arriba */
+  focusShiftYPx?: number
+  /** Tarjeta flotante con detalles sobre la casa elegida (en celular se usa la tarjeta de abajo) */
+  selectedCard?: boolean
 }
 
 const OVERVIEW_WIDE: [number, number, number, number, number, number] = [62, 118, 128, 0, 0, 4]
@@ -143,6 +152,8 @@ function phaseTarget(s: SunState): PhaseValues {
 
 /** Valores de ambiente compartidos (los leen ventanas, faroles y nubes) */
 const EnvCtx = createContext<{ night: number; golden: number }>({ night: 0, golden: 0 })
+/** En celular la casa elegida ya tiene su tarjeta abajo: la flotante sobre la casa se omite */
+const CardCtx = createContext(true)
 
 let _radial: THREE.Texture | null = null
 function radialTexture() {
@@ -381,9 +392,9 @@ function Ground() {
         <planeGeometry args={[6, 460]} />
         <meshLambertMaterial color={COLORS.street} />
       </mesh>
-      <Html position={[-41, 0.2, -60]} center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+      <Html3D position={[-41, 0.2, -60]} zIndex={5} style={{ pointerEvents: 'none' }}>
         <span className="rounded-full bg-[color-mix(in_oklab,var(--surface)_80%,transparent)] px-2.5 py-0.5 text-[10px] whitespace-nowrap text-ink-soft">C. Crisantemo</span>
-      </Html>
+      </Html3D>
       <mesh rotation-x={-Math.PI / 2} position-y={0} receiveShadow>
         <shapeGeometry args={[lotShape]} />
         <meshLambertMaterial color={COLORS.lot} />
@@ -618,17 +629,24 @@ const pickHandlers = (p: Interactive) => ({
 const shortName = (f: MapFeature) => (f.kind === 'cabana' || f.kind === 'casa' ? f.name.replace(/^(Cabaña|Casa) /, '') : f.name)
 
 function Label({ f, dot, selected, dim, onPick, info, statusLabel, y }: { f: MapFeature; dot?: string; selected: boolean; dim?: boolean; onPick: () => void; info?: UnitInfo; statusLabel?: string; y: number }) {
+  const card = useContext(CardCtx)
   return (
-    <Html position={[0, y, 0]} center zIndexRange={[selected ? 9 : 8, 0]}>
+    // La entrada está en la misma línea que el estacionamiento: su etiqueta va un poco más arriba para no encimarse
+    <Html3D position={[0, y, f.kind === 'entrada' ? -7 : 0]} zIndex={selected ? 9 : 8}>
       <div className={`flex flex-col items-center transition-opacity duration-300 ${dim ? 'opacity-35' : 'opacity-100'}`}>
         <button
           onClick={onPick}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium whitespace-nowrap shadow-[var(--shadow-1)] transition-transform duration-300 ${selected ? 'scale-110 bg-ink text-paper' : 'bg-surface text-ink ring-1 ring-line'}`}
+          className={`flex flex-col items-center rounded-[14px] px-3 py-1 text-center whitespace-nowrap shadow-[var(--shadow-1)] transition-transform duration-300 ${selected ? 'scale-110 bg-ink text-paper' : 'bg-surface text-ink ring-1 ring-line'}`}
         >
-          {dot && <span className="h-2 w-2 rounded-full" style={{ background: dot }} />}
-          {shortName(f)}
+          <span className="flex items-center gap-1.5 text-[12px] font-semibold">
+            {dot && <span className="h-2 w-2 rounded-full" style={{ background: dot }} />}
+            {shortName(f)}
+          </span>
+          {!selected && (statusLabel || info?.short) && (
+            <span className="text-[11px] leading-tight opacity-80">{info?.short ?? statusLabel}</span>
+          )}
         </button>
-        {selected && (info || statusLabel) && (
+        {selected && card && (info || statusLabel) && (
           <div className="glass mt-2 w-[210px] rounded-[16px] px-3.5 py-3 text-left shadow-[var(--shadow-2)] ring-1 ring-line">
             <p className="heading text-[1.05rem] leading-tight text-ink">{f.name}</p>
             {statusLabel && (
@@ -647,7 +665,7 @@ function Label({ f, dot, selected, dim, onPick, info, statusLabel, y }: { f: Map
           </div>
         )}
       </div>
-    </Html>
+    </Html3D>
   )
 }
 
@@ -672,7 +690,65 @@ function Pin({ y, color, animate }: { y: number; color: string; animate: boolean
   )
 }
 
-function Building({ f, statusRaw, statusDot, statusLabel, occupied, dim, xray, info, animate, ...p }: Interactive & { f: MapFeature; statusRaw?: string; statusDot?: string; statusLabel?: string; occupied?: boolean; dim?: boolean; xray?: boolean; info?: UnitInfo; animate: boolean }) {
+
+/** Alguien limpiando: una figura con escoba junto a la puerta (solo cuando la casa está en limpieza) */
+function Cleaner({ x, z, animate }: { x: number; z: number; animate: boolean }) {
+  const body = useRef<THREE.Group>(null)
+  const broom = useRef<THREE.Group>(null)
+  const bubbles = useRef<THREE.Group>(null)
+  useFrame((state) => {
+    const t = state.clock.elapsedTime
+    if (body.current) body.current.position.y = animate ? Math.abs(Math.sin(t * 3)) * 0.12 : 0
+    if (broom.current) broom.current.rotation.z = animate ? Math.sin(t * 4.2) * 0.45 : 0.2
+    if (bubbles.current)
+      bubbles.current.children.forEach((b, i) => {
+        const k = animate ? (t * 0.6 + i / 3) % 1 : 0.4
+        b.position.y = 0.6 + k * 2.6
+        b.position.x = Math.sin((t + i) * 2) * 0.35
+        b.scale.setScalar(0.12 + k * 0.18)
+        const m = (b as THREE.Mesh).material as THREE.MeshBasicMaterial
+        m.opacity = animate ? 0.85 * (1 - k) : 0.6
+      })
+  })
+  return (
+    <group position={[x, 0, z]} scale={1.9}>
+      <group ref={body}>
+        <mesh position-y={0.95} castShadow>
+          <cylinderGeometry args={[0.32, 0.42, 1.3, 12]} />
+          <meshLambertMaterial color="#8A4649" />
+        </mesh>
+        <mesh position-y={1.85} castShadow>
+          <sphereGeometry args={[0.3, 14, 10]} />
+          <meshLambertMaterial color="#E2B48F" />
+        </mesh>
+        <mesh position-y={2.08}>
+          <sphereGeometry args={[0.31, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshLambertMaterial color="#F3D8BC" />
+        </mesh>
+      </group>
+      <group ref={broom} position={[0.55, 1.3, 0.1]}>
+        <mesh position-y={-0.45} rotation-z={0.15}>
+          <cylinderGeometry args={[0.05, 0.05, 1.7, 6]} />
+          <meshLambertMaterial color="#C8A07E" />
+        </mesh>
+        <mesh position={[0.12, -1.3, 0]}>
+          <boxGeometry args={[0.55, 0.25, 0.22]} />
+          <meshLambertMaterial color="#D9B98A" />
+        </mesh>
+      </group>
+      <group ref={bubbles} position={[0.9, 0, 0]}>
+        {[0, 1, 2].map((i) => (
+          <mesh key={i}>
+            <sphereGeometry args={[1, 10, 8]} />
+            <meshBasicMaterial color="#F3D8BC" transparent opacity={0.7} depthWrite={false} />
+          </mesh>
+        ))}
+      </group>
+    </group>
+  )
+}
+
+function Building({ f, statusRaw, statusDot, statusLabel, occupied, cleaningNow, dim, xray, info, animate, ...p }: Interactive & { f: MapFeature; statusRaw?: string; statusDot?: string; statusLabel?: string; occupied?: boolean; cleaningNow?: boolean; dim?: boolean; xray?: boolean; info?: UnitInfo; animate: boolean }) {
   const env = useContext(EnvCtx)
   const invalidate = useThree((s) => s.invalidate)
   const h = f.height ?? 3
@@ -753,6 +829,7 @@ function Building({ f, statusRaw, statusDot, statusLabel, occupied, dim, xray, i
           </>
         )}
       </group>
+      {cleaningNow && !dim && <Cleaner x={Math.min(f.w / 2 - 0.4, 2.2)} z={f.d / 2 + 1.6} animate={animate} />}
       {p.selected && <Pin y={h + 3.4} color={statusRaw ?? COLORS.outline} animate={animate} />}
       <Label f={f} dot={statusDot} selected={p.selected} dim={dim} onPick={p.onPick} info={info} statusLabel={statusLabel} y={h + (f.kind === 'salon' ? 2.5 : 2)} />
     </group>
@@ -1024,21 +1101,23 @@ function EventSetup({ event }: { event: RanchEvent }) {
           </mesh>
         )
       })}
-      <Html position={[feature.x, event.venue === "salon" ? 9.5 : 4, feature.z - space.h / 2 - 1]} center zIndexRange={[9, 0]} style={{ pointerEvents: 'none' }}>
+      <Html3D position={[feature.x, event.venue === "salon" ? 9.5 : 4, feature.z - space.h / 2 - 1]} zIndex={9} style={{ pointerEvents: 'none' }}>
         <div className="glass rounded-full px-3.5 py-1.5 text-[11px] whitespace-nowrap text-ink shadow-[var(--shadow-1)] ring-1 ring-line">
           <span className="mr-1.5 text-chispa-soft">✦</span>
           Montaje · {event.title} · {tables} mesas · {seats} sillas
         </div>
-      </Html>
+      </Html3D>
     </group>
   )
 }
 
 // ── Cámara: entrada cinemática, vuelo al elemento, brújula ──
-function CameraRig({ selectedId, reducedMotion, resetKey, touring, onAzimuth }: { selectedId?: string | null; reducedMotion?: boolean; resetKey?: number; touring?: boolean; onAzimuth?: (rad: number) => void }) {
+function CameraRig({ selectedId, reducedMotion, resetKey, touring, onAzimuth, focusShiftPx = 0, focusShiftYPx = 0 }: { selectedId?: string | null; reducedMotion?: boolean; resetKey?: number; touring?: boolean; onAzimuth?: (rad: number) => void; focusShiftPx?: number; focusShiftYPx?: number }) {
   const ref = useRef<Controls>(null)
   const first = useRef(true)
   const aspect = useThree((s) => s.size.width / Math.max(1, s.size.height))
+  const height = useThree((s) => s.size.height)
+  const camera = useThree((s) => s.camera)
   const OVERVIEW = aspect < 0.85 ? OVERVIEW_TALL : OVERVIEW_WIDE
 
   // Entrada: la cámara desciende desde arriba
@@ -1046,9 +1125,11 @@ function CameraRig({ selectedId, reducedMotion, resetKey, touring, onAzimuth }: 
     const c = ref.current
     if (!c) return
     if (reducedMotion) {
-      void c.setLookAt(...OVERVIEW, false)
+      if (!selectedId) void c.setLookAt(...OVERVIEW, false)
       return
     }
+    // Se abrió el mapa con una casa ya elegida (enlace o regreso): la cámara va directo a ella
+    if (selectedId) return
     void c.setLookAt(0, 330, 34, 0, 0, 4, false)
     c.smoothTime = 1.35
     const t1 = setTimeout(() => void c.setLookAt(...OVERVIEW, true), 120)
@@ -1072,13 +1153,21 @@ function CameraRig({ selectedId, reducedMotion, resetKey, touring, onAzimuth }: 
     const f = selectedId ? FEATURES.find((x) => x.id === selectedId) : undefined
     if (f) {
       const size = Math.max(f.w, f.d)
-      const dist = Math.max(20, size * 1.3)
+      // Con poco lienzo libre (tablet con ficha abierta) la cámara se aleja para que se vea la casa completa
+      const freeW = aspect * height - Math.abs(focusShiftPx)
+      const dist = Math.max(20, size * 1.3) * Math.min(2.4, Math.max(1, 720 / Math.max(1, freeW)))
       void c.setLookAt(f.x + dist * 0.28, dist * 1.15 + (f.height ?? 0), f.z + dist * 0.85, f.x, 0, f.z, animate)
+      // Un panel tapa parte del lienzo: se recorre la vista para que la casa quede al centro de lo visible
+      const fov = ((camera as THREE.PerspectiveCamera).fov ?? 45) * (Math.PI / 180)
+      const range = Math.hypot(dist * 0.28, dist * 1.15 + (f.height ?? 0), dist * 0.85)
+      const perPx = (2 * range * Math.tan(fov / 2)) / Math.max(1, height)
+      void c.setFocalOffset((focusShiftPx / 2) * perPx, (focusShiftYPx / 2) * perPx, 0, animate)
     } else {
       void c.setLookAt(...OVERVIEW, animate)
+      void c.setFocalOffset(0, 0, 0, animate)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, reducedMotion, resetKey, touring])
+  }, [selectedId, reducedMotion, resetKey, touring, focusShiftPx, focusShiftYPx])
 
   // Brújula: avisa el azimut (limitado a un aviso por cuadro)
   useEffect(() => {
@@ -1100,7 +1189,7 @@ function CameraRig({ selectedId, reducedMotion, resetKey, touring, onAzimuth }: 
   return <CameraControls ref={ref} makeDefault smoothTime={0.55} minPolarAngle={0.08} maxPolarAngle={Math.PI / 2.3} minDistance={12} maxDistance={300} dollyToCursor />
 }
 
-export default function RanchScene3D({ units, selectedId, onSelect, reducedMotion, resetKey, timeMode = 'ahora', statusFilter, unitInfo, setupEvent, showSetup, touring, onAzimuth }: RanchScene3DProps) {
+export default function RanchScene3D({ units, selectedId, onSelect, reducedMotion, resetKey, timeMode = 'ahora', statusFilter, unitInfo, setupEvent, showSetup, touring, onAzimuth, focusShiftPx, focusShiftYPx, selectedCard = true }: RanchScene3DProps) {
   const [hovered, setHovered] = useState<string | null>(null)
   const env = useRef({ night: 0, golden: 0 }).current
   const unitById = useMemo(() => Object.fromEntries(units.map((u) => [u.id, u])), [units])
@@ -1134,6 +1223,7 @@ export default function RanchScene3D({ units, selectedId, onSelect, reducedMotio
       className="touch-none"
     >
       <EnvCtx.Provider value={env}>
+      <CardCtx.Provider value={selectedCard}>
         <PhaseController mode={timeMode} env={env} />
         <AmbientTicker enabled={animate} />
         <Ground />
@@ -1158,6 +1248,7 @@ export default function RanchScene3D({ units, selectedId, onSelect, reducedMotio
               statusDot={st ? TONE[st.tone].hex : f.kind === 'salon' ? 'var(--matiz)' : undefined}
               statusLabel={st?.label}
               occupied={u?.status === 'ocupada'}
+              cleaningNow={u?.status === 'limpiando'}
               dim={dim}
               xray={!!setup && setup.venue === 'salon' && f.kind === 'salon'}
               info={u ? unitInfo?.[u.id] : undefined}
@@ -1167,7 +1258,8 @@ export default function RanchScene3D({ units, selectedId, onSelect, reducedMotio
           )
         })}
         {setup && <EventSetup event={setup} />}
-        <CameraRig selectedId={selectedId} reducedMotion={reducedMotion} resetKey={resetKey} touring={touring} onAzimuth={onAzimuth} />
+        <CameraRig selectedId={selectedId} reducedMotion={reducedMotion} resetKey={resetKey} touring={touring} onAzimuth={onAzimuth} focusShiftPx={focusShiftPx} focusShiftYPx={focusShiftYPx} />
+      </CardCtx.Provider>
       </EnvCtx.Provider>
     </Canvas>
   )

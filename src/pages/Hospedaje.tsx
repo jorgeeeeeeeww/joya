@@ -279,7 +279,7 @@ function UpcomingList({ reservations, units, onOpen, money }: { reservations: Re
     <Card>
       <CardHeader eyebrow="Agenda" title="Próximas llegadas" subtitle="Las siguientes 10 reservas" />
       {upcoming.length === 0 ? (
-        <Empty title="Sin reservas próximas" body="Las nuevas reservas y las de Airbnb aparecerán aquí." />
+        <Empty kind="reserva" title="Sin reservas próximas" body="Las nuevas reservas y las de Airbnb aparecerán aquí." />
       ) : (
         <div className="px-3 pt-3 pb-3">
           {upcoming.map((r) => (

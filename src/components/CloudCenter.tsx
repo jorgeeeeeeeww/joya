@@ -82,7 +82,7 @@ function CheckList({ checks, running }: { checks: CheckResult[]; running?: boole
 }
 
 // ── Asistente de conexión en 3 pasos ─────────────────────
-function ConnectWizard({ onDone }: { onDone: () => void }) {
+export function ConnectWizard({ onDone }: { onDone: () => void }) {
   const settings = useStore((s) => s.settings)
   const link = pendingLink()
   const [step, setStep] = useState<1 | 2 | 3>(1)
@@ -199,7 +199,7 @@ function ConnectWizard({ onDone }: { onDone: () => void }) {
 }
 
 // ── QR para vincular otro dispositivo ────────────────────
-function LinkDevice() {
+export function LinkDevice() {
   const [svg, setSvg] = useState<string>('')
   const url = buildLinkUrl()
   useEffect(() => {

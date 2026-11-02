@@ -144,9 +144,10 @@ export function autoLayout(venue: Venue, guests: number, style: LayoutStyle = 'b
 
   // Zonas fijas
   items.push(make('escenario', cx, 1.8))
-  items.push(make('dj', cx + 5, 1.6))
-  const pistaY = venue === 'jardin' ? 9 : 7.5
-  if (style !== 'coctel') items.push(make('pista', cx, pistaY, { w: 8, h: 7 }))
+  items.push(make('dj', cx + 5.6, 1.6))
+  const pistaY = venue === 'jardin' ? 8.3 : 8
+  const pistaH = venue === 'jardin' ? 6 : 7
+  if (style !== 'coctel') items.push(make('pista', cx, pistaY, { w: 8, h: pistaH }))
   items.push(make('barra', W - 2.8, H - 1.2))
   items.push(make('buffet', 4, H - 1.2))
   items.push(make('pastel', 1.6, 4))
@@ -163,24 +164,27 @@ export function autoLayout(venue: Venue, guests: number, style: LayoutStyle = 'b
 
   // Mesa principal frente a la pista
   if (style === 'banquete') {
-    const mp = make('mesa-principal', cx, pistaY + 5.2, { label: 'Principal' })
+    const mp = make('mesa-principal', cx, pistaY + pistaH / 2 + 2.1, { label: 'Principal' })
     items.push(mp)
-    reserved.push(itemRect(mp))
+    const r = itemRect(mp)
+    reserved.push({ x: r.x - 0.45, y: r.y - 0.45, w: r.w + 0.9, h: r.h + 0.9 })
   }
 
   const type: FloorItemType = style === 'imperial' ? 'mesa-imperial' : style === 'coctel' ? 'periquera' : 'mesa-redonda'
   const spec = ITEM_SPECS[type]
   const seated = style === 'banquete' ? Math.max(0, guests - 10) : guests
   const needed = Math.ceil(seated / (spec.seats ?? 10))
-  const stepX = style === 'imperial' ? 7.2 : style === 'coctel' ? 2.6 : 3.3
-  const stepY = style === 'imperial' ? 3.3 : style === 'coctel' ? 2.6 : 3.2
+  // Separación real: mesa + sillas (0.45 m por lado) + pasillo de 1.2 m para meseros e invitados
+  const stepX = style === 'imperial' ? 8.1 : style === 'coctel' ? 2.6 : 3.9
+  const stepY = style === 'imperial' ? 3.3 : style === 'coctel' ? 2.6 : 3.9
   const candidates: { x: number; y: number; d: number }[] = []
-  for (let y = 2.2; y <= H - 2.4; y += stepY) {
-    for (let x = 2.2; x <= W - 2.2; x += stepX) {
+  for (let y = 2; y <= H - 1.8; y += stepY) {
+    for (let x = 2; x <= W - 1.8; x += stepX) {
       const probe = make(type, x, y)
       const r = itemRect(probe)
-      if (reserved.some((z) => overlaps(r, z, 0.7))) continue
-      if (r.x < 0.4 || r.y < 0.4 || r.x + r.w > W - 0.4 || r.y + r.h > H - 0.4) continue
+      const pad = style === 'coctel' ? 0.7 : 1.65
+      if (reserved.some((z) => overlaps(r, z, pad))) continue
+      if (r.x < 0.9 || r.y < 0.9 || r.x + r.w > W - 0.9 || r.y + r.h > H - 0.9) continue
       candidates.push({ x, y, d: Math.hypot(x - cx, y - pistaY) })
     }
   }

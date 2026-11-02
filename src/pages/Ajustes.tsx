@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import {
-  ArrowUpRight,
   Building2,
   Check,
   Cloud,
@@ -19,7 +18,6 @@ import {
   Smartphone,
   Upload,
   Wand2,
-  Workflow,
 } from 'lucide-react'
 import { listSnapshots, resetDemo, restoreSnapshot, snapshotNow, useCollection, useMe, useStore } from '@/lib/store'
 import { AUTOMATION_RULES } from '@/lib/automations'
@@ -30,25 +28,25 @@ import { fadeRise, spring, stagger } from '@/lib/motion'
 import type { Atmos, AutomationSettings, DataState, Pastel, ThemePref } from '@/lib/types'
 import { Badge, Button, Card, CardHeader, Confirm, cx, Estela, Field, IconBubble, Input, PageHeader, Segmented, Select, Toggle, toast } from '@/components/ui'
 import { Horizon, PAPER_TONES, Sparkle } from '@/components/step1'
-import { CloudCenter } from '@/components/CloudCenter'
+import { AsistentesGrid, ConectarCelular } from '@/components/Asistentes'
+import { EVENT_PACKAGES } from '@/lib/templates'
 
 type Tab = 'panel' | 'general' | 'automatizaciones' | 'nube' | 'respaldos' | 'bitacora' | 'instalar' | 'sistema'
 
-// 5 pestañas: lo personal, el rancho, las reglas automáticas, la nube con respaldos y la actividad.
-// "Cómo funciona" y la vitrina de diseño solo aparecen con el modo técnico.
+// Pestañas en palabras de todos los días. Lo técnico (nube, diagnóstico, cómo funciona) vive en el
+// panel de desarrollador, que solo abre el dueño con su PIN aparte.
 const TABS: { value: Tab; label: string; icon: typeof Palette; admin?: boolean; tech?: boolean }[] = [
   { value: 'panel', label: 'Tu panel', icon: Palette },
   { value: 'general', label: 'Rancho', icon: Building2, admin: true },
-  { value: 'automatizaciones', label: 'Automatizaciones', icon: Wand2, admin: true },
-  { value: 'nube', label: 'Nube y respaldos', icon: Cloud, admin: true },
+  { value: 'automatizaciones', label: 'Avisos automáticos', icon: Wand2, admin: true },
+  { value: 'nube', label: 'Celulares y respaldo', icon: Cloud, admin: true },
   { value: 'bitacora', label: 'Actividad', icon: FileClock, admin: true },
-  { value: 'sistema', label: 'Cómo funciona', icon: Workflow, tech: true },
 ]
 /** Pestañas que se unieron con otra (los enlaces viejos siguen funcionando) */
 const MERGED: Partial<Record<Tab, Tab>> = { respaldos: 'nube', instalar: 'panel' }
 
 const ATMOS: { value: Atmos; label: string; description: string; horizon: 'nubes' | 'olas' | 'colinas' }[] = [
-  { value: 'flor', label: 'Flor', description: 'Rosa polvo, terracota y oliva. La de Jardines La Joya.', horizon: 'nubes' },
+  { value: 'flor', label: 'Flor', description: 'Marfil, salvia y azul gris: sobria y formal. La de Jardines La Joya.', horizon: 'nubes' },
   { value: 'marea', label: 'Marea', description: 'Ocre, arena y verde azulado, como veleros al atardecer.', horizon: 'olas' },
   { value: 'crepusculo', label: 'Crepúsculo', description: 'Índigo, lavanda y una luz crema.', horizon: 'colinas' },
   { value: 'nocturno', label: 'Nocturno', description: 'Pizarra y azul noche bajo la luna.', horizon: 'colinas' },
@@ -169,11 +167,6 @@ function TuPanel() {
           </Button>
         )}
       </Section>
-      <Section title="Sistema de diseño" subtitle="Todos los componentes, colores y estados de la app en un solo lugar.">
-        <Link to="/diseno" className="pressable inline-flex h-11 items-center gap-2 rounded-full px-5 text-[15px] ring-1 ring-line-strong ring-inset hover:bg-wash">
-          Abrir la vitrina step1 <ArrowUpRight size={16} strokeWidth={1.6} />
-        </Link>
-      </Section>
     </Wrap>
   )
 }
@@ -184,6 +177,9 @@ function General() {
   const setSettings = useStore((s) => s.setSettings)
   return (
     <Wrap>
+      <motion.div variants={fadeRise}>
+        <AsistentesGrid onPrices={() => document.getElementById('precios')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+      </motion.div>
       <Section
         eyebrow="Rancho"
         title="Datos del rancho"
@@ -215,6 +211,23 @@ function General() {
           <Field label="IVA (%)">
             <Input type="number" inputMode="numeric" value={settings.ivaPercent} onChange={(e) => setSettings({ ivaPercent: Number(e.target.value) })} />
           </Field>
+        </div>
+      </Section>
+      <div id="precios" className="scroll-mt-4" />
+      <Section title="Paquetes y precios" subtitle="Precio por persona de cada paquete. Con esto la app calcula cotizaciones; si lo dejas vacío, no muestra cifras.">
+        <div className="grid gap-4 md:grid-cols-3">
+          {EVENT_PACKAGES.map((p) => (
+            <Field key={p.id} label={`Paquete ${p.name}`} hint={p.description}>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="Sin precio"
+                value={settings.packagePrices?.[p.id] || ''}
+                onChange={(e) => setSettings({ packagePrices: { ...settings.packagePrices, [p.id]: Number(e.target.value) || 0 } })}
+              />
+            </Field>
+          ))}
         </div>
       </Section>
       <Section title="Atmósfera del rancho" subtitle="La que ve todo el equipo, salvo quien elija la suya en Tu panel.">
@@ -320,7 +333,7 @@ function Automatizaciones() {
 }
 
 // ── Respaldos ────────────────────────────────────────────
-function Respaldos() {
+export function Respaldos() {
   const data = useStore((s) => s.data)
   const settings = useStore((s) => s.settings)
   const setSettings = useStore((s) => s.setSettings)
@@ -375,10 +388,10 @@ function Respaldos() {
 
   const counts = useMemo(() => Object.entries(data).map(([k, v]) => [k, Object.keys(v).length] as const), [data])
   const LAYERS: [string, string, Pastel][] = [
-    ['Este dispositivo', 'Todo se guarda al instante, aun sin internet', 'lavender'],
-    ['Copia diaria automática', 'Los últimos 14 días, aquí mismo', 'mint'],
-    ['Nube Supabase', 'Historial de cada cambio en el servidor', 'sky'],
-    ['Respaldo nocturno', 'Copia cifrada cada noche con GitHub Actions', 'peach'],
+    ['En este equipo', 'Todo se guarda al instante, aun sin internet', 'lavender'],
+    ['Copia de cada día', 'Los últimos 14 días, aquí mismo', 'mint'],
+    ['En la nube del rancho', 'Con el historial de cada cambio', 'sky'],
+    ['Copia de cada noche', 'Protegida con contraseña, fuera del rancho', 'peach'],
   ]
 
   return (
@@ -475,7 +488,7 @@ function Respaldos() {
           toast.success('Copia restaurada')
         }}
       />
-      <Confirm open={confirmReset} onClose={() => setConfirmReset(false)} danger title="¿Reiniciar la demostración?" body="Se borran los datos de este dispositivo y se cargan los de ejemplo." confirmLabel="Reiniciar" onConfirm={() => resetDemo().then(() => toast.success('Datos de demostración cargados'))} />
+      <Confirm open={confirmReset} onClose={() => setConfirmReset(false)} danger title="¿Reiniciar la demostración?" body="Se borran los datos de este dispositivo y se cargan los de ejemplo." confirmLabel="Reiniciar" onConfirm={() => resetDemo().then(() => toast.success('Datos de demostración cargados')).catch((e: Error) => toast.error('No se puede reiniciar', e.message))} />
     </Wrap>
   )
 }
@@ -585,7 +598,7 @@ function Instalar() {
 }
 
 // ── Cómo funciona (diagrama de arquitectura) ─────────────
-function Sistema() {
+export function Sistema() {
   const Box = ({ x, y, w, h, title, sub, tone }: { x: number; y: number; w: number; h: number; title: string; sub: string; tone: Pastel }) => (
     <g>
       <rect x={x} y={y} width={w} height={h} rx="18" fill={`var(--${tone}-soft)`} stroke="var(--line-strong)" strokeWidth="1" />
@@ -664,18 +677,33 @@ function Sistema() {
   )
 }
 
-/** Modo técnico: muestra cómo funciona el sistema por dentro y la vitrina de diseño */
-function TechModeCard() {
-  const techMode = useStore((s) => !!s.settings.techMode)
-  const setSettings = useStore((s) => s.setSettings)
+/** El estado de la nube en palabras: si todo está guardado o si hay cambios esperando internet */
+function EstadoSimple() {
+  const linked = useStore((s) => !!s.settings.supabaseUrl)
+  const status = useStore((s) => s.sync.status)
+  const pending = useStore((s) => Object.keys(s.dirty).length)
+  const lastSyncAt = useStore((s) => s.sync.lastSyncAt)
+  const [cel, setCel] = useState(false)
+  const ok = linked && status !== 'error' && pending === 0
   return (
     <Card className="p-5 md:p-6">
-      <Toggle checked={techMode} onChange={(v) => setSettings({ techMode: v })} label="Modo técnico" description="Muestra «Cómo funciona» (sincronización, seguridad, respaldos) y la vitrina de diseño. Útil para quien da soporte." />
-      {techMode && (
-        <a href="/diseno" className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-          Abrir la vitrina de diseño →
-        </a>
-      )}
+      <div className="flex flex-wrap items-center gap-4">
+        <IconBubble tone={ok ? 'sage' : 'butter'} orb size="lg">
+          {ok ? <ShieldCheck size={24} strokeWidth={1.6} /> : <Cloud size={24} strokeWidth={1.6} />}
+        </IconBubble>
+        <div className="min-w-0 flex-1">
+          <p className="heading text-2xl">{!linked ? 'Guardado solo en este equipo' : status === 'error' ? 'No se pudo compartir el último cambio' : pending ? `${pending} cambios esperando internet` : 'Todo guardado y compartido'}</p>
+          <p className="mt-0.5 text-sm text-ink-soft">
+            {!linked ? 'Para que el equipo vea lo mismo en sus celulares, hay que conectar la nube del rancho.' : status === 'error' ? 'Se vuelve a intentar solo. Si sigue así, revisa el panel de desarrollador.' : pending ? 'En cuanto haya señal se comparten solos. No se pierde nada.' : `Todo el equipo ve lo mismo${lastSyncAt ? ` · al día ${ago(lastSyncAt)}` : ''}.`}
+          </p>
+        </div>
+        {linked && (
+          <Button variant="secondary" icon={<Smartphone size={17} strokeWidth={1.6} />} onClick={() => setCel(true)}>
+            Conectar un celular
+          </Button>
+        )}
+      </div>
+      <ConectarCelular open={cel} onClose={() => setCel(false)} />
     </Card>
   )
 }
@@ -717,13 +745,14 @@ export default function Ajustes() {
           {tab === 'automatizaciones' && <Automatizaciones />}
           {tab === 'nube' && (
             <div className="flex flex-col gap-6">
-              <CloudCenter />
+              <EstadoSimple />
               <Respaldos />
-              <TechModeCard />
+              <Link to="/desarrollador" className="pressable mx-auto inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-sm text-ink-soft hover:bg-wash hover:text-ink">
+                <Lock size={15} strokeWidth={1.6} /> Panel de desarrollador
+              </Link>
             </div>
           )}
           {tab === 'bitacora' && <Bitacora />}
-          {tab === 'sistema' && <Sistema />}
         </div>
       </div>
     </div>

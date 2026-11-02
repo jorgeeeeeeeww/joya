@@ -154,7 +154,7 @@ function NotificationsButton() {
         {unread > 0 && <span className="absolute top-2 right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-chispa px-1 text-[10px] font-medium text-on-chispa ring-2 ring-paper">{unread}</span>}
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Avisos" subtitle={unread ? `${unread} sin leer` : 'Todo al día'}>
-        {mine.length === 0 && <Empty title="Sin avisos" body="Aquí aparecerán las novedades del rancho." />}
+        {mine.length === 0 && <Empty kind="avisos" title="Sin avisos" body="Aquí aparecerán las novedades del rancho." />}
         <div className="flex flex-col">
           {mine.map((n) => (
             <button
@@ -196,8 +196,8 @@ function UserCard() {
     <div className="flex items-center gap-2.5 rounded-[14px] p-2">
       <Avatar name={me.name} tone={me.color} size={38} />
       <div className="min-w-0 flex-1 leading-tight">
-        <div className="truncate text-sm font-medium">{me.name}</div>
-        <div className="truncate text-xs text-ink-soft">{ROLE[me.role].label}</div>
+        <div className="keep-truncate truncate text-sm font-medium" title={me.name}>{me.name}</div>
+        <div className="keep-truncate truncate text-xs text-ink-soft">{ROLE[me.role].label}</div>
       </div>
       <button onClick={lock} title="Bloquear" aria-label="Bloquear sesión" className="pressable rounded-full p-2 text-ink-3 hover:bg-wash hover:text-ink">
         <Lock size={16} strokeWidth={1.6} />
@@ -254,7 +254,7 @@ function Crumbs({ current }: { current?: Section }) {
             {item.label}
           </NavLink>
           <ChevronRight size={14} strokeWidth={1.6} className="shrink-0 text-ink-faint" />
-          <span className="truncate font-medium text-ink">{detail}</span>
+          <span className="truncate keep-truncate font-medium text-ink">{detail}</span>
         </>
       ) : (
         <span className="inline-flex items-center gap-1.5 font-medium text-ink">
@@ -421,7 +421,7 @@ export default function AppShell() {
           </div>
           <button onClick={() => setSearch(true)} className={cx('pressable mr-1 hidden h-9 w-[min(280px,28vw)] items-center gap-2 rounded-lg bg-surface px-3 text-[13px] text-ink-3 ring-1 ring-line hover:text-ink-soft md:flex', fullBleed && 'glass')} aria-label="Buscar">
             <Search size={15} strokeWidth={1.6} />
-            <span className="flex-1 truncate text-left">Buscar huésped, evento, tarea…</span>
+            <span className="keep-truncate flex-1 truncate text-left">Buscar huésped, evento, tarea…</span>
             <kbd className="rounded-md bg-sunken px-1.5 py-0.5 text-[10.5px] font-medium text-ink-soft">Ctrl K</kbd>
           </button>
           <span className="hidden sm:block md:hidden">

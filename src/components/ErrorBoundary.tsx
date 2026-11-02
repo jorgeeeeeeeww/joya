@@ -3,7 +3,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { RotateCcw, Home, RefreshCw } from 'lucide-react'
 import { useStore } from '@/lib/store'
-import { MiniHorizon } from './step1'
+import { Vignette } from './scenes'
 
 const isChunkError = (e: Error) => /dynamically imported module|Importing a module script failed|Failed to fetch|ChunkLoadError/i.test(e.message)
 
@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: s
     const chunk = isChunkError(error)
     return (
       <div role="alert" className="mx-auto flex max-w-md flex-col items-center px-6 py-16 text-center">
-        <MiniHorizon />
+        <Vignette kind="error" />
         <h2 className="heading mt-6 text-[1.7rem]">{chunk ? 'Hay una versión nueva' : 'Algo se atoró en esta pantalla'}</h2>
         <p className="mt-2 text-[15px] text-ink-soft">{chunk ? 'Se actualizó la app mientras la usabas. Recarga para seguir con la versión nueva.' : 'Tus datos están a salvo. Puedes intentar de nuevo o volver al inicio.'}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">

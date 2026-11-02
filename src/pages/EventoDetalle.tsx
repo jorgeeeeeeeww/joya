@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { ArrowLeft, Ban, CalendarDays, Check, Clock, ListChecks, MapPin, MessageCircle, Pencil, Phone, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Ban, SlidersHorizontal, CalendarDays, Check, Clock, ListChecks, MapPin, MessageCircle, Pencil, Phone, Trash2, Users } from 'lucide-react'
 import type { EventStatus, EventType, RanchEvent, Venue } from '@/lib/types'
 import { db, useCollection, useDoc, useMe } from '@/lib/store'
 import { EVENT_STATUS, EVENT_TYPE, PRIORITY, TASK_STATUS, VENUE, seesMoney } from '@/lib/meta'
@@ -11,11 +11,14 @@ import { countdownLabel, eventReadiness, PIPELINE } from '@/lib/planner'
 import { ease, spring } from '@/lib/motion'
 import { Avatar, Badge, Button, Card, CardHeader, Confirm, Empty, Field, Input, ProgressBar, ProgressRing, Segmented, Select, Sheet, Textarea, cx, toast } from '@/components/ui'
 import { NightSlab, Sparkle } from '@/components/step1'
+import { EventScene } from '@/components/scenes'
 import { QuoteTab, useQuote } from '@/components/events/QuoteTab'
 import { ChecklistTab, GuestsTab, TimelineTab } from '@/components/events/EventTabs'
 import { BeoTab, BudgetTab, InspirationTab, MiniPlan, PaymentPlanTab, VendorsTab } from '@/components/events/PlannerTabs'
 import { EventOrb, PaletteDots } from '@/components/events/EventOrb'
 import { vt } from '@/lib/transitions'
+import { modulesOf, type EventModule } from '@/lib/modules'
+import { ModulesPicker } from '@/components/events/ModulesPicker'
 import { LiveQuote } from '@/components/event-detail/LiveQuote'
 
 const FloorPlanEditor = lazy(() => import('@/components/floorplan/FloorPlanEditor'))
@@ -29,6 +32,7 @@ export default function EventoDetalle() {
   if (!ev)
     return (
       <Empty
+        kind="busqueda"
         title="No encontramos este evento"
         body="Puede que se haya eliminado o que el enlace esté incompleto."
         action={
@@ -46,7 +50,11 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
   const navigate = useNavigate()
   const showMoney = seesMoney(me?.role)
   const [params, setParams] = useSearchParams()
-  const tab = (params.get('tab') as Tab) || 'resumen'
+  const mods = modulesOf(ev)
+  const visible = (t: Tab) => t === 'resumen' || mods[t as EventModule]
+  const asked = (params.get('tab') as Tab) || 'resumen'
+  const tab: Tab = visible(asked) ? asked : 'resumen'
+  const [modsOpen, setModsOpen] = useState(false)
   const setTab = (t: Tab) => {
     params.set('tab', t)
     setParams(params, { replace: true })
@@ -59,15 +67,18 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
 
   // 7 grupos en lugar de 11 pestañas; dentro de cada grupo, un selector pequeño
   const LABEL: Record<Tab, string> = { resumen: 'Resumen', plano: 'Plano de mesas', invitados: 'Invitados', cotizacion: 'Cotización', pagos: 'Plan de pagos', presupuesto: 'Presupuesto', inspiracion: 'Inspiración', programa: 'Programa', beo: 'Orden de evento', proveedores: 'Proveedores', checklist: 'Checklist' }
-  const groups: { value: string; label: string; tabs: Tab[] }[] = [
+  type Group = { value: string; label: string; tabs: Tab[] }
+  const groups: Group[] = ([
     { value: 'resumen', label: 'Resumen', tabs: ['resumen'] },
     { value: 'plano', label: 'Plano de mesas', tabs: ['plano'] },
     { value: 'invitados', label: 'Invitados', tabs: ['invitados'] },
     ...(showMoney ? [{ value: 'dinero', label: 'Cotización y pagos', tabs: ['cotizacion', 'pagos', 'presupuesto'] as Tab[] }] : []),
     { value: 'dia', label: 'Día del evento', tabs: ['programa', 'beo', 'checklist'] },
     { value: 'proveedores', label: 'Proveedores', tabs: ['proveedores'] },
-    { value: 'inspiracion', label: 'Inspiración', tabs: ['inspiracion'] },
-  ]
+    { value: 'inspiracion', label: 'Inspiración', tabs: ['inspiracion'] as Tab[] },
+  ] as Group[])
+    .map((g) => ({ ...g, tabs: g.tabs.filter(visible) }))
+    .filter((g) => g.tabs.length)
   const group = groups.find((g) => g.tabs.includes(tab)) ?? groups[0]!
 
   const setStatus = (s: EventStatus) => {
@@ -84,7 +95,7 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
       </Link>
 
       {/* Encabezado: losa noche con la luz */}
-      <NightSlab className="px-5 pt-6 pb-24 md:px-9 md:pt-9 md:pb-28" luzSize="clamp(40px, 7vw, 88px)" luzClassName="absolute top-[42%] right-[34%] hidden md:block">
+      <NightSlab scene={<EventScene type={ev.type} />} className="px-5 pt-6 pb-24 md:px-9 md:pt-9 md:pb-28" luzSize="clamp(40px, 7vw, 88px)" luzClassName="absolute top-[42%] right-[34%] hidden md:block">
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -116,7 +127,7 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
                   <a href={`tel:${ev.phone}`} className="pressable inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm text-on-night ring-1 ring-[color-mix(in_oklab,var(--on-night)_28%,transparent)] hover:bg-[color-mix(in_oklab,var(--on-night)_10%,transparent)]">
                     <Phone size={15} strokeWidth={1.6} /> Llamar
                   </a>
-                  <a href={waLink(ev.phone, `Hola ${ev.clientName.split(' ')[0]}, te escribimos de Jardines La Joya sobre ${ev.title}.`)} target="_blank" rel="noopener" className="pressable inline-flex h-10 items-center gap-1.5 rounded-full bg-luz px-4 text-sm text-[color:var(--ink-base)] shadow-glow">
+                  <a href={waLink(ev.phone, `Hola ${ev.clientName.split(' ')[0]}, te escribimos de Jardines La Joya sobre ${ev.title}.`)} target="_blank" rel="noopener" className="pressable inline-flex h-10 items-center gap-1.5 rounded-full bg-luz px-4 text-sm font-medium text-night shadow-glow">
                     <MessageCircle size={15} strokeWidth={1.6} /> WhatsApp
                   </a>
                 </>
@@ -131,6 +142,9 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
               {d > 1 && <div className="text-sm text-on-night-soft">días para el evento</div>}
             </div>
             <div className="flex gap-1.5">
+              <HeroIcon label="Qué incluye este evento" onClick={() => setModsOpen(true)}>
+                <SlidersHorizontal size={17} strokeWidth={1.6} />
+              </HeroIcon>
               <HeroIcon label="Editar evento" onClick={() => setEditOpen(true)}>
                 <Pencil size={17} strokeWidth={1.6} />
               </HeroIcon>
@@ -234,6 +248,9 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
       </AnimatePresence>
 
       <EditEventSheet open={editOpen} onClose={() => setEditOpen(false)} ev={ev} />
+      <Sheet open={modsOpen} onClose={() => setModsOpen(false)} title="Qué incluye este evento" subtitle="Apaga lo que no vas a usar: desaparece de las pestañas y deja de contar en los pendientes.">
+        <ModulesPicker value={mods} showMoney={showMoney} onChange={(m, on) => db.patch('events', ev.id, { modules: { ...ev.modules, [m]: on } })} />
+      </Sheet>
       <Confirm open={cancelOpen} onClose={() => setCancelOpen(false)} title="¿Cancelar este evento?" body="La fecha quedará libre en el calendario. Los pagos registrados se conservan." confirmLabel="Cancelar evento" danger onConfirm={() => setStatus('cancelado')} />
       <Confirm
         open={delOpen}
@@ -278,7 +295,7 @@ function Summary({ ev, showMoney, goTab }: { ev: RanchEvent; showMoney: boolean;
     <div className="grid gap-5 lg:grid-cols-3">
       {/* Preparación general */}
       <Card className="p-6 lg:col-span-3">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-center">
           <div className="flex items-center gap-5">
             <ProgressRing value={ready.overall} size={96} stroke={6} gradient>
               <span className="display-num text-2xl">{Math.round(ready.overall * 100)}%</span>
@@ -289,13 +306,13 @@ function Summary({ ev, showMoney, goTab }: { ev: RanchEvent; showMoney: boolean;
               <p className="mt-1 text-sm text-ink-soft">Combina checklist, pagos e invitados confirmados.</p>
             </div>
           </div>
-          <div className="grid flex-1 grid-cols-3 gap-4">
+          <div className="grid min-w-0 flex-1 grid-cols-3 gap-2 sm:gap-4">
             {[
               { label: 'Checklist', v: ready.checklist, sub: `${checklistDone}/${ev.checklist.length}`, tab: 'checklist' as Tab },
               { label: 'Pagos', v: ready.payments, sub: showMoney ? mxn(q.paid) : `${Math.round(ready.payments * 100)}%`, tab: (showMoney ? 'pagos' : 'resumen') as Tab },
               { label: 'Confirmados', v: ready.guests, sub: `${confirmedGuests} de ${people || ev.guests}`, tab: 'invitados' as Tab },
             ].map((x) => (
-              <button key={x.label} onClick={() => goTab(x.tab)} className="pressable rounded-[18px] p-3 text-left hover:bg-wash">
+              <button key={x.label} onClick={() => goTab(x.tab)} className="pressable w-full min-w-0 rounded-[18px] p-3 text-left hover:bg-wash">
                 <div className="text-xs text-ink-soft">{x.label}</div>
                 <div className="display-num mt-1 text-[1.7rem]">{Math.round(x.v * 100)}%</div>
                 <ProgressBar value={x.v} className="mt-2" />
@@ -448,7 +465,7 @@ function EditEventSheet({ open, onClose, ev }: { open: boolean; onClose: () => v
         </div>
       }
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 @xl:grid-cols-2">
         <Field label="Nombre del evento" className="sm:col-span-2">
           <Input value={f.title} onChange={(e) => set('title', e.target.value)} />
         </Field>

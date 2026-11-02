@@ -277,7 +277,8 @@ export function RanchPlan2D({ selectedId, onSelect, onClear, compact, className,
         },
         onPointerDown: (e: React.PointerEvent) => {
           cancelAnimationFrame(anim.current!)
-          ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+          // No se captura el dedo aquí: si se capturara, el toque nunca llegaría a la casa y no se podría elegir.
+          // Se captura en cuanto empieza a arrastrar (abajo)
           pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
           if (pointers.current.size === 2) {
             const [a, b] = [...pointers.current.values()]
@@ -302,6 +303,8 @@ export function RanchPlan2D({ selectedId, onSelect, onClear, compact, className,
           const dx = ((e.clientX - prev.x) / r.width) * vbRef.current.w
           const dy = ((e.clientY - prev.y) / r.height) * vbRef.current.h
           gesture.current.moved += Math.abs(e.clientX - prev.x) + Math.abs(e.clientY - prev.y)
+          const el = e.currentTarget as Element
+          if (gesture.current.moved > 6 && !el.hasPointerCapture(e.pointerId)) el.setPointerCapture(e.pointerId)
           setVb((v) => ({ ...v, x: v.x - dx, y: v.y - dy }))
         },
         onPointerUp: (e: React.PointerEvent) => {

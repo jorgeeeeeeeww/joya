@@ -15,25 +15,23 @@ import {
   Moon,
   Plus,
   Receipt,
-  SlidersHorizontal,
   Sun,
 } from 'lucide-react'
-import { useMe, useStore, type StoreState } from '@/lib/store'
+import { useStore, type StoreState } from '@/lib/store'
 import { computeAlerts, eventTotal } from '@/lib/automations'
-import { EVENT_STATUS, EVENT_TYPE, RES_SOURCE, TONE, VENUE } from '@/lib/meta'
-import { addDaysISO, capitalize, compactMxn, fmt, fmtDate, fmtDateLong, greeting, localDay, mxn, pct, today } from '@/lib/format'
+import { EVENT_STATUS, EVENT_TYPE, TONE, VENUE } from '@/lib/meta'
+import { addDaysISO, capitalize, compactMxn, fmt, fmtDate, fmtDateLong, localDay, mxn, relativeDay, today } from '@/lib/format'
 import { useWeather, weatherLabel } from '@/lib/weather'
-import { ease, fadeRise, stagger } from '@/lib/motion'
+import { fadeRise, stagger } from '@/lib/motion'
 import type { Pastel, RanchEvent } from '@/lib/types'
-import { AreaChart, BarChart, Donut, Legend, Sparkline } from '@/components/charts'
-import { Avatar, Button, Card, CardHeader, cx, Dot, Empty, Estela, IconBubble, ProgressBar, ProgressRing, Segmented, Stat } from '@/components/ui'
+import { Sparkline } from '@/components/charts'
+import { Avatar, Button, Card, CardHeader, cx, Dot, Estela, ProgressBar, Stat } from '@/components/ui'
 import { FlipCard } from '@/components/interact'
-import { DayLine } from '@/components/home/DayLine'
-import { CustomizeSheet, HomeGrid, useHomeLayout, type HomeBlock } from '@/components/home/HomeLayout'
+import { ActivityToday, MoneyWeek, Occupancy7 } from '@/components/owner/OwnerToday'
 import { CountUp, NightSlab, Sparkle } from '@/components/step1'
-import { OwnerOverview } from '@/components/owner/OwnerOverview'
+import { RanchoScene } from '@/components/scenes'
+import { CleaningSheet } from '@/components/stays/CleaningFlow'
 
-type HomeTab = 'hoy' | 'negocio' | 'eventos'
 
 interface AgendaItem {
   id: string
@@ -54,7 +52,6 @@ function Section({ children, className }: { children: ReactNode; className?: str
 }
 
 export default function Dashboard() {
-  const me = useMe()
   const data = useStore((s) => s.data)
   const settings = useStore((s) => s.settings)
   const navigate = useNavigate()
@@ -76,7 +73,6 @@ export default function Dashboard() {
   const arrivals = reservations.filter((r) => r.checkIn === T && r.guests > 0)
   const departures = reservations.filter((r) => r.checkOut === T && (r.status === 'en-casa' || r.status === 'finalizada'))
   const eventsToday = events.filter((e) => e.date === T)
-  const openTasksToday = tasks.filter((t) => (t.status === 'pendiente' || t.status === 'en-progreso') && t.due && t.due.slice(0, 10) <= T)
 
   // ── Dinero ──
   const month = T.slice(0, 7)
@@ -103,34 +99,6 @@ export default function Dashboard() {
     return reservations.filter((r) => r.checkIn === d && r.guests > 0).length
   })
   const eventsMonth = events.filter((e) => e.date.startsWith(month)).length
-
-  const incomeSeries = useMemo(() => {
-    const out: { label: string; hospedaje: number; eventos: number }[] = []
-    const d = new Date()
-    for (let i = 5; i >= 0; i--) {
-      const m = new Date(d.getFullYear(), d.getMonth() - i, 1)
-      const key = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`
-      const ps = payments.filter((p) => p.date.startsWith(key))
-      out.push({ label: fmt(m, 'MMM'), hospedaje: ps.filter((p) => p.refType === 'reserva').reduce((n, p) => n + p.amount, 0), eventos: ps.filter((p) => p.refType === 'evento').reduce((n, p) => n + p.amount, 0) })
-    }
-    return out
-  }, [payments])
-
-  const occupancy = useMemo(() => {
-    const out: { label: string; value: number }[] = []
-    for (let i = -7; i <= 14; i++) {
-      const day = addDaysISO(T, i)
-      const occ = new Set(reservations.filter((r) => r.checkIn <= day && r.checkOut > day).map((r) => r.unitId)).size
-      out.push({ label: i === 0 ? 'Hoy' : fmt(day, 'd MMM'), value: Math.round((occ / Math.max(1, units.length)) * 100) })
-    }
-    return out
-  }, [reservations, units.length, T])
-
-  const sources = useMemo(() => {
-    const since = addDaysISO(T, -90)
-    const recent = reservations.filter((r) => r.checkIn >= since && r.guests > 0)
-    return (Object.keys(RES_SOURCE) as (keyof typeof RES_SOURCE)[]).map((k) => ({ label: RES_SOURCE[k].label, tone: RES_SOURCE[k].tone, value: recent.filter((r) => r.source === k).length }))
-  }, [reservations, T])
 
   // ── Agenda unificada (hoy y mañana) ──
   const agenda = useMemo(() => {
@@ -181,7 +149,7 @@ export default function Dashboard() {
     const toSat = (6 - d.getDay() + 7) % 7
     return Array.from({ length: 8 }, (_, i) => {
       const sat = addDaysISO(T, toSat + i * 7)
-      const ev = (v: RanchEvent['venue']) => events.find((e) => e.date === sat && e.venue === v && e.status !== 'prospecto')
+      const ev = (v: RanchEvent['venue']) => events.find((e) => e.date >= addDaysISO(sat, -1) && e.date <= addDaysISO(sat, 1) && e.venue === v && e.status !== 'prospecto')
       const freeUnits = units.filter((u) => !reservations.some((r) => r.unitId === u.id && r.checkIn <= sat && r.checkOut > sat)).length
       return { sat, salon: ev('salon'), jardin: ev('jardin'), freeUnits }
     })
@@ -205,50 +173,51 @@ export default function Dashboard() {
 
   const WeatherIcon = !weather ? Sun : weather.code >= 51 ? CloudRain : weather.code <= 1 ? (new Date().getHours() >= 19 ? Moon : Sun) : CloudSun
 
-  const [tab, setTabState] = useState<HomeTab>(() => {
-    try {
-      return (localStorage.getItem('lajoya:homeTab') as HomeTab) || 'hoy'
-    } catch {
-      return 'hoy'
-    }
-  })
-  const setTab = (v: HomeTab) => {
-    setTabState(v)
-    try {
-      localStorage.setItem('lajoya:homeTab', v)
-    } catch {
-      /* sin almacenamiento */
-    }
-  }
-  const [customize, setCustomize] = useState(false)
+  const [reviewTask, setReviewTask] = useState<string>()
 
-  const alertsNode =
-    alerts.length > 0 || rainEvents.length > 0 ? (
-      <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 md:mx-0 md:px-0">
-        {rainEvents.map(({ e, w }) => (
-          <Link key={'rain' + e.id} to={`/eventos/${e.id}`} className="glass lift pressable flex w-[290px] shrink-0 snap-start items-start gap-3 rounded-[var(--r-lg)] p-4 ring-1 ring-line">
-            <IconBubble tone="sky" size="sm">
-              <CloudRain size={16} strokeWidth={1.6} />
-            </IconBubble>
-            <span className="min-w-0">
-              <span className="block text-[15px] font-medium">Posible lluvia · {e.title}</span>
-              <span className="mt-0.5 block text-sm text-ink-soft">
-                {w!.rain}% el {fmtDate(e.date)} en el jardín. Conviene tener carpa lista.
-              </span>
-            </span>
-          </Link>
-        ))}
-        {alerts.map((a) => (
-          <Link key={a.id} to={a.link || '/'} className="glass lift pressable flex w-[290px] shrink-0 snap-start items-start gap-3 rounded-[var(--r-lg)] p-4 ring-1 ring-line">
-            <Dot tone={a.tone} pulse className="mt-1.5" />
-            <span className="min-w-0">
-              <span className="block text-[15px] font-medium">{a.title}</span>
-              <span className="mt-0.5 line-clamp-2 block text-sm text-ink-soft">{a.body}</span>
-            </span>
-          </Link>
-        ))}
-      </div>
-    ) : null
+  // ── Te toca decidir: una sola lista vertical, una entrada por casa o evento ──
+  const toReview = useMemo(() => tasks.filter((t) => t.type === 'limpieza' && t.status === 'hecha'), [tasks])
+  const toBuy = useMemo(() => tasks.filter((t) => t.type === 'compra' && (t.status === 'pendiente' || t.status === 'en-progreso')), [tasks])
+  const decisions = useMemo(() => {
+    const out: { id: string; tone: Pastel; title: string; body: string; action: string; to?: string; review?: string }[] = []
+    for (const t of toReview) {
+      const u = t.unitId ? data.units[t.unitId] : undefined
+      out.push({ id: 'rv' + t.id, tone: 'sage', title: `Revisar ${u?.name ?? t.title}`, body: `${t.photoIds.length ? `${t.photoIds.length} ${t.photoIds.length === 1 ? 'foto' : 'fotos'} de evidencia · ` : ''}Limpieza terminada; falta tu visto bueno para liberarla.`, action: 'Revisar', review: t.id })
+    }
+    // Avisos de la misma casa se juntan en uno (antes salían dos tarjetas para la misma casa)
+    const byKey = new Map<string, (typeof out)[number]>()
+    // Llegadas y salidas son información (van en el resumen); solo se suman si la casa ya tiene un pendiente
+    const info = (a: (typeof alerts)[number]) => a.id.startsWith('ci') || a.id.startsWith('co')
+    const actionable = alerts.filter((a) => !info(a) && !(a.link === '/inventario' && toBuy.length))
+    for (const a of actionable) {
+      const place = a.title.includes(' · ') ? a.title.split(' · ')[1]! : a.title.replace(/ aún no está lista$/, '')
+      const key = a.link === '/hospedaje' || a.link === '/limpieza' ? place : a.id
+      const prev = byKey.get(key)
+      if (prev) {
+        if (!prev.body.includes(a.body)) prev.body = `${prev.body} ${a.body}`
+        if (a.tone === 'rose') prev.tone = 'rose'
+        if (/no está lista/.test(a.title)) prev.title = a.title
+      } else byKey.set(key, { id: a.id, tone: a.tone, title: a.title, body: a.body, action: 'Ver', to: a.link || '/' })
+    }
+    out.push(...byKey.values())
+    for (const { e, w } of rainEvents) out.push({ id: 'rain' + e.id, tone: 'sky', title: `Posible lluvia · ${e.title}`, body: `${w!.rain}% el ${fmtDate(e.date)} en el jardín. Conviene tener la carpa lista.`, action: 'Ver evento', to: `/eventos/${e.id}` })
+    for (const t of toBuy) out.push({ id: 'buy' + t.id, tone: 'butter', title: t.title, body: t.checklist.map((c) => c.text).join(', ') || t.notes || 'Compra pendiente', action: 'Ver compra', to: `/tareas?t=${t.id}` })
+    return out
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toReview, toBuy, alerts, weather, data.units])
+
+  // ── Te cuento el día: frases armadas con los datos ──
+  const nextEv = upcoming.find((e) => e.date >= T && (e.status === 'apartado' || e.status === 'confirmado'))
+  const briefing: string[] = []
+  {
+    const ins = arrivals.map((r) => `${data.units[r.unitId]?.name ?? 'una casa'}${r.arrivalTime ? ` (${r.arrivalTime})` : ''}`)
+    briefing.push(arrivals.length ? `Hoy ${arrivals.length === 1 ? 'llega 1 reserva' : `llegan ${arrivals.length} reservas`}: ${ins.join(' y ')}.` : 'Hoy no llega ningún huésped.')
+    const notReady = alerts.filter((a) => / aún no está lista$/.test(a.title)).map((a) => a.title.replace(/ aún no está lista$/, ''))
+    if (notReady.length) briefing.push(`${notReady.join(' y ')} ${notReady.length === 1 ? 'todavía no está lista' : 'todavía no están listas'}.`)
+    if (departures.length) briefing.push(`${departures.length === 1 ? 'Sale 1 reserva' : `Salen ${departures.length} reservas`}; su limpieza ya está asignada.`)
+    briefing.push(eventsToday.length ? `Hoy hay evento: ${eventsToday.map((e) => e.title).join(' y ')}.` : nextEv ? `El próximo evento es ${nextEv.title}, ${relativeDay(nextEv.date).toLowerCase()}.` : 'No hay eventos apartados.')
+  }
+  const verdict = decisions.length ? `${decisions.length} ${decisions.length === 1 ? 'cosa necesita' : 'cosas necesitan'} tu decisión` : 'Todo en orden hoy'
 
   const tomorrow = agenda[1]!
   const tomorrowNode = (
@@ -280,7 +249,7 @@ export default function Dashboard() {
 
   const teamNode = (
     <Card className="h-full">
-      <CardHeader eyebrow="Equipo" title="En este momento" subtitle={`${team.filter((t) => t.doing).length} personas trabajando`} action={<Link to="/equipo" className="pressable inline-flex h-10 items-center gap-1 rounded-full px-3 text-sm text-ink-soft hover:bg-wash hover:text-ink">Ver <ArrowRight size={15} strokeWidth={1.6} /></Link>} />
+      <CardHeader eyebrow="Equipo" title="En este momento" subtitle={`${team.filter((t) => t.doing).length} personas trabajando`} action={<Link to="/equipo" className="pressable inline-flex h-10 items-center gap-1 rounded-full px-3 text-sm text-ink-soft hover:bg-wash hover:text-ink">Ver equipo <ArrowRight size={15} strokeWidth={1.6} /></Link>} />
       <ul className="flex flex-col gap-1 p-3 md:p-4">
         {team.map(({ e, doing, next, doneToday, mins, open }) => (
           <li key={e.id} className="flex items-center gap-3 rounded-[14px] px-2 py-2.5">
@@ -343,41 +312,6 @@ export default function Dashboard() {
     </div>
   )
 
-  const incomeNode = (
-    <Card className="h-full">
-      <CardHeader eyebrow="Finanzas" title="Ingresos por mes" subtitle="Hospedaje y eventos · últimos 6 meses" action={<span className="shrink-0 text-2xl font-semibold tabular">{compactMxn(incomeSeries.reduce((n, m) => n + m.hospedaje + m.eventos, 0))}</span>} />
-      <div className="px-3 pt-4 pb-5 md:px-5">
-        <BarChart data={incomeSeries} series={[{ key: 'hospedaje', label: 'Hospedaje', tone: 'sky' }, { key: 'eventos', label: 'Eventos', tone: 'rose' }]} />
-        <div className="mt-3 flex justify-center gap-6 text-sm text-ink-soft">
-          <span className="inline-flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-sky" /> Hospedaje
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-rose" /> Eventos
-          </span>
-        </div>
-      </div>
-    </Card>
-  )
-  const sourcesNode = (
-    <Card className="h-full">
-      <CardHeader eyebrow="Canales" title="Origen de reservas" subtitle="Últimos 90 días" />
-      <div className="flex flex-col items-center gap-6 p-6 sm:flex-row xl:flex-col 2xl:flex-row">
-        <Donut segments={sources} center={<><span className="display-num text-[1.8rem]">{sources.reduce((n, s) => n + s.value, 0)}</span><span className="text-xs text-ink-soft">reservas</span></>} />
-        <div className="w-full">
-          <Legend items={sources.map((s) => ({ label: s.label, tone: s.tone, value: s.value }))} />
-        </div>
-      </div>
-    </Card>
-  )
-  const occupancyNode = (
-    <Card>
-      <CardHeader eyebrow="Hospedaje" title="Ocupación" subtitle="Semana pasada y próximas dos semanas" />
-      <div className="px-3 pt-3 pb-5 md:px-5">
-        <AreaChart data={occupancy} tone="sage" max={100} format={(n) => `${n}% ocupado`} />
-      </div>
-    </Card>
-  )
   const weekendsNode = (
     <Card className="h-full">
       <CardHeader eyebrow="Disponibilidad" title="Próximos sábados" subtitle="Lo que más se vende: salón, jardín y hospedaje" action={<Link to="/eventos" className="pressable inline-flex h-10 items-center gap-1 rounded-full px-3 text-sm text-ink-soft hover:bg-wash hover:text-ink">Calendario <ArrowRight size={15} strokeWidth={1.6} /></Link>} />
@@ -442,117 +376,119 @@ export default function Dashboard() {
     </Card>
   )
 
-  const hoy = useHomeLayout(
-    'hoy',
-    [
-      alertsNode && { id: 'alertas', label: 'Avisos', hint: 'Lluvia, cobros, limpiezas atrasadas', node: alertsNode },
-      { id: 'linea', label: 'Línea del día', hint: 'Mapa y agenda a cualquier hora', node: <DayLine units={units} reservations={reservations} events={events} tasks={tasks} settings={settings} items={agenda[0]!.items} /> },
-      { id: 'equipo', label: 'Equipo en este momento', node: teamNode, span: 'wide' as const },
-      { id: 'manana', label: 'Mañana', node: tomorrowNode, span: 'narrow' as const },
-    ].filter(Boolean) as HomeBlock[],
-  )
-  const negocio = useHomeLayout('negocio', [
-    { id: 'kpis', label: 'Indicadores', hint: 'Tócalos para ver el desglose', node: kpisNode },
-    { id: 'panorama', label: 'Panorama del dueño', hint: 'Utilidad, proyección y rentabilidad', node: <OwnerOverview /> },
-    { id: 'ingresos', label: 'Ingresos por mes', node: incomeNode, span: 'wide' },
-    { id: 'origen', label: 'Origen de reservas', node: sourcesNode, span: 'narrow' },
-    { id: 'ocupacion', label: 'Ocupación', node: occupancyNode },
-  ])
-  const eventosTab = useHomeLayout('eventos', [
-    { id: 'sabados', label: 'Próximos sábados', node: weekendsNode, span: 'wide' },
-    { id: 'embudo', label: 'Embudo de eventos', node: funnelNode, span: 'narrow' },
-  ])
-  const current = tab === 'hoy' ? hoy : tab === 'negocio' ? negocio : eventosTab
-  const tabLabel = tab === 'hoy' ? 'Hoy' : tab === 'negocio' ? 'Negocio' : 'Eventos'
-
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-5 xl:gap-6">
-      {/* ── Hero: losa noche con la luz y el pulso del rancho ── */}
+    <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-6">
+      {/* ── El veredicto del día ── */}
       <Section>
-        <NightSlab className="px-6 pt-7 pb-24 sm:px-9 sm:pt-9 md:pb-28 xl:px-12 xl:pt-11" luzSize="clamp(48px, 10vw, 136px)">
-          <div className="max-w-[min(100%,820px)] pr-[18vw] sm:pr-[22%] lg:pr-0">
-            <p className="eyebrow !text-on-night-soft">{capitalize(fmtDateLong(T))}</p>
-            <h1 className="heading mt-3 text-[clamp(2.3rem,1.7rem+2.6vw,4rem)] text-on-night">
-              {greeting()}, {me?.name.split(' ')[0]}
-            </h1>
-            <p className="mt-3 max-w-[48ch] text-[15px] text-on-night-soft sm:text-base">
-              Esto es lo que pasa hoy en {settings.ranchName}.
-              {weather && (
-                <span className="ml-1 inline-flex items-center gap-1.5 whitespace-nowrap">
-                  <WeatherIcon size={16} strokeWidth={1.6} className="text-luz" /> {weather.temp}° · {weatherLabel(weather.code).toLowerCase()}
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-6">
-            <div className="flex items-center gap-4">
-              <ProgressRing value={occupied / Math.max(1, units.length)} size={104} stroke={5} gradient>
-                <span className="flex flex-col items-center text-on-night">
-                  <span className="display-num text-[1.9rem]">
-                    {occupied}
-                    <span className="text-on-night-soft">/{units.length}</span>
-                  </span>
-                </span>
-              </ProgressRing>
-              <div>
-                <div className="text-sm text-on-night">Ocupación hoy</div>
-                <div className="text-xs text-on-night-soft">{pct(occupied / Math.max(1, units.length))} de cabañas y casas</div>
-              </div>
-            </div>
-            <span aria-hidden className="hidden h-14 w-px bg-[color-mix(in_oklab,var(--on-night)_16%,transparent)] sm:block" />
+        <NightSlab scene={<RanchoScene />} className="px-5 pt-7 pb-24 sm:px-9 sm:pt-9 md:pb-28 xl:px-12" luzSize="clamp(48px, 9vw, 120px)" luzClassName="absolute top-[6%] right-[5%]">
+          <p className="eyebrow !text-on-night-soft">
+            {capitalize(fmtDateLong(T))}
+            {weather && (
+              <span className="ml-1.5 inline-flex items-center gap-1.5 tracking-normal normal-case">
+                · <WeatherIcon size={14} strokeWidth={1.6} className="text-luz" /> {weather.temp}° {weatherLabel(weather.code).toLowerCase()}
+              </span>
+            )}
+          </p>
+          <h1 className="heading mt-3 max-w-[18ch] pr-14 text-[clamp(2.1rem,1.6rem+2.4vw,3.6rem)] leading-[1.04] text-on-night">{verdict}</h1>
+          <ul className="mt-4 flex max-w-[62ch] flex-col gap-1.5 text-[16px] leading-snug text-on-night-soft">
+            {briefing.map((l) => (
+              <li key={l} className="flex gap-2.5">
+                <Sparkle className="mt-[3px] text-[10px] text-luz" />
+                <span>{l}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-7 grid max-w-[720px] grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
             {[
-              { label: 'Llegadas', value: arrivals.length, icon: LogIn, to: '/hospedaje' },
-              { label: 'Salidas', value: departures.length, icon: LogOut, to: '/limpieza' },
-              { label: 'Eventos hoy', value: eventsToday.length, icon: CalendarHeart, to: '/eventos' },
-              { label: 'Pendientes', value: openTasksToday.length, icon: ListChecks, to: '/tareas' },
+              { label: 'Ocupación', value: `${occupied}/${units.length}`, to: '/hospedaje' },
+              { label: 'Llegadas', value: String(arrivals.length), to: '/hospedaje' },
+              { label: 'Salidas', value: String(departures.length), to: '/hospedaje' },
+              { label: 'Eventos hoy', value: String(eventsToday.length), to: '/eventos' },
             ].map((k) => (
-              <Link key={k.label} to={k.to} className="group min-w-[84px] rounded-[14px] focus-visible:outline-none">
-                <div className="flex items-center gap-1.5 text-xs text-on-night-soft">
-                  <k.icon size={14} strokeWidth={1.6} /> {k.label}
-                </div>
-                <div className="display-num mt-1 text-[2.4rem] text-on-night transition-transform duration-[var(--dur-3)] group-hover:-translate-y-0.5">
-                  <CountUp value={k.value} />
-                </div>
+              <Link key={k.label} to={k.to} className="group rounded-[14px]">
+                <div className="text-[13px] text-on-night-soft">{k.label}</div>
+                <div className="display-num mt-1 text-[2.4rem] leading-none text-on-night transition-transform duration-[var(--dur-3)] group-hover:-translate-y-0.5">{k.value}</div>
               </Link>
             ))}
           </div>
-          <div className="mt-8 flex flex-wrap gap-2.5">
-            <Button variant="luz" icon={<Plus size={18} strokeWidth={1.6} />} onClick={() => navigate('/eventos?nuevo=salon')}>
-              Nuevo evento
-            </Button>
-            <Button variant="ghost" className="!text-on-night ring-1 ring-[color-mix(in_oklab,var(--on-night)_28%,transparent)] ring-inset hover:!bg-[color-mix(in_oklab,var(--on-night)_10%,transparent)]" icon={<BedDouble size={18} strokeWidth={1.6} />} onClick={() => navigate('/hospedaje')}>
+          <div className="mt-7 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap">
+            <Button variant="luz" icon={<Plus size={18} strokeWidth={1.6} />} onClick={() => navigate('/hospedaje')}>
               Nueva reserva
+            </Button>
+            <Button variant="ghost" className="!text-on-night ring-1 ring-[color-mix(in_oklab,var(--on-night)_28%,transparent)] ring-inset hover:!bg-[color-mix(in_oklab,var(--on-night)_10%,transparent)]" icon={<CalendarHeart size={18} strokeWidth={1.6} />} onClick={() => navigate('/eventos?nuevo=salon')}>
+              Nuevo evento
             </Button>
           </div>
         </NightSlab>
       </Section>
 
-      <Section className="flex items-center justify-between gap-3">
-        <Segmented<HomeTab>
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: 'hoy', label: <><Sun size={16} strokeWidth={1.6} /> Hoy</> },
-            { value: 'negocio', label: <><Receipt size={16} strokeWidth={1.6} /> Negocio</> },
-            { value: 'eventos', label: <><CalendarHeart size={16} strokeWidth={1.6} /> Eventos</> },
-          ]}
-        />
-        <Button variant="ghost" size="sm" icon={<SlidersHorizontal size={16} strokeWidth={1.6} />} onClick={() => setCustomize(true)}>
-          <span className="max-sm:hidden">Personalizar</span>
-        </Button>
+      {/* ── Te toca decidir ── */}
+      <Section>
+        <Card>
+          <CardHeader eyebrow="Te toca decidir" title={decisions.length ? `${decisions.length} ${decisions.length === 1 ? 'pendiente' : 'pendientes'}` : 'Nada pendiente'} subtitle="Limpiezas por revisar, avisos de hoy y compras" />
+          <ul className="flex flex-col gap-2 p-3 md:p-4">
+            {decisions.length === 0 && (
+              <li className="flex items-center gap-3 rounded-[16px] bg-sunken/60 p-4 text-[15px] text-ink-soft">
+                <Sparkle className="text-chispa-soft" /> Todo en orden. Te avisamos cuando algo necesite tu decisión.
+              </li>
+            )}
+            {decisions.map((d) => (
+              <li key={d.id} className="flex items-center gap-3 rounded-[16px] bg-surface p-3 ring-1 ring-line">
+                <span className={cx('flex h-10 w-10 shrink-0 items-center justify-center self-start rounded-[12px]', TONE[d.tone].soft)}>
+                  <Dot tone={d.tone} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] leading-snug font-semibold">{d.title}</span>
+                  <span className="mt-0.5 block text-[13px] leading-snug text-ink-soft">{d.body}</span>
+                </span>
+                {d.review ? (
+                  <Button size="sm" variant="tinta" className="shrink-0" onClick={() => setReviewTask(d.review)}>
+                    {d.action}
+                  </Button>
+                ) : (
+                  <Link to={d.to!} className="pressable inline-flex h-11 shrink-0 items-center rounded-full px-4 text-sm font-semibold ring-1 ring-line-strong ring-inset hover:bg-wash">
+                    {d.action}
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
       </Section>
 
-      <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.36, ease: ease.calma } }}>
-        {current.visible.length ? (
-          <HomeGrid blocks={current.visible} />
-        ) : (
-          <Card>
-            <Empty title="Ocultaste todas las tarjetas" body="Usa Personalizar para volver a mostrarlas." action={<Button size="sm" onClick={() => setCustomize(true)}>Personalizar</Button>} />
-          </Card>
-        )}
-      </motion.div>
+      {/* ── Lo que pasó hoy, el dinero y la ocupación de la semana ── */}
+      <Section className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+        <ActivityToday data={data} />
+        <MoneyWeek data={data} />
+      </Section>
+      <Section>
+        <Occupancy7 data={data} />
+      </Section>
 
-      <CustomizeSheet open={customize} onClose={() => setCustomize(false)} title={tabLabel} layout={current} />
+      {/* ── El mes ── */}
+      <Section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-2 px-1">
+          <h2 className="heading text-[1.7rem] leading-none">El mes</h2>
+          <Link to="/finanzas" className="pressable inline-flex min-h-10 items-center gap-1 rounded-full px-3 text-sm text-ink-soft hover:bg-wash hover:text-ink">
+            Ver el negocio completo <ArrowRight size={15} strokeWidth={1.6} />
+          </Link>
+        </div>
+        {kpisNode}
+      </Section>
+
+      {/* ── Equipo y mañana ── */}
+      <Section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        {teamNode}
+        {tomorrowNode}
+      </Section>
+
+      {/* ── Eventos ── */}
+      <Section className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+        {weekendsNode}
+        {funnelNode}
+      </Section>
+
+      <CleaningSheet taskId={reviewTask} onClose={() => setReviewTask(undefined)} />
     </motion.div>
   )
 }

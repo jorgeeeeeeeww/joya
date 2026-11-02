@@ -21,10 +21,21 @@ function waitFor(selectorFn: () => boolean, timeout = 900) {
  * (se espera a que aparezca, por si la página se carga en diferido).
  */
 export function morphNavigate(navigate: (to: string) => void, to: string, name?: string) {
-  const doc = document as Document & { startViewTransition?: (cb: () => Promise<void> | void) => unknown }
+  const doc = document as Document & { startViewTransition?: (cb: () => Promise<void> | void) => ViewTransitionLike }
   if (!doc.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return navigate(to)
-  doc.startViewTransition(async () => {
-    flushSync(() => navigate(to))
-    if (name) await waitFor(() => [...document.querySelectorAll<HTMLElement>('[style*="view-transition-name"]')].some((el) => el.style.viewTransitionName === name))
-  })
+  quiet(
+    doc.startViewTransition(async () => {
+      flushSync(() => navigate(to))
+      if (name) await waitFor(() => [...document.querySelectorAll<HTMLElement>('[style*="view-transition-name"]')].some((el) => el.style.viewTransitionName === name))
+    }),
+  )
+}
+
+type ViewTransitionLike = { ready?: Promise<unknown>; finished?: Promise<unknown>; updateCallbackDone?: Promise<unknown> }
+/** Si se toca otra cosa a media animación, el navegador salta la transición y rechaza sus promesas: no es un error */
+export function quiet(t: ViewTransitionLike | undefined) {
+  const noop = () => {}
+  t?.ready?.catch(noop)
+  t?.finished?.catch(noop)
+  t?.updateCallbackDone?.catch(noop)
 }

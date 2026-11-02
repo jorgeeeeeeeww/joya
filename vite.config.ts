@@ -26,8 +26,8 @@ export default defineConfig({
         launch_handler: { client_mode: ['navigate-existing', 'auto'] },
         prefer_related_applications: false,
         orientation: 'any',
-        background_color: '#F6EAE3',
-        theme_color: '#F6EAE3',
+        background_color: '#ECE8E1',
+        theme_color: '#ECE8E1',
         categories: ['business', 'productivity'],
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
@@ -44,13 +44,20 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,wasm}'], // wasm: lector de códigos sin internet
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // Lo pesado y opcional (motor 3D y lector de códigos) no se descarga al instalar: se guarda la primera vez que se usa
+        globIgnores: ['**/tres-d-*.js', '**/*.wasm'],
         importScripts: ['push-sw.js'],
         cleanupOutdatedCaches: true,
         navigateFallbackDenylist: [/^\/functions\//, /^\/rest\//],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: '/index.html',
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\/assets\/(tres-d-[^/]+\.js|[^/]+\.wasm)$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'modulos-pesados', expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 60 } },
+          },
           {
             urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
             handler: 'NetworkFirst',
@@ -60,6 +67,21 @@ export default defineConfig({
       },
     }),
   ],
-  build: { chunkSizeWarningLimit: 1100 },
+  build: {
+    chunkSizeWarningLimit: 1100,
+    rollupOptions: {
+      output: {
+        // Bloques con nombre estable: el motor 3D aparte (solo lo baja quien abre un mapa) y el núcleo de React aparte
+        manualChunks(id: string) {
+          if (/node_modules[\\/](three|@react-three|camera-controls|its-fine|suspend-react|react-use-measure)[\\/]/.test(id)) return 'tres-d'
+          if (/node_modules[\\/]@supabase[\\/]/.test(id)) return 'nube'
+          // zustand y use-sync-external-store los comparten la app y el motor 3D: van con React para que la
+          // pantalla inicial no arrastre el módulo 3D completo
+          if (/node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom|zustand|use-sync-external-store)[\\/]/.test(id)) return 'react'
+          if (/node_modules[\\/](motion|motion-dom|motion-utils|framer-motion)[\\/]/.test(id)) return 'movimiento'
+        },
+      },
+    },
+  },
   server: { port: 5173 },
 })

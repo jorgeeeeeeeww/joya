@@ -5,6 +5,10 @@ import './index.css'
 import App from './App'
 import { initPwa, usePwa } from './lib/pwa'
 import { consumeLinkFromUrl } from './lib/sync'
+import { installErrorLog } from './lib/errorLog'
+
+// Guarda los errores del dispositivo para el panel de desarrollador
+installErrorLog()
 
 // Service worker: avisa cuando hay versión nueva (el usuario decide cuándo actualizar)
 const updateSW = registerSW({

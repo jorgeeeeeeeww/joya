@@ -9,6 +9,7 @@ import { ago, fmt } from '@/lib/format'
 import { ease, fadeRise, stagger } from '@/lib/motion'
 import { Button, Card, CardHeader, Empty, Segmented, Textarea, cx, toast } from '@/components/ui'
 import { CountUp, NightSlab, Sparkle } from '@/components/step1'
+import { MensajesScene } from '@/components/scenes'
 import { DEFAULT_TEMPLATES, TEMPLATE_META, fill, saveTemplate, sendItem, useOutbox, useSentLog, useTemplates, type OutboxItem, type TemplateKind } from '@/components/messages/outbox'
 import { OutboxCard } from '@/components/messages/OutboxCard'
 
@@ -30,7 +31,7 @@ export default function Mensajes() {
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-6">
       <motion.div variants={fadeRise}>
-        <NightSlab className="px-6 pt-8 pb-10 md:px-10 md:pt-10 md:pb-14" luzSize="clamp(48px, 10vw, 128px)">
+        <NightSlab scene={<MensajesScene />} className="px-6 pt-8 pb-28 md:px-10 md:pt-10 md:pb-32" luzSize="clamp(48px, 10vw, 128px)">
           <p className="eyebrow !text-on-night-soft">Mensajes y automatización</p>
           <h1 className="heading mt-3 max-w-[18ch] text-[clamp(2.2rem,1.7rem+2.4vw,3.6rem)] text-on-night">
             {totalMessages ? (
@@ -95,7 +96,7 @@ function OutboxList({ items }: { items: OutboxItem[] }) {
   if (!items.length)
     return (
       <Card>
-        <Empty title="No hay mensajes pendientes" body="Cuando un pago esté por vencer, un prospecto necesite seguimiento o falten confirmaciones, aparecerá aquí con el mensaje listo." />
+        <Empty kind="mensajes" title="No hay mensajes pendientes" body="Cuando un pago esté por vencer, un prospecto necesite seguimiento o falten confirmaciones, aparecerá aquí con el mensaje listo." />
       </Card>
     )
   const sections: { label: string; filter: (i: OutboxItem) => boolean }[] = [
@@ -239,7 +240,7 @@ function History({ log }: { log: ReturnType<typeof useSentLog> }) {
   if (!log.length)
     return (
       <Card>
-        <Empty title="Aún no hay envíos" body="Cada mensaje que mandes desde aquí queda registrado con fecha y destinatario." />
+        <Empty kind="mensajes" title="Aún no hay envíos" body="Cada mensaje que mandes desde aquí queda registrado con fecha y destinatario." />
       </Card>
     )
   return (

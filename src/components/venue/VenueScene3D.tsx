@@ -2,7 +2,8 @@
 // Pensado para tablet: render bajo demanda, sillas instanciadas, una luz direccional cálida.
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber'
-import { CameraControls, Html } from '@react-three/drei'
+import { CameraControls } from '@react-three/drei'
+import { Html3D } from '@/components/map/Html3D'
 import * as THREE from 'three'
 import type { FloorItem, Venue } from '@/lib/types'
 import { ITEM_SPECS } from '@/lib/floorplan'
@@ -507,9 +508,9 @@ function Piece({ it, W, H, palette, selected, onSelect, showNumbers }: { it: Flo
       {body}
       {ring}
       {showNumbers && it.number && s.isTable && (
-        <Html position={[0, it.type === 'periquera' ? 1.6 : 1.3, 0]} center zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
+        <Html3D position={[0, it.type === 'periquera' ? 1.6 : 1.3, 0]} zIndex={10} style={{ pointerEvents: 'none' }}>
           <span className={`flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[11px] font-medium shadow-sm ${selected ? 'bg-[#B04D3D] text-white' : 'bg-white/90 text-[#43222A]'}`}>{it.number}</span>
-        </Html>
+        </Html3D>
       )}
     </group>
   )

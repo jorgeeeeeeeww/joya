@@ -9,7 +9,8 @@ import type { Pastel } from '@/lib/types'
 import { TONE } from '@/lib/meta'
 import { initials } from '@/lib/format'
 import { ease, haptic, modal, spring } from '@/lib/motion'
-import { LightDots, MiniHorizon, Sparkle } from './step1'
+import { LightDots, Sparkle } from './step1'
+import { Vignette, type VignetteKind } from './scenes'
 
 export const cx = clsx
 
@@ -349,11 +350,11 @@ export function Stat({ label, value, sub, tone = 'lavender', icon, onClick, acce
 }
 
 // ── Estado vacío: mini horizonte con luz + frase + CTA ───
-export function Empty({ title, body, action, icon }: { icon?: ReactNode; title: string; body?: string; action?: ReactNode }) {
+export function Empty({ title, body, action, icon, kind }: { icon?: ReactNode; title: string; body?: string; action?: ReactNode; /** Dibujo de lo que falta (evento, reserva, invitados…) */ kind?: VignetteKind }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
       {icon && false}
-      <MiniHorizon />
+      <Vignette kind={kind} />
       <p className="mt-5 text-lg font-medium">{title}</p>
       {body && <p className="mt-1 max-w-xs text-sm text-ink-soft">{body}</p>}
       {action && <div className="mt-5">{action}</div>}
@@ -470,7 +471,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, side =
                 </Button>
               </div>
             )}
-            <div className="scroll-area min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 md:px-7">{children}</div>
+            <div className="scroll-area @container min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 sm:px-6 md:px-7">{children}</div>
             {footer && <div className="shrink-0 border-t border-line px-6 py-3.5 md:px-7">{footer}</div>}
           </motion.div>
         </div>

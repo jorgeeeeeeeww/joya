@@ -5,6 +5,7 @@ import type { LineItem, PaymentMethod, RanchEvent } from '@/lib/types'
 import { db, useCollection, useMe, useStore } from '@/lib/store'
 import { EVENT_TYPE, PAYMENT_METHOD, VENUE } from '@/lib/meta'
 import { EVENT_PACKAGES, EXTRAS_CATALOG } from '@/lib/templates'
+import { priceOf, usePackagePrices } from '@/lib/packages'
 import { fmtDate, fmtDateFull, mxn, today, uid, waLink } from '@/lib/format'
 import { Badge, Button, Card, CardHeader, Estela, Field, Input, ProgressBar, Select, Sheet, Toggle, cx, toast } from '@/components/ui'
 import { CountUp, Sparkle } from '@/components/step1'
@@ -34,12 +35,14 @@ export function QuoteTab({ ev }: { ev: RanchEvent }) {
   const [extrasOpen, setExtrasOpen] = useState(false)
   const [payOpen, setPayOpen] = useState(false)
 
+  const prices = usePackagePrices()
   const setPackage = (pkgId: string) => {
     const pkg = EVENT_PACKAGES.find((p) => p.id === pkgId)!
+    const price = priceOf(prices, pkgId)
     const rest = lineItems.filter((l) => l.category !== 'Paquete')
-    setLines([{ id: uid('li_'), concept: `Paquete ${pkg.name}`, category: 'Paquete', qty: ev.guests, price: pkg.perPerson }, ...rest])
+    setLines([{ id: uid('li_'), concept: `Paquete ${pkg.name}`, category: 'Paquete', qty: ev.guests, price: price ?? 0 }, ...rest])
     db.patch('events', ev.id, { packageId: pkgId })
-    toast.success(`Paquete ${pkg.name}`, `${mxn(pkg.perPerson)} por persona`)
+    toast.success(`Paquete ${pkg.name}`, price !== undefined ? `${mxn(price)} por persona` : 'Escribe el precio por persona en la línea del paquete')
   }
   const updateLine = (id: string, patch: Partial<LineItem>) => setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)))
 
@@ -93,8 +96,14 @@ export function QuoteTab({ ev }: { ev: RanchEvent }) {
                   )}
                 </div>
                 <div className="mt-3 flex items-baseline gap-1.5">
-                  <span className="display-num text-[1.9rem]">{mxn(p.perPerson)}</span>
-                  <span className="text-xs text-ink-soft">por persona</span>
+                  {priceOf(prices, p.id) !== undefined ? (
+                    <>
+                      <span className="display-num text-[1.9rem]">{mxn(priceOf(prices, p.id)!)}</span>
+                      <span className="text-xs text-ink-soft">por persona</span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-ink-soft">Sin precio · se pone en Ajustes</span>
+                  )}
                 </div>
                 <ul className="mt-3 space-y-1.5 text-[13px] text-ink-soft">
                   {p.includes.map((i) => (

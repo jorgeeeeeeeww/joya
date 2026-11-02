@@ -345,6 +345,7 @@ export function OwnerOverview() {
       <CashflowCard className="xl:col-span-6" />
 
       {/* Clientes que regresan */}
+      {regulars.length > 0 && (
       <Card className="xl:col-span-12">
         <CardHeader eyebrow="Lealtad" title="Huéspedes que regresan" subtitle="Personas con más de una estancia: cuídalas con una atención especial" icon={<IconBubble tone="lavender"><Repeat size={20} strokeWidth={1.6} /></IconBubble>} />
         <div className="grid gap-2 p-4 sm:grid-cols-2 lg:grid-cols-5 md:p-5">
@@ -363,6 +364,7 @@ export function OwnerOverview() {
           ))}
         </div>
       </Card>
+      )}
     </div>
   )
 }

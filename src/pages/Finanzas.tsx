@@ -10,7 +10,7 @@ import type { BusinessLine, Expense, ExpenseCategory, PaymentMethod } from '@/li
 import { BarChart, Donut, Legend } from '@/components/charts'
 import { Badge, Button, Card, CardHeader, Chip, cx, Empty, PageHeader, Segmented, Sheet, Stat, toast } from '@/components/ui'
 import { CountUp } from '@/components/step1'
-import { CashflowCard, MonthReportButton, ProjectionCard } from '@/components/owner/OwnerOverview'
+import { MonthReportButton, OwnerOverview } from '@/components/owner/OwnerOverview'
 
 type Period = 'mes' | 'anterior' | '3m' | '6m' | 'anio'
 const PERIODS: { value: Period; label: string }[] = [
@@ -75,7 +75,7 @@ function ExpenseSheet({ open, onClose }: { open: boolean; onClose: () => void })
             const prev = recent.find((e) => e.concept.toLowerCase() === v.toLowerCase())
             set(prev ? { concept: v, category: prev.category, line: prev.line } : { concept: v })
           }} placeholder="Ej. Compra de focos" required requiredMsg="Escribe en qué se gastó" suggestions={suggestions} />
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @xl:grid-cols-2">
             <MoneyField label="Monto" value={f.amount} onChange={(v) => set({ amount: v })} required requiredMsg="Escribe el monto" decimals />
             <DateField label="Fecha" value={f.date} onChange={(v) => set({ date: v })} max={today()} presets={[{ label: 'Hoy', value: today() }, { label: 'Ayer', value: addDaysISO(today(), -1) }]} />
           </div>
@@ -285,9 +285,9 @@ export default function Finanzas() {
         <WhatIfCard base={whatIfBase} />
       </div>
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-[1.55fr_1fr] lg:gap-6">
-        <ProjectionCard />
-        <CashflowCard />
+      {/* Panorama del dueño: utilidad, rentabilidad por casa, eventos que más dejan y pendientes */}
+      <div className="mt-8">
+        <OwnerOverview />
       </div>
 
       <Card className="mt-6 overflow-hidden">
@@ -309,7 +309,7 @@ export default function Finanzas() {
           }
         />
         {movements.length === 0 ? (
-          <Empty title="Sin movimientos en este periodo" body="Cambia el periodo o registra un gasto." />
+          <Empty kind="finanzas" title="Sin movimientos en este periodo" body="Cambia el periodo o registra un gasto." />
         ) : (
           <>
             {/* Escritorio: tabla */}

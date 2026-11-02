@@ -110,7 +110,7 @@ export default function Prospectos({ embedded }: { embedded?: boolean }) {
               <div className="flex flex-col gap-7">
                 {open.length === 0 && (
                   <Card>
-                    <Empty title={q ? 'Nadie coincide con la búsqueda' : 'Sin prospectos por contestar'} body="Cuando alguien pregunte por una fecha, regístralo aquí para no perderle la pista." action={<Button onClick={() => setNewOpen(true)}>Registrar prospecto</Button>} />
+                    <Empty kind="busqueda" title={q ? 'Nadie coincide con la búsqueda' : 'Sin prospectos por contestar'} body="Cuando alguien pregunte por una fecha, regístralo aquí para no perderle la pista." action={<Button onClick={() => setNewOpen(true)}>Registrar prospecto</Button>} />
                   </Card>
                 )}
                 {BUCKETS.map((b, bi) => {

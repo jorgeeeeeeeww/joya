@@ -162,7 +162,7 @@ export default function Diseno() {
           <div className="skeleton mt-6 h-10 rounded-full" />
         </Card>
         <Card className="overflow-hidden">
-          <Empty title="Sin limpiezas pendientes" body="Cuando alguien haga check-out aparecerá aquí." action={<Button size="sm">Crear limpieza</Button>} />
+          <Empty kind="limpieza" title="Sin limpiezas pendientes" body="Cuando alguien haga check-out aparecerá aquí." action={<Button size="sm">Crear limpieza</Button>} />
         </Card>
       </section>
 

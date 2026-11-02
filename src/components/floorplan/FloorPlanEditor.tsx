@@ -201,6 +201,9 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
 
   // ── Vista ──
   const userView = useRef(false)
+  const bigRef = useRef(big)
+  bigRef.current = big
+  const wheelHint = useRef(false)
   const fit = useCallback(() => {
     const el = wrapRef.current
     if (!el) return
@@ -245,19 +248,27 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
   useEffect(() => {
     const el = svgRef.current
     if (!el) return
+    // La rueda sola baja la página (no secuestra el scroll). Ctrl + rueda o pellizcar en el trackpad acerca;
+    // en pantalla amplia la rueda mueve el plano.
     const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
       const r = el.getBoundingClientRect()
       const at = { x: e.clientX - r.left, y: e.clientY - r.top }
-      if (e.ctrlKey) zoomAt(Math.exp(-e.deltaY * 0.01), at)
-      else if (e.shiftKey) {
-        userView.current = true
-        setView((v) => ({ ...v, tx: v.tx - e.deltaY }))
-      } else if (Math.abs(e.deltaX) > 0.5) {
-        userView.current = true
-        setView((v) => ({ ...v, tx: v.tx - e.deltaX, ty: v.ty - e.deltaY }))
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        zoomAt(Math.exp(-e.deltaY * 0.01), at)
+        return
       }
-      else zoomAt(Math.exp(-e.deltaY * 0.0015), at)
+      if (!bigRef.current) {
+        if (!wheelHint.current) {
+          wheelHint.current = true
+          toast.info('Para acercar el plano', 'Usa Ctrl + rueda, pellizca en el trackpad o los botones + y −.')
+        }
+        return
+      }
+      e.preventDefault()
+      userView.current = true
+      if (e.shiftKey) setView((v) => ({ ...v, tx: v.tx - e.deltaY }))
+      else setView((v) => ({ ...v, tx: v.tx - e.deltaX, ty: v.ty - e.deltaY }))
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
@@ -1259,7 +1270,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
         <div className="flex flex-col gap-4">{summary}</div>
       </Sheet>
       <Sheet open={sheet === 'more'} onClose={() => setSheet(null)} title="Más opciones" subtitle={`${scene.name} · ${VENUE[venue].label}`}>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 @xl:grid-cols-2">
           {!readOnly && (
             <>
               <MoreRow icon={<ListOrdered size={18} strokeWidth={1.6} />} title="Renumerar mesas" body="Por filas, de arriba hacia abajo; los invitados conservan su mesa" onClick={() => (renumber(), setSheet(null))} />

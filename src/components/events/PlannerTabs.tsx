@@ -268,7 +268,7 @@ export function PaymentPlanTab({ ev }: { ev: RanchEvent }) {
           }
         />
         {items.length === 0 ? (
-          <Empty title="Sin plan de pagos" body="Genera uno automático (30 · 30 · 40) o agrega pagos a tu medida." action={<Button onClick={generate}>Generar plan</Button>} />
+          <Empty kind="pagos" title="Sin plan de pagos" body="Genera uno automático (30 · 30 · 40) o agrega pagos a tu medida." action={<Button onClick={generate}>Generar plan</Button>} />
         ) : (
           <ol className="relative px-5 pt-5 pb-3 md:px-6">
             <span aria-hidden className="absolute top-8 bottom-8 left-[42px] w-px bg-line-strong md:left-[46px]" />
@@ -488,7 +488,7 @@ export function BeoTab({ ev }: { ev: RanchEvent }) {
         <Card>
           <CardHeader title="Firmas" subtitle={sigs.length ? `${sigs.length} registradas` : 'Pendiente de firma de la clienta'} icon={<span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary"><FileSignature size={18} strokeWidth={1.6} /></span>} />
           <div className="flex flex-col gap-3 p-5">
-            {sigs.length === 0 && <Empty title="Sin firmas" body="La clienta puede firmar con el dedo en esta tablet." action={<Button onClick={() => setSignOpen(true)}>Firmar ahora</Button>} />}
+            {sigs.length === 0 && <Empty kind="firmas" title="Sin firmas" body="La clienta puede firmar con el dedo en esta tablet." action={<Button onClick={() => setSignOpen(true)}>Firmar ahora</Button>} />}
             {sigs.map((s, i) => (
               <div key={i} className="flex items-center gap-4 rounded-[14px] bg-sunken/70 p-3">
                 <img src={s.dataUrl} alt={`Firma de ${s.name}`} className="h-14 w-28 rounded-[10px] bg-paper object-contain ring-1 ring-line" />
@@ -605,7 +605,7 @@ export function VendorsTab({ ev }: { ev: RanchEvent }) {
       )}
       {assigned.length === 0 ? (
         <Card>
-          <Empty title="Sin proveedores asignados" body="Banquete, música, flores y foto son los más comunes." action={<Button onClick={() => setOpen(true)}>Ver directorio</Button>} />
+          <Empty kind="proveedores" title="Sin proveedores asignados" body="Banquete, música, flores y foto son los más comunes." action={<Button onClick={() => setOpen(true)}>Ver directorio</Button>} />
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -716,7 +716,7 @@ function AssignVendorSheet({ open, onClose, ev }: { open: boolean; onClose: () =
             </button>
           )
         })}
-        {list.length === 0 && <Empty title="Sin resultados" body="Agrega proveedores en el directorio." />}
+        {list.length === 0 && <Empty kind="busqueda" title="Sin resultados" body="Agrega proveedores en el directorio." />}
       </div>
     </Sheet>
   )

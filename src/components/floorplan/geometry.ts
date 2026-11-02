@@ -103,13 +103,13 @@ export function narrowAisles(items: FloorItem[]): Aisle[] {
         const left = a.x + a.w <= b.x ? a : b
         const right = left === a ? b : a
         const gap = right.x - (left.x + left.w)
-        if (gap > 0.02 && gap < MIN_AISLE) out.push({ x: left.x + left.w, y: Math.max(a.y, b.y), w: gap, h: ovY, gap, severe: gap < 0.7 })
+        if (gap > 0.02 && gap < MIN_AISLE - 0.01) out.push({ x: left.x + left.w, y: Math.max(a.y, b.y), w: gap, h: ovY, gap, severe: gap < 0.7 })
       }
       if (ovX > 0.4) {
         const top = a.y + a.h <= b.y ? a : b
         const bottom = top === a ? b : a
         const gap = bottom.y - (top.y + top.h)
-        if (gap > 0.02 && gap < MIN_AISLE) out.push({ x: Math.max(a.x, b.x), y: top.y + top.h, w: ovX, h: gap, gap, severe: gap < 0.7 })
+        if (gap > 0.02 && gap < MIN_AISLE - 0.01) out.push({ x: Math.max(a.x, b.x), y: top.y + top.h, w: ovX, h: gap, gap, severe: gap < 0.7 })
       }
     }
   return out

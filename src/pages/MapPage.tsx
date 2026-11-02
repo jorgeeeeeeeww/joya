@@ -1,40 +1,28 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { Box, CalendarHeart, Clock3, Map as MapIcon, Moon, Navigation2, Pause, Play, Sun, Sunset, TreePalm, X } from 'lucide-react'
+import { Box, CalendarHeart, List, Map as MapIcon, Pause, Play, Sparkles, TreePalm, X } from 'lucide-react'
 import { FEATURES, featureById, featureByUnit } from '@/lib/layout'
-import { useCollection } from '@/lib/store'
-import { EVENT_TYPE, TONE, UNIT_STATUS } from '@/lib/meta'
-import { daysUntil, relativeDay, today } from '@/lib/format'
+import { useCollection, useMe } from '@/lib/store'
+import { TONE, UNIT_STATUS } from '@/lib/meta'
+import { relativeDay, today } from '@/lib/format'
 import { ease, haptic, spring } from '@/lib/motion'
-import type { RanchEvent, UnitStatus } from '@/lib/types'
-import { Badge, Button, cx, Segmented, Sheet, Toggle, useMedia } from '@/components/ui'
-import { LightDots } from '@/components/step1'
+import type { UnitStatus } from '@/lib/types'
+import { Badge, Button, cx, Segmented, Sheet, useMedia } from '@/components/ui'
 import { RanchPlan2D } from '@/components/map/RanchPlan2D'
 import { UnitPanel } from '@/components/map/UnitPanel'
-import { ranchTime, sunState, type TimeMode } from '@/components/map/sun'
-import type { UnitInfo } from '@/components/map/RanchScene3D'
+import RanchIllustrated, { type UnitInfo } from '@/components/map/RanchIllustrated'
+import { LightDots } from '@/components/step1'
 
+// El 3D solo para el dueño en pantalla grande (se carga aparte, solo si lo abre)
 const RanchScene3D = lazy(() => import('@/components/map/RanchScene3D'))
-
-function hasWebGL() {
+const hasWebGL = () => {
   try {
     const c = document.createElement('canvas')
     return !!(c.getContext('webgl2') || c.getContext('webgl'))
   } catch {
     return false
   }
-}
-
-function SceneFallback() {
-  return (
-    <div className="bg-cielo-soft flex h-full w-full items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <LightDots className="text-chispa-soft" />
-        <p className="text-sm text-ink-soft">Construyendo la maqueta del rancho</p>
-      </div>
-    </div>
-  )
 }
 
 const load = <T,>(k: string, fallback: T, ok: (v: string) => boolean): T => {
@@ -54,13 +42,11 @@ const save = (k: string, v: string) => {
   }
 }
 
-const TIME_OPTIONS: { value: TimeMode; label: React.ReactNode }[] = [
-  { value: 'ahora', label: <><Clock3 size={14} strokeWidth={1.6} /> Ahora</> },
-  { value: 'dia', label: <><Sun size={14} strokeWidth={1.6} /> Día</> },
-  { value: 'atardecer', label: <><Sunset size={14} strokeWidth={1.6} /> Tarde</> },
-  { value: 'noche', label: <><Moon size={14} strokeWidth={1.6} /> Noche</> },
-]
-const TIME_CYCLE: TimeMode[] = ['ahora', 'dia', 'atardecer', 'noche']
+/** De noche (7 p.m. a 7 a.m.) el mapa se oscurece y las ventanas se encienden */
+const isNight = () => {
+  const h = new Date().getHours()
+  return h >= 19 || h < 7
+}
 
 export default function MapPage() {
   const units = useCollection('units')
@@ -69,23 +55,23 @@ export default function MapPage() {
   const events = useCollection('events')
   const [params, setParams] = useSearchParams()
   const isMobile = useMedia('(max-width: 767px)')
-  const reducedMotion = useMedia('(prefers-reduced-motion: reduce)')
-  const webgl = useMemo(hasWebGL, [])
-  const [mode, setMode] = useState<'3d' | '2d'>(() => load('lajoya:mapMode', '3d', (v) => v === '2d' || v === '3d'))
-  const [timeMode, setTimeMode] = useState<TimeMode>(() => load('lajoya:mapTime', 'ahora', (v) => TIME_CYCLE.includes(v as TimeMode)))
+  const isWide = useMedia('(min-width: 1280px)')
+  const [mode0, setMode] = useState<'ilustrado' | 'plano' | '3d'>(() => load('lajoya:mapView', 'ilustrado', (v) => v === 'ilustrado' || v === 'plano' || v === '3d'))
+  const isOwner = useMe()?.role === 'admin'
+  const bigScreen = useMedia('(min-width: 1024px)')
+  const can3d = useMemo(() => isOwner && bigScreen && hasWebGL(), [isOwner, bigScreen])
+  const mode = mode0 === '3d' && !can3d ? 'ilustrado' : mode0
   const [statusFilter, setStatusFilter] = useState<UnitStatus | null>(null)
-  const [showSetup, setShowSetup] = useState(false)
   const [touring, setTouring] = useState(false)
-  const [azimuth, setAzimuth] = useState(0)
-  const [clock, setClock] = useState(() => ranchTime())
-  const effectiveMode = webgl ? mode : '2d'
-  const [resetKey, setResetKey] = useState(0)
+  const [listOpen, setListOpen] = useState(() => window.matchMedia('(min-width: 1280px)').matches)
+  // Celular: tocar una casa muestra una tarjeta breve y deja el mapa a la vista; la ficha completa se abre aparte
+  const [fichaOpen, setFichaOpen] = useState(false)
+  const [night, setNight] = useState(isNight)
   const t = today()
 
-  useEffect(() => save('lajoya:mapMode', mode), [mode])
-  useEffect(() => save('lajoya:mapTime', timeMode), [timeMode])
+  useEffect(() => save('lajoya:mapView', mode), [mode])
   useEffect(() => {
-    const iv = setInterval(() => setClock(ranchTime()), 30_000)
+    const iv = setInterval(() => setNight(isNight()), 60_000)
     return () => clearInterval(iv)
   }, [])
 
@@ -96,6 +82,12 @@ export default function MapPage() {
     if (f && featureById(f)) return f
     return null
   }, [params])
+  // Otra casa (o ninguna): la ficha completa se cierra y vuelve la tarjeta breve
+  const [fichaFor, setFichaFor] = useState<string | null>(null)
+  if (fichaFor !== selectedId) {
+    setFichaFor(selectedId)
+    if (fichaOpen) setFichaOpen(false)
+  }
 
   const select = useCallback(
     (featureId: string | null) => {
@@ -104,8 +96,10 @@ export default function MapPage() {
       if (f?.unitId) next.set('u', f.unitId)
       else if (f) next.set('f', f.id)
       setParams(next, { replace: true })
+      // En tablet la lista se cierra al elegir: así la casa y su ficha quedan a la vista
+      if (f && !isWide) setListOpen(false)
     },
-    [setParams],
+    [setParams, isWide],
   )
 
   const unitList = useMemo(() => {
@@ -130,25 +124,40 @@ export default function MapPage() {
       const cur = mine.find((r) => r.status === 'en-casa')
       const next = mine.filter((r) => (r.status === 'confirmada' || r.status === 'pendiente') && r.checkIn >= t && !(r.guests === 0 && r.externalUid)).sort((a, b) => a.checkIn.localeCompare(b.checkIn))[0]
       const clean = tasks.find((x) => x.unitId === u.id && x.type === 'limpieza' && x.status !== 'verificada')
+      const pct = clean && clean.checklist.length ? clean.checklist.filter((c) => c.done).length / clean.checklist.length : undefined
       out[u.id] = {
         guest: cur ? `${cur.guestName} · ${cur.guests} huésp.` : next ? `Llega ${relativeDay(next.checkIn).toLowerCase()}: ${next.guestName}` : undefined,
         detail: cur ? `Sale ${relativeDay(cur.checkOut).toLowerCase()}` : next?.arrivalTime ? `A las ${next.arrivalTime}` : clean ? 'Limpieza en curso' : 'Sin reservas próximas',
-        cleaning: clean && clean.checklist.length ? clean.checklist.filter((c) => c.done).length / clean.checklist.length : undefined,
+        cleaning: pct,
+        short:
+          u.status === 'limpiando' && clean
+            ? `Limpiando · ${Math.round((pct ?? 0) * 100)}%`
+            : cur
+              ? `Sale ${cur.checkOut === t ? 'hoy' : relativeDay(cur.checkOut).toLowerCase()}`
+              : next && next.checkIn === t
+                ? `Llegan hoy${next.arrivalTime ? ` ${next.arrivalTime}` : ''}`
+                : u.status === 'sucia'
+                  ? 'Por limpiar'
+                  : u.status === 'inspeccion'
+                    ? 'Por revisar'
+                    : u.status === 'mantenimiento'
+                      ? 'En mantenimiento'
+                      : next
+                        ? `Llegan ${relativeDay(next.checkIn).toLowerCase()}`
+                        : 'Libre',
       }
     }
     return out
   }, [units, reservations, tasks, t])
 
-  // Evento de hoy o el próximo con plano de mesas
-  const setupEvent = useMemo<RanchEvent | null>(
-    () =>
-      events
-        .filter((e) => e.date >= t && e.status !== 'cancelado' && e.layout.length > 0)
-        .sort((a, b) => a.date.localeCompare(b.date))[0] ?? null,
-    [events, t],
-  )
+  // Evento de hoy en el salón o el jardín: se marca sobre el lugar
+  const eventToday = useMemo(() => {
+    const out: { salon?: string; jardin?: string } = {}
+    for (const e of events) if (e.date === t && e.status !== 'cancelado') out[e.venue] = `Evento hoy · ${e.startTime}`
+    return out
+  }, [events, t])
 
-  // Recorrido: vuela por cada unidad, 3.8 s en cada una
+  // Recorrido: pasa por cada casa, 3.8 s en cada una
   const tourStops = useMemo(() => unitList.map((x) => x.f.id), [unitList])
   useEffect(() => {
     if (!touring) return
@@ -166,29 +175,20 @@ export default function MapPage() {
 
   const selectedFeature = selectedId ? featureById(selectedId) : undefined
   const spaces = [featureById('salon')!, featureById('jardin')!]
-  const sun = sunState(timeMode)
-  const timeLabel = timeMode === 'ahora' ? `${sun.label} · ${clock} en el rancho` : `Vista de ${sun.label.toLowerCase()}`
   const tourIndex = selectedId ? tourStops.indexOf(selectedId) : -1
 
   const toggle = (
     <Segmented
       size="sm"
-      value={effectiveMode}
-      onChange={(v) => {
-        if (v === '3d' && !webgl) return
-        setMode(v)
-      }}
+      value={mode}
+      onChange={setMode}
       options={[
-        { value: '3d', label: <><Box size={14} strokeWidth={1.6} /> 3D</> },
-        { value: '2d', label: <><MapIcon size={14} strokeWidth={1.6} /> Plano</> },
+        { value: 'ilustrado', label: <><Sparkles size={14} strokeWidth={1.6} /> Ilustrado</> },
+        { value: 'plano', label: <><MapIcon size={14} strokeWidth={1.6} /> Plano</> },
+        ...(can3d ? [{ value: '3d' as const, label: <><Box size={14} strokeWidth={1.6} /> 3D</> }] : []),
       ]}
     />
   )
-
-  const toggleSetup = (v: boolean) => {
-    setShowSetup(v)
-    if (v && setupEvent) select(setupEvent.venue === 'salon' ? 'salon' : 'jardin')
-  }
 
   const StatusChips = ({ className }: { className?: string }) => (
     <div className={cx('no-scrollbar flex gap-1.5 overflow-x-auto', className)} role="group" aria-label="Filtrar por estado">
@@ -214,56 +214,44 @@ export default function MapPage() {
     </div>
   )
 
-  const Compass = (
-    <button
-      onClick={() => {
-        stopTour()
-        select(null)
-        setResetKey((k) => k + 1)
-      }}
-      aria-label="Centrar el mapa y orientar al norte"
-      title="Centrar"
-      className="glass pressable flex h-12 w-12 items-center justify-center rounded-full shadow-[var(--shadow-2)] ring-1 ring-line"
-    >
-      <motion.span animate={{ rotate: (azimuth * 180) / Math.PI }} transition={{ duration: 0.2 }} className="relative flex flex-col items-center">
-        <Navigation2 size={18} strokeWidth={1.6} className="text-chispa" fill="currentColor" />
-        <span className="-mt-0.5 text-[9px] leading-none font-medium text-ink">N</span>
-      </motion.span>
-    </button>
-  )
+  const detailW = 400
+  const canvas =
+    mode === 'ilustrado' ? (
+      <RanchIllustrated
+        units={units}
+        selectedId={selectedId}
+        onSelect={(id) => {
+          if (touring) stopTour()
+          select(id)
+        }}
+        onClear={() => select(null)}
+        statusFilter={statusFilter}
+        unitInfo={unitInfo}
+        eventToday={eventToday}
+        night={night}
+        coverRight={!isMobile && selectedFeature ? detailW + 24 : 0}
+        coverBottom={isMobile && selectedFeature ? 230 : 0}
+      />
+    ) : mode === '3d' ? (
+      <Suspense
+        fallback={
+          <div className="flex h-full w-full items-center justify-center">
+            <LightDots className="text-chispa-soft" />
+          </div>
+        }
+      >
+        <RanchScene3D units={units} selectedId={selectedId} onSelect={(id) => select(id)} statusFilter={statusFilter} unitInfo={unitInfo} touring={touring} focusShiftPx={selectedFeature ? detailW + 24 - (listOpen ? 296 : 0) : 0} />
+      </Suspense>
+    ) : (
+      <RanchPlan2D selectedId={selectedId} onSelect={select} onClear={() => select(null)} statusFilter={statusFilter} className="h-full w-full" />
+    )
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-paper">
       {/* Lienzo */}
-      <div className="absolute inset-0">
-        {effectiveMode === '3d' ? (
-          <Suspense fallback={<SceneFallback />}>
-            <RanchScene3D
-              units={units}
-              selectedId={selectedId}
-              onSelect={(id) => {
-                if (touring) stopTour()
-                select(id)
-              }}
-              reducedMotion={reducedMotion}
-              resetKey={resetKey}
-              timeMode={timeMode}
-              statusFilter={statusFilter}
-              unitInfo={unitInfo}
-              setupEvent={setupEvent}
-              showSetup={showSetup}
-              touring={touring}
-              onAzimuth={setAzimuth}
-            />
-          </Suspense>
-        ) : (
-          <div className={cx('absolute inset-x-0', isMobile ? 'top-[calc(env(safe-area-inset-top)+112px)] bottom-[calc(150px+env(safe-area-inset-bottom))]' : 'top-[76px] bottom-[68px] left-[320px]')}>
-            <RanchPlan2D selectedId={selectedId} onSelect={select} onClear={() => select(null)} reducedMotion={reducedMotion} statusFilter={statusFilter} className="h-full w-full" />
-          </div>
-        )}
-      </div>
+      <div className={cx('absolute inset-x-0', isMobile ? 'top-[calc(env(safe-area-inset-top)+112px)] bottom-[calc(150px+env(safe-area-inset-bottom))]' : 'top-[76px] bottom-[64px]')}>{canvas}</div>
 
-      {/* ── Móvil ─────────────────────────────────────── */}
+      {/* ── Celular ─────────────────────────────────────── */}
       {isMobile && (
         <>
           <div className="absolute inset-x-0 top-[calc(env(safe-area-inset-top)+62px)] z-10">
@@ -291,36 +279,21 @@ export default function MapPage() {
             </div>
           </div>
 
-          {effectiveMode === '3d' && (
-            <div className="absolute top-[calc(env(safe-area-inset-top)+118px)] right-4 z-10 flex flex-col gap-2">
-              {Compass}
-              <button
-                onClick={() => {
-                  haptic.select()
-                  setTimeMode((m) => TIME_CYCLE[(TIME_CYCLE.indexOf(m) + 1) % TIME_CYCLE.length]!)
-                }}
-                aria-label={`Hora del mapa: ${sun.label}`}
-                className="glass pressable flex h-12 w-12 items-center justify-center rounded-full text-ink shadow-[var(--shadow-2)] ring-1 ring-line"
-              >
-                {timeMode === 'noche' ? <Moon size={19} strokeWidth={1.6} /> : timeMode === 'atardecer' ? <Sunset size={19} strokeWidth={1.6} /> : timeMode === 'dia' ? <Sun size={19} strokeWidth={1.6} /> : <Clock3 size={19} strokeWidth={1.6} />}
-              </button>
-              <button onClick={() => setTouring((v) => !v)} aria-label={touring ? 'Detener recorrido' : 'Iniciar recorrido'} className={cx('pressable flex h-12 w-12 items-center justify-center rounded-full shadow-[var(--shadow-2)]', touring ? 'bg-ink text-paper' : 'glass text-ink ring-1 ring-line')}>
-                {touring ? <Pause size={18} strokeWidth={1.6} /> : <Play size={18} strokeWidth={1.6} />}
-              </button>
-              {setupEvent && (
-                <button onClick={() => toggleSetup(!showSetup)} aria-label="Ver montaje del evento" aria-pressed={showSetup} className={cx('pressable flex h-12 w-12 items-center justify-center rounded-full shadow-[var(--shadow-2)]', showSetup ? 'bg-ink text-paper' : 'glass text-ink ring-1 ring-line')}>
-                  <CalendarHeart size={18} strokeWidth={1.6} />
-                </button>
-              )}
+          {/* Leyenda / filtro (con una casa elegida, su tarjeta ocupa este lugar) */}
+          {(!selectedFeature || touring) && (
+            <div className="glass absolute inset-x-4 bottom-[calc(96px+env(safe-area-inset-bottom))] z-10 rounded-full p-1 shadow-[var(--shadow-2)] ring-1 ring-line">
+              <StatusChips />
             </div>
           )}
 
-          {/* Leyenda / filtro */}
-          <div className="glass absolute inset-x-4 bottom-[calc(96px+env(safe-area-inset-bottom))] z-10 rounded-full p-1 shadow-[var(--shadow-2)] ring-1 ring-line">
-            <StatusChips />
-          </div>
+          <AnimatePresence>
+            {selectedFeature && !touring && (
+              <motion.div key={selectedFeature.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.36, ease: ease.calma } }} exit={{ opacity: 0, y: 10, transition: { duration: 0.18 } }} className="glass absolute inset-x-4 bottom-[calc(96px+env(safe-area-inset-bottom))] z-20 rounded-[var(--r-lg)] p-4 shadow-[var(--shadow-3)] ring-1 ring-line">
+                <PeekCard featureId={selectedFeature.id} info={selectedFeature.unitId ? unitInfo[selectedFeature.unitId] : undefined} onOpen={() => setFichaOpen(true)} onClose={() => select(null)} />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* Tarjeta del recorrido */}
           <AnimatePresence>
             {touring && selectedFeature?.unitId && (
               <motion.div key="tour" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.48, ease: ease.calma } }} exit={{ opacity: 0, y: 10 }} className="glass absolute inset-x-4 bottom-[calc(150px+env(safe-area-inset-bottom))] z-20 rounded-[var(--r-lg)] p-4 shadow-[var(--shadow-3)] ring-1 ring-line">
@@ -329,7 +302,7 @@ export default function MapPage() {
             )}
           </AnimatePresence>
 
-          <Sheet open={!!selectedFeature && !touring} onClose={() => select(null)} title={selectedFeature?.name}>
+          <Sheet open={!!selectedFeature && !touring && fichaOpen} onClose={() => setFichaOpen(false)} title={selectedFeature?.name}>
             {selectedFeature && <UnitPanel featureId={selectedFeature.id} compactHeader />}
           </Sheet>
         </>
@@ -338,94 +311,49 @@ export default function MapPage() {
       {/* ── Tablet / escritorio ───────────────────────── */}
       {!isMobile && (
         <>
-          <motion.aside initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0, transition: { duration: 0.48, ease: ease.calma } }} className="glass absolute top-[84px] left-5 z-10 flex max-h-[calc(100%-176px)] w-[296px] flex-col rounded-[var(--r-lg)] shadow-[var(--shadow-3)] ring-1 ring-line">
-            <div className="px-5 pt-5">
-              <p className="eyebrow flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-chispa-soft shadow-[0_0_10px_var(--luz)]" />
-                {effectiveMode === '3d' ? timeLabel : 'Plano del rancho'}
-              </p>
-              <h1 className="heading mt-2 text-[1.75rem]">Mapa del rancho</h1>
-              <p className="mt-1 text-sm text-ink-soft">Toca una cabaña o casa para verla de cerca.</p>
-            </div>
-            <div className="flex flex-col gap-2.5 px-5 pt-4">
+          {/* Barra superior: título, vista y lista; ya no tapa el mapa */}
+          <div className="absolute top-4 left-5 z-20 flex flex-wrap items-center gap-2">
+            <div className="glass flex items-center gap-3 rounded-full py-1 pr-1 pl-4 shadow-[var(--shadow-1)] ring-1 ring-line">
+              <span className="heading text-[1.15rem] leading-none">Mapa del rancho</span>
               {toggle}
-              {effectiveMode === '3d' && <Segmented size="sm" value={timeMode} onChange={setTimeMode} options={TIME_OPTIONS} className="w-full" />}
             </div>
-            {!webgl && <p className="px-5 pt-2 text-xs text-warning">Este equipo no soporta 3D; se muestra el plano.</p>}
-            <div className="scroll-area mt-4 min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-              <ListGroup title="Hospedaje">
-                {unitList.map(({ f, u }) => {
-                  const st = UNIT_STATUS[u.status]
-                  return (
-                    <ListItem
-                      key={f.id}
-                      active={selectedId === f.id}
-                      dim={!!statusFilter && u.status !== statusFilter}
-                      onClick={() => {
-                        stopTour()
-                        select(f.id)
-                      }}
-                      dot={TONE[st.tone].solid}
-                      title={u.name}
-                      sub={unitInfo[u.id]?.guest ?? st.label}
-                    />
-                  )
-                })}
-              </ListGroup>
-              <ListGroup title="Espacios para eventos">
-                {spaces.map((f) => (
-                  <ListItem key={f.id} active={selectedId === f.id} onClick={() => select(f.id)} icon={f.id === 'salon' ? <CalendarHeart size={15} strokeWidth={1.6} /> : <TreePalm size={15} strokeWidth={1.6} />} title={f.name} sub={f.id === 'salon' ? 'Hasta 300 invitados' : 'Hasta 400 invitados'} />
-                ))}
-              </ListGroup>
-            </div>
-            {effectiveMode === '3d' && (
-              <div className="border-t border-line p-4">
-                {setupEvent && (
-                  <div className="mb-3 rounded-[14px] bg-sunken p-3">
-                    <Toggle
-                      checked={showSetup}
-                      onChange={toggleSetup}
-                      label={<span className="text-sm">Ver montaje del evento</span>}
-                      description={
-                        <span className="text-xs">
-                          {EVENT_TYPE[setupEvent.type].label} · {setupEvent.title.length > 22 ? setupEvent.title.slice(0, 22) + '…' : setupEvent.title} · {daysUntil(setupEvent.date) === 0 ? 'hoy' : relativeDay(setupEvent.date).toLowerCase()}
-                        </span>
-                      }
-                    />
-                  </div>
-                )}
-                <Button variant={touring ? 'tinta' : 'secondary'} size="sm" className="w-full" icon={touring ? <Pause size={16} strokeWidth={1.6} /> : <Play size={16} strokeWidth={1.6} />} onClick={() => setTouring((v) => !v)}>
-                  {touring ? 'Detener recorrido' : 'Recorrido por las unidades'}
-                </Button>
-              </div>
-            )}
-          </motion.aside>
-
-          {/* Leyenda / filtro por estado */}
-          <div className={cx('glass absolute bottom-5 z-10 max-w-[calc(100%-360px)] rounded-full p-1 shadow-[var(--shadow-2)] ring-1 ring-line', selectedFeature ? 'left-[332px]' : 'left-1/2 -translate-x-1/2')}>
-            <StatusChips />
+            <button onClick={() => setListOpen((v) => !v)} aria-expanded={listOpen} className={cx('pressable inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm shadow-[var(--shadow-1)] ring-1 ring-line', listOpen ? 'bg-ink text-paper' : 'glass')}>
+              <List size={16} strokeWidth={1.6} /> Casas y cabañas
+            </button>
+            <button onClick={() => setTouring((v) => !v)} aria-label={touring ? 'Detener recorrido' : 'Recorrido por las casas'} className={cx('pressable inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm shadow-[var(--shadow-1)]', touring ? 'bg-ink text-paper' : 'glass ring-1 ring-line')}>
+              {touring ? <Pause size={16} strokeWidth={1.6} /> : <Play size={16} strokeWidth={1.6} />} {touring ? 'Detener' : 'Recorrido'}
+            </button>
           </div>
 
-          {/* Brújula */}
-          {effectiveMode === '3d' && <div className={cx('absolute top-[84px] z-10 transition-[right] duration-[var(--dur-4)]', selectedFeature ? 'right-[min(436px,calc(100%-330px))]' : 'right-5')}>{Compass}</div>}
-
-          {/* Recorrido en curso */}
+          {/* Lista translúcida que se abre y se cierra */}
           <AnimatePresence>
-            {touring && (
-              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="glass absolute top-[84px] left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full py-1.5 pr-1.5 pl-4 text-sm shadow-[var(--shadow-2)] ring-1 ring-line">
-                <span className="text-chispa-soft">✦</span>
-                Recorrido · {Math.max(1, tourIndex + 1)} de {tourStops.length}
-                <Button size="sm" variant="tinta" className="!h-8" icon={<X size={14} strokeWidth={1.6} />} onClick={stopTour}>
-                  Detener
-                </Button>
-              </motion.div>
+            {listOpen && (
+              <motion.aside initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0, transition: { duration: 0.36, ease: ease.calma } }} exit={{ opacity: 0, x: -12, transition: { duration: 0.18 } }} className="absolute top-[76px] left-5 z-10 flex max-h-[calc(100%-150px)] w-[272px] flex-col rounded-[var(--r-lg)] bg-[color-mix(in_oklab,var(--surface)_78%,transparent)] shadow-[var(--shadow-2)] ring-1 ring-line backdrop-blur-md">
+                <div className="scroll-area min-h-0 overflow-y-auto p-2">
+                  <ListGroup title="Hospedaje">
+                    {unitList.map(({ f, u }) => (
+                      <ListItem key={f.id} active={selectedId === f.id} dim={!!statusFilter && u.status !== statusFilter} onClick={() => select(f.id)} dot={TONE[UNIT_STATUS[u.status].tone].solid} title={u.name} sub={unitInfo[u.id]?.short ?? UNIT_STATUS[u.status].label} />
+                    ))}
+                  </ListGroup>
+                  <ListGroup title="Espacios">
+                    {spaces.map((f) => (
+                      <ListItem key={f.id} active={selectedId === f.id} onClick={() => select(f.id)} icon={f.id === 'salon' ? <CalendarHeart size={15} strokeWidth={1.6} /> : <TreePalm size={15} strokeWidth={1.6} />} title={f.name} sub={eventToday[f.venue as 'salon' | 'jardin'] ?? (f.id === 'salon' ? 'Hasta 300 invitados' : 'Hasta 400 invitados')} />
+                    ))}
+                  </ListGroup>
+                </div>
+              </motion.aside>
             )}
           </AnimatePresence>
+
+          {/* Leyenda / filtro por estado */}
+          <div className="glass absolute bottom-3 left-1/2 z-10 max-w-[calc(100%-120px)] -translate-x-1/2 rounded-full p-1 shadow-[var(--shadow-2)] ring-1 ring-line">
+            <StatusChips />
+          </div>
 
           {/* Detalle */}
           <AnimatePresence>
             {selectedFeature && (
-              <motion.aside key={selectedFeature.id} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 24, transition: { duration: 0.2, ease: ease.salida } }} transition={spring.suave} className="absolute top-[84px] right-5 z-20 flex max-h-[calc(100%-112px)] w-[min(400px,calc(100%-340px))] flex-col rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow-3)] ring-1 ring-line">
+              <motion.aside key={selectedFeature.id} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 24, transition: { duration: 0.2, ease: ease.salida } }} transition={spring.suave} className="absolute top-4 right-5 z-20 flex max-h-[calc(100%-88px)] w-[min(400px,calc(100%-40px))] flex-col rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow-3)] ring-1 ring-line">
                 <div className="flex justify-end px-3 pt-3">
                   <Button
                     variant="ghost"
@@ -447,6 +375,45 @@ export default function MapPage() {
           </AnimatePresence>
         </>
       )}
+    </div>
+  )
+}
+
+/** Celular: tarjeta breve de la casa elegida (estado, quién está, avance de limpieza) */
+function PeekCard({ featureId, info, onOpen, onClose }: { featureId: string; info?: UnitInfo; onOpen: () => void; onClose: () => void }) {
+  const f = featureById(featureId)!
+  const units = useCollection('units')
+  const u = f.unitId ? units.find((x) => x.id === f.unitId) : undefined
+  const st = u ? UNIT_STATUS[u.status] : undefined
+  return (
+    <div>
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="heading text-[1.35rem] leading-tight">{u?.name ?? f.name}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            {st && (
+              <Badge tone={st.tone} dot>
+                {st.label}
+              </Badge>
+            )}
+            {info?.short && !(st && info.short.startsWith(st.label)) && <span className="text-[13px] text-ink-soft">{info.short}</span>}
+            {info?.cleaning !== undefined && <span className="text-[13px] text-ink-soft tabular-nums">{Math.round(info.cleaning * 100)}% listo</span>}
+          </div>
+          {info?.guest && <p className="mt-1.5 text-[13px] text-ink">{info.guest}</p>}
+          {info?.detail && <p className="text-[12px] text-ink-soft">{info.detail}</p>}
+        </div>
+        <Button size="icon" variant="ghost" aria-label="Cerrar" onClick={onClose}>
+          <X size={18} strokeWidth={1.6} />
+        </Button>
+      </div>
+      {info?.cleaning !== undefined && (
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sunken">
+          <div className="h-full rounded-full transition-[width] duration-[var(--dur-4)]" style={{ width: `${Math.round(info.cleaning * 100)}%`, backgroundImage: 'linear-gradient(90deg, var(--sky-3), var(--chispa-soft))' }} />
+        </div>
+      )}
+      <Button className="mt-3 w-full" onClick={onOpen}>
+        Ver ficha completa
+      </Button>
     </div>
   )
 }
