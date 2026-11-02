@@ -1,0 +1,49 @@
+# Respaldo nocturno cifrado de la base de datos de La Joya.
+# Requiere estos "secrets" en el repositorio (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL      → cadena de conexión de Postgres (Supabase → Project Settings → Database → URI, modo "session")
+#   BACKUP_PASSPHRASE    → contraseña larga para cifrar el respaldo (guárdala también fuera de GitHub)
+# El archivo cifrado queda como "artifact" del workflow durante 30 días.
+name: Respaldo nocturno
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # 03:00 en Jalisco (UTC-6)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  respaldo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Instalar cliente de Postgres 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Volcar base de datos
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          STAMP=$(date -u +%Y-%m-%d)
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --schema=public --no-owner --no-privileges --format=custom --file="la-joya-$STAMP.dump"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+
+      - name: Cifrar (AES-256)
+        env:
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" --symmetric --cipher-algo AES256 "la-joya-$STAMP.dump"
+          rm "la-joya-$STAMP.dump"
+          ls -lh
+
+      - name: Guardar respaldo
+        uses: actions/upload-artifact@v4
+        with:
+          name: la-joya-${{ env.STAMP }}
+          path: la-joya-*.dump.gpg
+          retention-days: 30

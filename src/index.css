@@ -1,0 +1,707 @@
+/* ==========================================================================
+   La Joya · step1 (Rediseño) — atmósfera Flor, intensidad equilibrada,
+   tipografía editorial (Fraunces + DM Sans), claro + oscuro.
+   Fuente de verdad de color: src/styles/step1.css. Aquí solo hay alias y utilidades.
+   ========================================================================== */
+@import '@fontsource-variable/fraunces/full.css';
+@import '@fontsource-variable/dm-sans/opsz.css';
+@import 'tailwindcss';
+@import './styles/step1.css' layer(base);
+
+/* Variante dark: sigue al sistema y respeta data-theme forzado */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Alias de compatibilidad: los módulos usan nombres "pastel" como tonos
+   categóricos; aquí se traducen a los colores apagados de step1.
+   -------------------------------------------------------------------------- */
+:root,
+[data-atmos] {
+  --bg: var(--paper);
+  --bg-2: var(--sunken);
+  --surface-2: color-mix(in oklab, var(--sunken) 62%, var(--surface));
+  --glass: var(--bruma);
+  --line-2: var(--line-strong);
+  --ink-2: var(--ink-soft);
+  --ink-3: color-mix(in oklab, var(--ink-soft) 84%, var(--paper));
+
+  /* tono → color de datos de la atmósfera */
+  --lavender: var(--data-5);
+  --rose: var(--data-2);
+  --peach: var(--chispa-soft);
+  --butter: var(--data-3);
+  --t-sky: var(--data-1); /* "sky" como tono; --sky es el degradado de step1 */
+  --mint: var(--data-4);
+  --sage: var(--data-6);
+
+  --lavender-soft: color-mix(in oklab, var(--lavender) 18%, var(--surface));
+  --rose-soft: color-mix(in oklab, var(--rose) 18%, var(--surface));
+  --peach-soft: color-mix(in oklab, var(--peach) 18%, var(--surface));
+  --butter-soft: color-mix(in oklab, var(--butter) 18%, var(--surface));
+  --t-sky-soft: color-mix(in oklab, var(--t-sky) 16%, var(--surface));
+  --mint-soft: color-mix(in oklab, var(--mint) 16%, var(--surface));
+  --sage-soft: color-mix(in oklab, var(--sage) 18%, var(--surface));
+
+  --lavender-ink: color-mix(in oklab, var(--lavender) 42%, var(--ink));
+  --rose-ink: color-mix(in oklab, var(--rose) 45%, var(--ink));
+  --peach-ink: color-mix(in oklab, var(--chispa) 70%, var(--ink));
+  --butter-ink: color-mix(in oklab, var(--warning) 80%, var(--ink));
+  --t-sky-ink: color-mix(in oklab, var(--t-sky) 52%, var(--ink));
+  --mint-ink: color-mix(in oklab, var(--mint) 60%, var(--ink));
+  --sage-ink: color-mix(in oklab, var(--success) 82%, var(--ink));
+}
+
+@theme inline {
+  --font-sans: var(--step1-font-sans);
+  --font-display: var(--step1-font-display);
+
+  /* step1 */
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-wash: var(--wash);
+  --color-bruma: var(--bruma);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-secondary: var(--secondary);
+  --color-matiz: var(--matiz);
+  --color-matiz-ink: var(--matiz-ink);
+  --color-chispa: var(--chispa);
+  --color-chispa-soft: var(--chispa-soft);
+  --color-on-chispa: var(--on-chispa);
+  --color-luz: var(--luz);
+  --color-night: var(--night);
+  --color-on-night: var(--on-night);
+  --color-on-night-soft: var(--on-night-soft);
+  --color-sky-1: var(--sky-1);
+  --color-sky-2: var(--sky-2);
+  --color-sky-3: var(--sky-3);
+  --color-sky-4: var(--sky-4);
+  --color-layer-1: var(--layer-1);
+  --color-layer-2: var(--layer-2);
+  --color-layer-3: var(--layer-3);
+  --color-layer-4: var(--layer-4);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-data-1: var(--data-1);
+  --color-data-2: var(--data-2);
+  --color-data-3: var(--data-3);
+  --color-data-4: var(--data-4);
+  --color-data-5: var(--data-5);
+  --color-data-6: var(--data-6);
+
+  /* compatibilidad */
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-surface-2: var(--surface-2);
+  --color-glass: var(--glass);
+  --color-line-2: var(--line-2);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-lavender: var(--lavender);
+  --color-lavender-soft: var(--lavender-soft);
+  --color-lavender-ink: var(--lavender-ink);
+  --color-sage: var(--sage);
+  --color-sage-soft: var(--sage-soft);
+  --color-sage-ink: var(--sage-ink);
+  --color-peach: var(--peach);
+  --color-peach-soft: var(--peach-soft);
+  --color-peach-ink: var(--peach-ink);
+  --color-butter: var(--butter);
+  --color-butter-soft: var(--butter-soft);
+  --color-butter-ink: var(--butter-ink);
+  --color-sky: var(--t-sky);
+  --color-sky-soft: var(--t-sky-soft);
+  --color-sky-ink: var(--t-sky-ink);
+  --color-rose: var(--rose);
+  --color-rose-soft: var(--rose-soft);
+  --color-rose-ink: var(--rose-ink);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-mint-ink: var(--mint-ink);
+
+  /* radios */
+  --radius-field: var(--r-md);
+  --radius-card: var(--r-lg);
+  --radius-panel: var(--r-xl);
+  --radius-slab: var(--r-slab);
+
+  /* sombras teñidas */
+  --shadow-e1: var(--shadow-1);
+  --shadow-e2: var(--shadow-2);
+  --shadow-e3: var(--shadow-3);
+  --shadow-glow: var(--glow);
+  --shadow-soft-sm: var(--shadow-1);
+  --shadow-soft: var(--shadow-2);
+  --shadow-soft-lg: var(--shadow-3);
+
+  --ease-calma: var(--step1-ease-calma);
+  --ease-marea: var(--step1-ease-marea);
+  --ease-salida: var(--step1-ease-salida);
+}
+
+:root,
+[data-type] {
+  --step1-font-display: var(--font-display);
+  --step1-font-sans: var(--font-sans);
+  --step1-ease-calma: var(--ease-calma);
+  --step1-ease-marea: var(--ease-marea);
+  --step1-ease-salida: var(--ease-salida);
+}
+
+/* --------------------------------------------------------------------------
+   Base de la app
+   -------------------------------------------------------------------------- */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button,
+  [role='button'] {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+    font-size: max(16px, 1em); /* sin zoom accidental en iOS */
+  }
+  h1,
+  h2 {
+    color: var(--ink);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Utilidades de la huella
+   -------------------------------------------------------------------------- */
+@utility heading {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-settings);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  line-height: 1.08;
+  text-wrap: balance;
+}
+@utility display-num {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 100, 'WONK' 0, 'opsz' 96;
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: 1;
+}
+@utility eyebrow {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+/* Degradados de cielo de step1 (bg-sky / bg-sky-soft quedan para el tono "sky") */
+@utility bg-cielo {
+  background-image: var(--sky);
+}
+@utility bg-cielo-soft {
+  background-image: var(--sky-soft);
+}
+@utility glass {
+  background: var(--bruma);
+  -webkit-backdrop-filter: saturate(140%) blur(18px);
+  backdrop-filter: saturate(140%) blur(18px);
+}
+@utility pressable {
+  transition:
+    transform var(--dur-2) var(--ease-calma),
+    background-color var(--dur-2) var(--ease-calma),
+    box-shadow var(--dur-3) var(--ease-calma),
+    color var(--dur-2) var(--ease-calma);
+  &:active {
+    transform: scale(0.98);
+    transition-duration: var(--dur-1);
+  }
+}
+@utility lift {
+  transition:
+    transform var(--dur-3) var(--ease-calma),
+    box-shadow var(--dur-3) var(--ease-calma);
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-2);
+    }
+  }
+}
+@utility card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+}
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility ring-step1 {
+  box-shadow: var(--focus-ring);
+}
+
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+/* Skeleton: sunken con brillo de luz (1.8 s, marea) */
+@keyframes step1-shimmer {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+.skeleton {
+  background:
+    linear-gradient(100deg, transparent 30%, color-mix(in oklab, var(--luz) 40%, transparent) 50%, transparent 70%) var(--sunken);
+  background-size: 220% 100%;
+  animation: step1-shimmer 1.8s var(--ease-marea) infinite;
+}
+
+/* Punto de luz que pulsa (estado "en curso"); nunca parpadea */
+@keyframes step1-pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: step1-pulse 2.4s var(--ease-calma) infinite;
+}
+
+/* Cargando: tres puntos de luz que suben en secuencia */
+@keyframes step1-dots {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+.light-dots > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: step1-dots 1.2s var(--ease-marea) infinite;
+}
+.light-dots > span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.light-dots > span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* Nubes que derivan (máx. un loop visible) */
+@keyframes step1-deriva {
+  from {
+    transform: translateX(-2%);
+  }
+  to {
+    transform: translateX(2%);
+  }
+}
+.deriva {
+  animation: step1-deriva 34s var(--ease-marea) infinite alternate;
+  animation-play-state: var(--ambient);
+}
+
+@media print {
+  body {
+    background: white;
+  }
+  body::after {
+    display: none;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+.print-only {
+  display: none;
+}
+
+/* Tarjetas de bruma dentro de una losa noche: recuperan la tinta original (step1: --ink-base),
+   porque su fondo es claro en tema claro. Así se leen en claro y en oscuro. */
+.losa--noche .glass,
+.losa--noche .card {
+  --ink: var(--ink-base);
+  --ink-soft: var(--ink-soft-base);
+  --line: color-mix(in oklab, var(--ink-base) 12%, transparent);
+  color: var(--ink);
+}
+
+/* Los elementos de una rejilla no deben ensancharla con su contenido más largo (min-width: auto):
+   así un nombre largo se recorta o se acomoda dentro de su tarjeta en vez de empujarla fuera de la pantalla. */
+.grid > * {
+  min-width: 0;
+}
+
+/* ==========================================================================
+   Mezcla step1 × "Fintrack": medidas y tipografía de dashboard profesional
+   - Datos (tarjetas, indicadores, tablas, menús): DM Sans, escala compacta y precisa.
+   - Momentos editoriales (títulos de página, saludos, losas noche, login): Fraunces.
+   ========================================================================== */
+:root,
+[data-atmos] {
+  --r-lg: 16px; /* tarjetas: entre 12 (Fintrack) y 22 (step1) */
+  --r-md: 12px; /* campos y controles */
+  --grain-opacity: 0.05;
+  /* Escala tipográfica de datos */
+  --fs-label: 0.6875rem; /* 11px · categorías en mayúsculas */
+  --fs-meta: 0.75rem; /* 12px · fechas, notas */
+  --fs-ui: 0.8125rem; /* 13px · etiquetas, pestañas, chips */
+  --fs-body: 0.875rem; /* 14px · texto de tarjetas */
+  --fs-title: 0.9375rem; /* 15px · títulos de tarjeta */
+  --fs-kpi: 1.75rem; /* 28px · cifras principales */
+}
+@media (pointer: fine) {
+  body {
+    font-size: 15px;
+  }
+}
+
+/* Cifras y títulos dentro de tarjetas: sans semibold tabular (precisión de datos) */
+.card .display-num {
+  font-family: var(--font-sans);
+  font-variation-settings: normal;
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.card .heading {
+  font-family: var(--font-sans);
+  font-variation-settings: normal;
+  font-weight: 600;
+  letter-spacing: -0.016em;
+  line-height: 1.25;
+}
+/* Categoría pequeña en mayúsculas (como "HOUSING" en las tarjetas de datos) */
+@utility kicker {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* ==========================================================================
+   Campos inteligentes (src/components/fields.tsx)
+   Etiqueta flotante, ícono, halo de luz al enfocar, error que explica y ✓.
+   ========================================================================== */
+.fx {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-height: 52px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition:
+    box-shadow var(--dur-2) var(--ease-calma),
+    background-color var(--dur-2) var(--ease-calma);
+  cursor: text;
+}
+@media (pointer: fine) {
+  .fx {
+    min-height: 48px;
+  }
+}
+.fx:hover {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 34%, transparent);
+}
+.fx--focus,
+.fx--focus:hover {
+  box-shadow:
+    inset 0 0 0 1.5px var(--primary),
+    0 0 0 4px color-mix(in oklab, var(--primary) 14%, transparent),
+    0 0 22px color-mix(in oklab, var(--luz) 40%, transparent);
+}
+.fx--error,
+.fx--error:hover {
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+}
+.fx--error.fx--focus {
+  box-shadow:
+    inset 0 0 0 1.5px var(--danger),
+    0 0 0 4px color-mix(in oklab, var(--danger) 13%, transparent);
+}
+.fx--disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.fx--button {
+  cursor: pointer;
+}
+.fx-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--ink-3);
+  pointer-events: none;
+  transition: color var(--dur-2) var(--ease-calma);
+}
+.fx--multi .fx-icon {
+  top: 16px;
+  transform: none;
+}
+.fx--focus .fx-icon {
+  color: var(--primary);
+}
+.fx-label {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  max-width: calc(100% - 64px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--ink-3);
+  pointer-events: none;
+  transform-origin: left center;
+  transform: translateY(-50%);
+  transition:
+    transform var(--dur-3) var(--ease-calma),
+    color var(--dur-2) var(--ease-calma);
+}
+.fx--icon .fx-label {
+  left: 42px;
+}
+.fx--multi .fx-label {
+  top: 26px;
+}
+.fx-label--up {
+  transform: translateY(calc(-50% - 12px)) scale(0.76);
+  color: var(--ink-soft);
+  font-weight: 500;
+  max-width: calc((100% - 64px) / 0.76);
+}
+.fx--focus .fx-label--up {
+  color: var(--primary);
+}
+.fx--error .fx-label--up {
+  color: var(--danger);
+}
+.fx-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 22px 14px 7px;
+}
+.fx--icon .fx-body {
+  padding-left: 42px;
+}
+.fx--multi .fx-body {
+  padding-top: 26px;
+  padding-bottom: 10px;
+}
+.fx--nolabel .fx-body {
+  align-items: center;
+  padding-top: 7px;
+}
+.fx-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--ink);
+  text-align: left;
+}
+textarea.fx-input {
+  resize: none;
+  line-height: 1.55;
+}
+.fx-input::placeholder {
+  color: transparent;
+  transition: color var(--dur-2) var(--ease-calma);
+}
+.fx--focus .fx-input::placeholder,
+.fx--nolabel .fx-input::placeholder {
+  color: var(--ink-faint);
+}
+.fx-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--ink);
+}
+@media (pointer: fine) {
+  .fx-input,
+  .fx-value {
+    font-size: 15px;
+  }
+  .fx-body {
+    padding-top: 20px;
+    padding-bottom: 6px;
+  }
+}
+.fx-affix {
+  flex-shrink: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.fx-trail {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+  padding-right: 8px;
+}
+.fx--multi .fx-trail {
+  align-items: flex-start;
+  padding-top: 10px;
+}
+.fx-btn {
+  display: inline-flex;
+  height: 32px;
+  min-width: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: var(--ink-3);
+  transition:
+    background-color var(--dur-2) var(--ease-calma),
+    color var(--dur-2) var(--ease-calma);
+}
+.fx-btn:hover {
+  background: var(--wash);
+  color: var(--ink);
+}
+.fx-meta {
+  display: flex;
+  min-height: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 2px 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Rueda de horas (scroll-snap) */
+.wheel {
+  scroll-snap-type: y mandatory;
+  -webkit-mask-image: linear-gradient(transparent, #000 32%, #000 68%, transparent);
+  mask-image: linear-gradient(transparent, #000 32%, #000 68%, transparent);
+  scrollbar-width: none;
+}
+.wheel::-webkit-scrollbar {
+  display: none;
+}
+
+/* Arrastrar y deslizar (interact.tsx) */
+.no-callout {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.drop-glow {
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in oklab, var(--primary) 55%, transparent),
+    0 0 26px color-mix(in oklab, var(--luz) 45%, transparent);
+}
+
+/* Transiciones de elemento compartido (tarjeta → detalle) */
+::view-transition-group(*) {
+  animation-duration: 420ms;
+  animation-timing-function: var(--ease-calma);
+}
+html.is-dragging,
+html.is-dragging * {
+  cursor: grabbing !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+/* El halo lo pone el contenedor (.fx); el campo interno no lleva contorno propio */
+.fx-input:focus,
+.fx-input:focus-visible,
+.fx-value:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.fx:has(.fx-value:focus-visible) {
+  box-shadow:
+    inset 0 0 0 1.5px var(--primary),
+    0 0 0 4px color-mix(in oklab, var(--primary) 14%, transparent);
+}
