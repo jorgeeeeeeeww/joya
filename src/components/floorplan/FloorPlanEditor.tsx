@@ -815,15 +815,15 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
         <div className="grid grid-cols-3 gap-2 text-center">
           <div>
             <div className="display-num text-[1.9rem]">{stats.tables}</div>
-            <div className="mt-1 text-xs text-ink-soft">Mesas</div>
+            <div className="mt-1 text-xs text-detail">Mesas</div>
           </div>
           <div>
             <div className={cx('display-num text-[1.9rem]', missingSeats ? 'text-danger' : 'text-success')}>{stats.seats}</div>
-            <div className="mt-1 text-xs text-ink-soft">Lugares</div>
+            <div className="mt-1 text-xs text-detail">Lugares</div>
           </div>
           <div>
             <div className="display-num text-[1.9rem]">{guestsHere}</div>
-            <div className="mt-1 text-xs text-ink-soft">Invitados</div>
+            <div className="mt-1 text-xs text-detail">Invitados</div>
           </div>
         </div>
         {missingSeats > 0 ? (
@@ -834,7 +834,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
         ) : (
           <div className="mt-4 rounded-[14px] bg-[color-mix(in_oklab,var(--success)_10%,var(--surface))] p-3 text-sm text-success">{scene.kind === 'coctel' ? 'Cóctel: invitados de pie con periqueras y lounges.' : `Hay lugar para todos (${stats.seats - guestsHere} libres).`}</div>
         )}
-        <p className="mt-3 text-xs text-ink-soft">
+        <p className="mt-3 text-xs text-detail">
           {areaPer.toFixed(1)} m² por persona · recomendado {scene.kind === 'coctel' ? '0.9' : scene.kind === 'ceremonia' ? '0.8' : '1.3'} m² o más
         </p>
       </div>
@@ -1024,7 +1024,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
         </div>
         {showGuests && isMain && (
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-ink-soft">Color por</span>
+            <span className="text-xs text-detail">Color por</span>
             <Segmented
               size="sm"
               value={colorMode}
@@ -1091,7 +1091,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
                       <line x1={measure[0]!.x} y1={measure[0]!.y} x2={measure[1]!.x} y2={measure[1]!.y} stroke={PAPER.guide} strokeWidth={2 / view.s} />
                       <g transform={`translate(${(measure[0]!.x + measure[1]!.x) / 2} ${(measure[0]!.y + measure[1]!.y) / 2})`}>
                         <rect x={-34 / view.s} y={-13 / view.s} width={68 / view.s} height={26 / view.s} rx={13 / view.s} fill={PAPER.floor} stroke={PAPER.guide} strokeWidth={1 / view.s} />
-                        <text textAnchor="middle" dominantBaseline="central" fontSize={12 / view.s} fontWeight={600} fill={PAPER.ink} style={{ fontFamily: 'DM Sans Variable, system-ui' }}>
+                        <text textAnchor="middle" dominantBaseline="central" fontSize={12 / view.s} fontWeight={600} fill={PAPER.ink} style={{ fontFamily: 'Geist Variable, system-ui' }}>
                           {measureDist.toFixed(2)} m
                         </text>
                       </g>
@@ -1107,7 +1107,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
                   <g key={'tx' + x} transform={`translate(${view.tx + x * view.s} 0)`}>
                     <line y1={x % (rulerStep * 5) === 0 ? 8 : 14} y2={20} stroke={PAPER.ink3} strokeWidth={1} />
                     {x % (rulerStep * 5) === 0 && (
-                      <text x={3} y={10} fontSize={9} fill={PAPER.ink3} style={{ fontFamily: 'DM Sans Variable, system-ui' }}>
+                      <text x={3} y={10} fontSize={9} fill={PAPER.ink3} style={{ fontFamily: 'Geist Variable, system-ui' }}>
                         {x}
                       </text>
                     )}
@@ -1117,14 +1117,14 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
                   <g key={'ty' + y} transform={`translate(0 ${view.ty + y * view.s})`}>
                     <line x1={y % (rulerStep * 5) === 0 ? 8 : 14} x2={20} stroke={PAPER.ink3} strokeWidth={1} />
                     {y % (rulerStep * 5) === 0 && (
-                      <text x={2} y={-3} fontSize={9} fill={PAPER.ink3} style={{ fontFamily: 'DM Sans Variable, system-ui' }}>
+                      <text x={2} y={-3} fontSize={9} fill={PAPER.ink3} style={{ fontFamily: 'Geist Variable, system-ui' }}>
                         {y}
                       </text>
                     )}
                   </g>
                 ))}
                 <rect x={0} y={0} width={20} height={20} fill={PAPER.world} />
-                <text x={10} y={13} textAnchor="middle" fontSize={8} fill={PAPER.ink3} style={{ fontFamily: 'DM Sans Variable, system-ui' }}>
+                <text x={10} y={13} textAnchor="middle" fontSize={8} fill={PAPER.ink3} style={{ fontFamily: 'Geist Variable, system-ui' }}>
                   m
                 </text>
               </g>
@@ -1143,7 +1143,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
                   onPointerDown={(e) => e.stopPropagation()}
                 >
                   <div className="glass no-scrollbar flex items-center gap-0.5 overflow-x-auto rounded-full p-1 shadow-[var(--shadow-3)] ring-1 ring-line">
-                    <span className="shrink-0 px-3 text-xs font-medium whitespace-nowrap text-ink-soft">
+                    <span className="shrink-0 px-3 text-xs font-medium whitespace-nowrap text-detail">
                       {selected.length > 1 ? `${selected.length} piezas` : `${ITEM_SPECS[primary!.type].label}${primary!.number ? ` ${primary!.number}` : ''}`}
                     </span>
                     {!readOnly && (
@@ -1243,7 +1243,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
               )}
             </div>
           )}
-          <p className="mt-3 px-1 text-xs leading-relaxed text-ink-soft">
+          <p className="mt-3 px-1 text-xs leading-relaxed text-detail">
             Arrastra con el dedo o el mouse · pellizca para acercar · toque largo para seleccionar varias.{isWide && !readOnly ? ' Atajos: R gira, flechas mueven, Ctrl+C / Ctrl+V copia y pega, Ctrl+Z deshace, Supr elimina.' : ''}
           </p>
         </div>

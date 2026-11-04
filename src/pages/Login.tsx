@@ -41,7 +41,7 @@ function HangingProfiles({ people, onPick }: { people: Employee[]; onPick: (e: E
             >
               <Avatar name={e.name} tone={e.color} size={52} />
               <span className="text-[15px] leading-tight font-medium">{e.name.split(' ').slice(0, 2).join(' ')}</span>
-              <span className="text-xs text-ink-soft">{ROLE[e.role].label}</span>
+              <span className="text-xs text-detail">{ROLE[e.role].label}</span>
             </motion.button>
           </motion.div>
         ))}

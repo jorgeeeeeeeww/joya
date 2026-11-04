@@ -107,11 +107,11 @@ function UnitDetail({ unitId, feature, compactHeader }: { unitId: string; featur
       {money && (
         <div className="grid grid-cols-2 gap-2 text-sm">
           <span className="rounded-[14px] bg-sunken px-3.5 py-2.5">
-            <span className="block text-xs text-ink-soft">Entre semana</span>
+            <span className="block text-xs text-detail">Entre semana</span>
             <span className="display-num text-[1.3rem]">{mxn(unit.basePrice)}</span>
           </span>
           <span className="rounded-[14px] bg-sunken px-3.5 py-2.5">
-            <span className="block text-xs text-ink-soft">Viernes y sábado</span>
+            <span className="block text-xs text-detail">Viernes y sábado</span>
             <span className="display-num text-[1.3rem]">{mxn(unit.weekendPrice)}</span>
           </span>
         </div>
@@ -156,7 +156,7 @@ function UnitDetail({ unitId, feature, compactHeader }: { unitId: string; featur
             </Badge>
           </div>
           <ProgressBar value={cleaning.checklist.length ? done / cleaning.checklist.length : 0} />
-          <p className="mt-2 text-xs text-ink-soft">
+          <p className="mt-2 text-xs text-detail">
             {done} de {cleaning.checklist.length} pasos
             {cleaning.assigneeId && ` · ${db.get('employees', cleaning.assigneeId)?.name ?? ''}`}
           </p>
@@ -200,7 +200,7 @@ function UnitDetail({ unitId, feature, compactHeader }: { unitId: string; featur
       {unit.amenities.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {unit.amenities.map((a) => (
-            <span key={a} className="rounded-full px-3 py-1 text-xs text-ink-soft ring-1 ring-line ring-inset">
+            <span key={a} className="rounded-full px-3 py-1 text-xs text-detail ring-1 ring-line ring-inset">
               {a}
             </span>
           ))}
@@ -224,7 +224,7 @@ function UnitDetail({ unitId, feature, compactHeader }: { unitId: string; featur
 function Fact({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="rounded-[14px] bg-sunken px-3 py-2.5">
-      <div className="flex items-center gap-1.5 text-xs text-ink-soft">
+      <div className="flex items-center gap-1.5 text-xs text-detail">
         {icon}
         {label}
       </div>
@@ -264,7 +264,7 @@ function VenueDetail({ feature, compactHeader }: { feature: MapFeature; compactH
                     <Icon size={14} strokeWidth={1.6} className="shrink-0 text-ink-soft" />
                     {e.title}
                   </span>
-                  <span className="block text-xs text-ink-soft">
+                  <span className="block text-xs text-detail">
                     {type.label} · {e.guests} invitados · {relativeDay(e.date)}
                   </span>
                 </span>

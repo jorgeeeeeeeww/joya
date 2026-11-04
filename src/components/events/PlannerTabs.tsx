@@ -79,7 +79,7 @@ export function InspirationTab({ ev }: { ev: RanchEvent }) {
                 <label className="relative block h-16 w-16 cursor-pointer rounded-full shadow-[var(--shadow-1)] ring-4 ring-surface" style={{ background: c }}>
                   <input type="color" value={c} onChange={(e) => setPalette(colors.map((x, j) => (j === i ? e.target.value : x)))} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label={`Cambiar color ${i + 1}`} />
                 </label>
-                <span className="text-[11px] text-ink-soft tabular uppercase">{c}</span>
+                <span className="text-[11px] text-detail tabular uppercase">{c}</span>
                 <button onClick={() => setPalette(colors.filter((_, j) => j !== i))} aria-label="Quitar color" className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-ink text-paper opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100">
                   <X size={12} />
                 </button>
@@ -173,11 +173,11 @@ export function BudgetTab({ ev }: { ev: RanchEvent }) {
         </div>
         <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-[14px] bg-sunken p-4">
-            <div className="text-xs text-ink-soft">Por invitado</div>
+            <div className="text-xs text-detail">Por invitado</div>
             <div className="display-num mt-1 text-2xl">{mxn(perGuest)}</div>
           </div>
           <div className="rounded-[14px] bg-sunken p-4">
-            <div className="text-xs text-ink-soft">Presupuesto por invitado</div>
+            <div className="text-xs text-detail">Presupuesto por invitado</div>
             <div className="display-num mt-1 text-2xl">{mxn(ev.guests ? b / ev.guests : 0)}</div>
           </div>
         </div>
@@ -190,7 +190,7 @@ export function BudgetTab({ ev }: { ev: RanchEvent }) {
       <Card>
         <CardHeader title="¿En qué se va el dinero?" subtitle={`${ev.lineItems.length} conceptos`} />
         <div className="flex flex-col items-center gap-6 p-6 sm:flex-row">
-          <Donut segments={cats.length ? cats : [{ label: 'Sin conceptos', value: 1, tone: 'sky' }]} center={<><span className="display-num text-xl">{cats.length}</span><span className="text-xs text-ink-soft">rubros</span></>} />
+          <Donut segments={cats.length ? cats : [{ label: 'Sin conceptos', value: 1, tone: 'sky' }]} center={<><span className="display-num text-xl">{cats.length}</span><span className="text-xs text-detail">rubros</span></>} />
           <div className="w-full">
             <Legend items={cats.map((c) => ({ label: c.label, tone: c.tone, value: mxn(c.value) }))} />
           </div>
@@ -204,7 +204,7 @@ export function BudgetTab({ ev }: { ev: RanchEvent }) {
                 <div key={l.id} className="flex items-center gap-3 py-3">
                   <div className="min-w-0 flex-1">
                     <div className="truncate">{l.concept}</div>
-                    <div className="text-xs text-ink-soft">{l.category}</div>
+                    <div className="text-xs text-detail">{l.category}</div>
                   </div>
                   <span className="text-xs text-ink-3 tabular">{q.subtotal ? Math.round((v / q.subtotal) * 100) : 0}%</span>
                   <span className="w-28 text-right tabular">{mxn(v)}</span>
@@ -311,7 +311,7 @@ export function PaymentPlanTab({ ev }: { ev: RanchEvent }) {
       </Card>
       <div className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
         <Card className="p-5">
-          <div className="text-xs text-ink-soft">Pagado de {mxn(q.total)}</div>
+          <div className="text-xs text-detail">Pagado de {mxn(q.total)}</div>
           <div className="display-num mt-2 text-[2.4rem]">{mxn(q.paid)}</div>
           <ProgressBar value={q.total ? q.paid / q.total : 0} className="mt-4 h-2.5" />
           <div className="mt-3 flex justify-between text-sm">
@@ -440,7 +440,7 @@ export function BeoTab({ ev }: { ev: RanchEvent }) {
             ['Coordinación', coordinator?.name.split(' ')[0] ?? '—'],
           ].map(([k, v]) => (
             <div key={k} className="bg-surface px-6 py-4">
-              <div className="text-xs text-ink-soft">{k}</div>
+              <div className="text-xs text-detail">{k}</div>
               <div className="display-num mt-1 text-2xl">{v}</div>
             </div>
           ))}
@@ -494,7 +494,7 @@ export function BeoTab({ ev }: { ev: RanchEvent }) {
                 <img src={s.dataUrl} alt={`Firma de ${s.name}`} className="h-14 w-28 rounded-[10px] bg-paper object-contain ring-1 ring-line" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{s.name}</div>
-                  <div className="text-xs text-ink-soft">
+                  <div className="text-xs text-detail">
                     {s.document === 'beo' ? 'Orden de evento' : 'Contrato'} · {fmtDate(s.at.slice(0, 10))}
                   </div>
                 </div>
@@ -707,7 +707,7 @@ function AssignVendorSheet({ open, onClose, ev }: { open: boolean; onClose: () =
                   {v.favorite && <Star size={13} strokeWidth={1.6} className="shrink-0 text-chispa-soft" />}
                   {v.name}
                 </span>
-                <span className="text-xs text-ink-soft">
+                <span className="text-xs text-detail">
                   {VENDOR_CATEGORY[v.category].label}
                   {v.priceFrom ? ` · desde ${mxn(v.priceFrom)}` : ''}
                 </span>

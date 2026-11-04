@@ -7,7 +7,7 @@ import { TASK_STATUS, TONE, UNIT_STATUS } from '@/lib/meta'
 import { capitalize, fmtDateLong, fmtTime, nowIso, toISODate, today } from '@/lib/format'
 import { ease, fadeRise, haptic } from '@/lib/motion'
 import type { ID, Reservation, Task, Unit, UnitStatus } from '@/lib/types'
-import { Avatar, Badge, Button, Card, CardHeader, cx, PageHeader, ProgressBar, Select, Sheet, Stat, toast } from '@/components/ui'
+import { Avatar, Badge, Button, Card, CardHeader, cx, PageHeader, ProgressBar, Select, Sheet, Stat, toast, StatStrip } from '@/components/ui'
 import { Reveal, Sparkle } from '@/components/step1'
 import { arrivalText, CleaningSheet, nextArrival, ReadyNotice, ReportProblemSheet } from '@/components/stays/CleaningFlow'
 import { CleaningRow, sortCleaning } from '@/components/stays/CleaningCards'
@@ -73,12 +73,12 @@ export default function Limpieza() {
         }
       />
 
-      <div className={cx('mb-8 grid gap-3', supervisor ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-3')}>
+      <StatStrip className="mb-8" cols={supervisor ? 4 : 3}>
         <Stat label="Pendientes" value={open.length} tone="peach" icon={<Clock size={16} strokeWidth={1.6} />} />
         <Stat label="Hechas hoy" value={doneToday.length} tone="sage" icon={<CheckCircle2 size={16} strokeWidth={1.6} />} accent={supervisor} />
         <Stat label="Tarda en promedio" value={avg ? (avg >= 60 ? `${Math.floor(avg / 60)} h ${avg % 60 ? `${avg % 60} min` : ''}`.trim() : `${avg} min`) : '—'} sub={avg ? 'por cada limpieza' : undefined} tone="sky" icon={<Sparkles size={16} strokeWidth={1.6} />} />
         {supervisor && <Stat label="Por revisar" value={toReview.length} tone="mint" icon={<ShieldCheck size={16} strokeWidth={1.6} />} />}
-      </div>
+      </StatStrip>
 
       {/* Mi día */}
       {(me?.role === 'limpieza' || mine.length > 0) && (
@@ -191,7 +191,7 @@ export default function Limpieza() {
                       <Avatar name={c.name} tone={c.color} size={40} />
                       <div className="min-w-0 flex-1">
                         <p className="font-medium">{c.name}</p>
-                        <p className="truncate text-xs text-ink-soft">
+                        <p className="truncate text-xs text-detail">
                           {active ? `Limpiando ${units.find((u) => u.id === active.unitId)?.name ?? ''}` : theirs.length ? theirs.map((x) => units.find((u) => u.id === x.unitId)?.short).join(', ') : 'Libre'}
                         </p>
                       </div>
@@ -226,7 +226,7 @@ function UnitTile({ unit, task, cleaners, reservations, onOpen, onReport }: { un
       <Card className="h-full p-5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-xs text-ink-soft">{unit.kind === 'cabana' ? 'Cabaña' : 'Casa'}</p>
+            <p className="text-xs text-detail">{unit.kind === 'cabana' ? 'Cabaña' : 'Casa'}</p>
             <p className="heading truncate text-[1.3rem]">{unit.name}</p>
           </div>
           <Badge tone={st.tone} dot>
@@ -242,7 +242,7 @@ function UnitTile({ unit, task, cleaners, reservations, onOpen, onReport }: { un
             <button onClick={onOpen} className="pressable flex w-full items-center gap-3 rounded-[14px] bg-sunken px-3.5 py-2.5 text-left text-sm">
               <span className="font-medium">{TASK_STATUS[task.status].label}</span>
               <ProgressBar value={progress} className="flex-1" />
-              <span className="text-xs text-ink-soft tabular">{Math.round(progress * 100)}%</span>
+              <span className="text-xs text-detail tabular">{Math.round(progress * 100)}%</span>
               <ChevronRight size={16} strokeWidth={1.6} className="text-ink-3" />
             </button>
             {task.status !== 'hecha' && (

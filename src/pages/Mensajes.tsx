@@ -31,9 +31,9 @@ export default function Mensajes() {
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-6">
       <motion.div variants={fadeRise}>
-        <NightSlab scene={<MensajesScene />} className="px-6 pt-8 pb-28 md:px-10 md:pt-10 md:pb-32" luzSize="clamp(48px, 10vw, 128px)">
-          <p className="eyebrow !text-on-night-soft">Mensajes y automatización</p>
-          <h1 className="heading mt-3 max-w-[18ch] text-[clamp(2.2rem,1.7rem+2.4vw,3.6rem)] text-on-night">
+        <NightSlab scene={<MensajesScene />} className="px-5 pt-7 pb-24 sm:px-9 sm:pt-9 md:pb-28" luzSize="clamp(48px, 8vw, 104px)">
+          <p className="text-[13px] font-medium text-on-night-soft">Mensajes</p>
+          <h1 className="heading mt-2.5 max-w-[18ch] pr-14 text-[clamp(2rem,1.6rem+2vw,3rem)] text-on-night">
             {totalMessages ? (
               <>
                 Hoy tienes <CountUp value={totalMessages} className="text-luz" /> {totalMessages === 1 ? 'mensaje' : 'mensajes'} por enviar
@@ -43,7 +43,7 @@ export default function Mensajes() {
             )}
           </h1>
           <p className="mt-3 max-w-[52ch] text-[15px] text-on-night-soft">
-            La app revisa prospectos, pagos, invitados y proveedores, y te deja cada mensaje listo con nombre, fecha y monto. Tú solo tocas enviar.
+            Cada mensaje ya va con nombre, fecha y monto. Tú solo tocas enviar.
           </p>
           {byKind.length > 0 && (
             <div className="mt-5 flex flex-wrap gap-2">
@@ -66,7 +66,6 @@ export default function Mensajes() {
               {urgent > 0 && <span className="inline-flex h-12 items-center px-2 text-sm text-on-night-soft">{urgent} urgentes</span>}
             </div>
           )}
-          <div className="h-10 md:h-14" />
         </NightSlab>
       </motion.div>
 
@@ -189,7 +188,7 @@ function Templates() {
               </span>
               <span className="min-w-0">
                 <span className="block truncate font-medium">{m.label}</span>
-                <span className="block truncate text-xs text-ink-soft">{m.hint}</span>
+                <span className="block truncate text-xs text-detail">{m.hint}</span>
               </span>
               {tpl[k] !== DEFAULT_TEMPLATES[k] && <Sparkle className="ml-auto text-xs text-chispa-soft" />}
             </button>
@@ -202,7 +201,7 @@ function Templates() {
           <div className="p-5 pt-4 md:p-6 md:pt-4">
             <Textarea {...({ ref } as Record<string, unknown>)} value={text} onChange={(e) => setDraft(e.target.value)} className="min-h-[150px]" aria-label="Texto de la plantilla" />
             <div className="mt-3 flex flex-wrap gap-1.5">
-              <span className="mr-1 self-center text-xs text-ink-soft">Insertar:</span>
+              <span className="mr-1 self-center text-xs text-detail">Insertar:</span>
               {meta.vars.map((v) => (
                 <button key={v} onClick={() => insert(v)} className="pressable h-8 rounded-full bg-sunken px-3 text-xs text-ink hover:bg-wash">
                   {`{${v}}`}
@@ -259,7 +258,7 @@ function History({ log }: { log: ReturnType<typeof useSentLog> }) {
                 <span className="block truncate font-medium">
                   {meta.label} · {l.to}
                 </span>
-                <span className="block truncate text-xs text-ink-soft">{l.label}</span>
+                <span className="block truncate text-xs text-detail">{l.label}</span>
               </span>
               <span className="tabular shrink-0 text-xs text-ink-3">{ago(l.at)}</span>
             </li>

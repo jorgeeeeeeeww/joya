@@ -393,7 +393,7 @@ function Ground() {
         <meshLambertMaterial color={COLORS.street} />
       </mesh>
       <Html3D position={[-41, 0.2, -60]} zIndex={5} style={{ pointerEvents: 'none' }}>
-        <span className="rounded-full bg-[color-mix(in_oklab,var(--surface)_80%,transparent)] px-2.5 py-0.5 text-[10px] whitespace-nowrap text-ink-soft">C. Crisantemo</span>
+        <span className="rounded-full bg-[color-mix(in_oklab,var(--surface)_80%,transparent)] px-2.5 py-0.5 text-[10px] whitespace-nowrap text-detail">C. Crisantemo</span>
       </Html3D>
       <mesh rotation-x={-Math.PI / 2} position-y={0} receiveShadow>
         <shapeGeometry args={[lotShape]} />
@@ -650,13 +650,13 @@ function Label({ f, dot, selected, dim, onPick, info, statusLabel, y }: { f: Map
           <div className="glass mt-2 w-[210px] rounded-[16px] px-3.5 py-3 text-left shadow-[var(--shadow-2)] ring-1 ring-line">
             <p className="heading text-[1.05rem] leading-tight text-ink">{f.name}</p>
             {statusLabel && (
-              <p className="mt-1 flex items-center gap-1.5 text-[11px] text-ink-soft">
+              <p className="mt-1 flex items-center gap-1.5 text-[11px] text-detail">
                 {dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot }} />}
                 {statusLabel}
               </p>
             )}
             {info?.guest && <p className="mt-1.5 truncate text-[12px] text-ink">{info.guest}</p>}
-            {info?.detail && <p className="truncate text-[11px] text-ink-soft">{info.detail}</p>}
+            {info?.detail && <p className="truncate text-[11px] text-detail">{info.detail}</p>}
             {info?.cleaning !== undefined && (
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sunken">
                 <div className="h-full rounded-full" style={{ width: `${Math.round(info.cleaning * 100)}%`, backgroundImage: 'linear-gradient(90deg, var(--sky-3), var(--chispa-soft))' }} />

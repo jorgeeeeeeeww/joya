@@ -93,7 +93,7 @@ export function DoorView({ ev, onChange, onAddWalkIn }: { ev: RanchEvent; onChan
                     </span>
                   </span>
                   <span className="text-right">
-                    <span className="block text-xs text-ink-soft">{g.table === undefined || g.table === null ? 'Sin mesa' : 'Mesa'}</span>
+                    <span className="block text-xs text-detail">{g.table === undefined || g.table === null ? 'Sin mesa' : 'Mesa'}</span>
                     <span className="display-num block text-[2.4rem] leading-none">{g.table === undefined || g.table === null ? '—' : g.table === 0 ? '✦' : g.table}</span>
                   </span>
                 </button>
@@ -129,12 +129,12 @@ export function DoorView({ ev, onChange, onAddWalkIn }: { ev: RanchEvent; onChan
             <ProgressRing value={expected ? stats.arrived / expected : 0} size={148} stroke={7} gradient>
               <span className="flex flex-col items-center">
                 <span className="display-num text-[2.6rem]">{stats.arrived}</span>
-                <span className="text-xs text-ink-soft">de {expected}</span>
+                <span className="text-xs text-detail">de {expected}</span>
               </span>
             </ProgressRing>
           </div>
           <p className="mt-4 text-sm text-ink-soft">personas han llegado</p>
-          <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-sunken px-3 py-1.5 text-xs text-ink-soft">
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-sunken px-3 py-1.5 text-xs text-detail">
             <Zap size={13} strokeWidth={1.6} /> La pantalla se mantiene encendida
           </p>
         </Card>
@@ -148,7 +148,7 @@ export function DoorView({ ev, onChange, onAddWalkIn }: { ev: RanchEvent; onChan
                 <li key={g.id} className="flex items-center gap-3 border-b border-line py-2 last:border-0">
                   <Sparkle className="text-chispa-soft" />
                   <span className="min-w-0 flex-1 truncate">{g.name}</span>
-                  <span className="tabular text-xs text-ink-soft">{tableLabel(g.table)}</span>
+                  <span className="tabular text-xs text-detail">{tableLabel(g.table)}</span>
                   <span className="tabular text-xs text-ink-3">{g.arrivedAt ? fmt(g.arrivedAt, 'HH:mm') : ''}</span>
                 </li>
               ))}

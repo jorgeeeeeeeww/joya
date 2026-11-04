@@ -10,7 +10,7 @@ import { INVENTORY_CATEGORY, seesMoney, TONE } from '@/lib/meta'
 import { mxn, waLink } from '@/lib/format'
 import { spring } from '@/lib/motion'
 import type { InventoryCategory, InventoryItem } from '@/lib/types'
-import { Badge, Button, Card, Chip, cx, Empty, Estela, PageHeader, ProgressBar, Sheet, Stat, toast } from '@/components/ui'
+import { Badge, Button, Card, cx, Empty, Estela, FilterMenu, PageHeader, ProgressBar, Segmented, Sheet, Stat, toast, StatStrip } from '@/components/ui'
 
 const toBuy = (i: InventoryItem) => Math.max(i.min * 2 - i.stock, 1)
 
@@ -156,27 +156,31 @@ export default function Inventario() {
         ]}
       />
 
-      <div className="mb-7 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <StatStrip className="mb-7">
         <Stat label="Artículos" value={items.length} sub="En todas las categorías" tone="lavender" icon={<Package size={16} strokeWidth={1.6} />} />
         <Stat label="Bajo el mínimo" value={low.length} sub={low.length ? 'Toca para verlos' : 'Todo en orden'} tone="rose" icon={<AlertTriangle size={16} strokeWidth={1.6} />} onClick={() => setCat('bajo')} />
         <Stat label="Mobiliario de eventos" value={items.filter((i) => i.category === 'mobiliario').reduce((n, i) => n + i.stock, 0)} sub="Piezas disponibles" tone="sky" icon={<Armchair size={16} strokeWidth={1.6} />} />
         {money ? <Stat label="Valor del inventario" value={mxn(value)} sub="A costo de compra" tone="sage" accent /> : <Stat label="Por comprar" value={low.length} sub="Artículos" tone="butter" />}
-      </div>
+      </StatStrip>
 
       <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
         <SearchField value={q} onChange={setQ} placeholder="Buscar artículo o código" className="lg:w-80" shortcut />
-        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:flex-wrap lg:px-0">
-          <Chip active={cat === 'todas'} onClick={() => setCat('todas')} count={items.length}>
-            Todo
-          </Chip>
-          <Chip active={cat === 'bajo'} onClick={() => setCat('bajo')} count={low.length}>
-            Bajo mínimo
-          </Chip>
-          {(Object.keys(INVENTORY_CATEGORY) as InventoryCategory[]).map((k) => (
-            <Chip key={k} active={cat === k} onClick={() => setCat(k)} count={items.filter((i) => i.category === k).length}>
-              {INVENTORY_CATEGORY[k].label}
-            </Chip>
-          ))}
+        <div className="flex gap-2 [&>*]:max-sm:flex-1">
+          <Segmented
+            value={cat === 'bajo' ? 'bajo' : 'todo'}
+            onChange={(v) => setCat(v === 'bajo' ? 'bajo' : 'todas')}
+            options={[
+              { value: 'todo', label: `Todo · ${items.length}` },
+              { value: 'bajo', label: `Bajo mínimo · ${low.length}` },
+            ]}
+          />
+          <FilterMenu
+            label="Categoría"
+            allLabel="Categorías"
+            value={cat === 'todas' || cat === 'bajo' ? '' : cat}
+            onChange={(v) => setCat(v || 'todas')}
+            options={(Object.keys(INVENTORY_CATEGORY) as InventoryCategory[]).map((k) => ({ value: k, label: INVENTORY_CATEGORY[k].label, count: items.filter((i) => i.category === k).length }))}
+          />
         </div>
       </div>
 
@@ -190,7 +194,6 @@ export default function Inventario() {
             return (
               <motion.div key={i.id} layout transition={spring.suave} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                 <Card className="relative h-full overflow-hidden p-5">
-                  {isLow && <span aria-hidden className="absolute top-5 bottom-5 left-0 w-[3px] rounded-r-full bg-danger" />}
                   <div className="flex items-start gap-3">
                     <button className="min-w-0 flex-1 text-left" onClick={() => canEdit && (setEdit(i), setSheet(true))} disabled={!canEdit}>
                       <div className="flex flex-wrap items-center gap-1.5">
@@ -198,14 +201,14 @@ export default function Inventario() {
                         {isLow && <Badge tone="rose">Reponer</Badge>}
                       </div>
                       <p className="mt-2.5 text-[15px] font-medium">{i.name}</p>
-                      <p className="mt-0.5 text-xs text-ink-soft">
+                      <p className="mt-0.5 text-xs text-detail">
                         {i.location ?? 'Sin ubicación'} · mínimo {i.min} {i.unit}
                         {money && i.cost ? ` · ${mxn(i.cost)} c/u` : ''}
                       </p>
                     </button>
                     <div className="text-right">
                       <div className={cx('display-num text-[2.3rem]', isLow && 'text-danger')}>{i.stock}</div>
-                      <div className="text-xs text-ink-soft">{i.unit}</div>
+                      <div className="text-xs text-detail">{i.unit}</div>
                     </div>
                   </div>
                   <ProgressBar value={ratio} tone={isLow ? 'rose' : undefined} className="mt-4" />
@@ -240,13 +243,13 @@ export default function Inventario() {
                 <span className={cx('h-2 w-2 rounded-full', TONE[INVENTORY_CATEGORY[i.category].tone].solid)} />
                 <span>
                   <span className="block text-[15px] font-medium">{i.name}</span>
-                  <span className="block text-xs text-ink-soft">
+                  <span className="block text-xs text-detail">
                     Quedan {i.stock} · mínimo {i.min}
                   </span>
                 </span>
               </span>
               <span className="display-num text-xl">
-                {toBuy(i)} <span className="font-sans text-xs text-ink-soft">{i.unit}</span>
+                {toBuy(i)} <span className="font-sans text-xs text-detail">{i.unit}</span>
               </span>
             </li>
           ))}

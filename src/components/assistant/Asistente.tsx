@@ -13,13 +13,13 @@ import { eventCoach, type Coach, type CoachGo, type CoachPhase, type CoachStep }
 import { GUIDES, guideKeyFor, type PanelGuide } from '@/lib/guides'
 import { pendingInstallments, useEventMoney } from '@/lib/planner'
 import { daysUntil, fmtDate, mxn, today } from '@/lib/format'
-import { ease, haptic, spring } from '@/lib/motion'
+import { ease, haptic } from '@/lib/motion'
 import { Button, Card, cx, ProgressBar, Segmented, Sheet } from '@/components/ui'
 
 // ── Preferencias ─────────────────────────────────────────
 export const ASSISTANT_MODES: { value: AssistantMode; label: string; help: string }[] = [
-  { value: 'siempre', label: 'Siempre activo', help: 'Botón «Ayuda» en todas las pantallas, la guía de fase dentro de cada evento y la explicación la primera vez que entras a una pantalla.' },
-  { value: 'boton', label: 'Solo con el botón', help: 'Nada aparece solo: el asistente se abre únicamente cuando tocas «Ayuda».' },
+  { value: 'siempre', label: 'Siempre activo', help: '«Ayuda» en el menú de todas las pantallas, la guía de fase dentro de cada evento y la explicación la primera vez que entras a una pantalla.' },
+  { value: 'boton', label: 'Solo con el botón', help: 'Nada aparece solo: el asistente se abre únicamente cuando tocas «Ayuda» en el menú.' },
   { value: 'apagado', label: 'Apagado', help: 'Sin botón ni guías. Puedes volver a prenderlo aquí o en «¿Cómo se hace?».' },
 ]
 
@@ -201,7 +201,7 @@ function PhaseRow({ p, onGo }: { p: CoachPhase; onGo: (g: CoachGo) => void }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-medium">{p.label}</span>
-          <span className="block text-xs text-ink-soft">
+          <span className="block text-xs text-detail">
             {p.window}
             {p.from && p.state === 'next' ? ` · desde el ${fmtDate(p.from)}` : ''}
             {p.steps.length ? ` · ${done}/${p.steps.length} listo` : ''}
@@ -456,79 +456,21 @@ export function AssistantDock() {
     })
   }, [allHints, key])
   const go = useGo(() => setOpen(false))
-  const [bubble, setBubble] = useState(false)
   const [howOpen, setHowOpen] = useState(false)
-
-  // La primera vez en cada pantalla, el asistente se ofrece a explicarla (solo en modo «siempre»)
-  useEffect(() => {
-    setBubble(false)
-    if (mode !== 'siempre' || !key || seen.includes(key)) return
-    const t = setTimeout(() => setBubble(true), 1200)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, mode])
   useEffect(() => setHowOpen(false), [key])
+  // Abrir la ayuda cuenta como «ya vista» para esta pantalla (no se vuelve a ofrecer)
+  useEffect(() => {
+    if (open && key && !seen.includes(key)) markSeen(key)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, key])
 
   if (!me || !guide) return null
-  // Dentro de un evento cuenta lo atrasado de ese evento; en las demás pantallas, lo urgente del puesto
-  const urgent = coach ? (coach.cancelled ? 0 : coach.late.length + coach.current.steps.filter((s) => s.state === 'late').length) : hints.filter((h) => h.tone === 'bad').length
-  const openIt = () => {
-    haptic.light()
-    setBubble(false)
-    markSeen(key)
-    setOpen(true)
-  }
   const title = coach ? (coach.cancelled ? 'Evento cancelado' : `Asistente ${coach.noun.startsWith('el ') ? `del ${coach.noun.slice(3)}` : `de ${coach.noun}`}`) : guide.title
 
+  // Ya no hay botón flotante: la ayuda se abre desde «Ayuda» en la barra lateral, el ícono de la brújula
+  // en el celular o el renglón «¿Primera vez aquí?» dentro de la página (AssistantIntro).
   return (
     <>
-      {mode !== 'apagado' && (
-        <div className="pointer-events-none fixed bottom-[calc(96px+env(safe-area-inset-bottom))] left-4 z-40 flex flex-col items-start gap-2 md:right-6 md:bottom-6 md:left-auto md:items-end">
-          <AnimatePresence>
-            {bubble && !open && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.32, ease: ease.calma } }}
-                exit={{ opacity: 0, y: 6, transition: { duration: 0.16 } }}
-                className="pointer-events-auto card w-[min(290px,calc(100vw-32px))] p-3.5 shadow-[var(--shadow-3)]"
-                role="status"
-              >
-                <div className="flex items-start gap-2">
-                  <p className="min-w-0 flex-1 text-sm leading-snug">
-                    <span className="font-semibold">¿Primera vez aquí?</span> Te explico qué es {coach ? `${coach.noun}, en qué fase va` : `«${guide.title}»`} y qué sigue.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setBubble(false)
-                      markSeen(key)
-                    }}
-                    aria-label="No, gracias"
-                    className="-mt-1 -mr-1 rounded-full p-1.5 text-ink-3 hover:bg-wash hover:text-ink"
-                  >
-                    <X size={15} strokeWidth={1.7} />
-                  </button>
-                </div>
-                <Button size="sm" className="mt-2.5" onClick={openIt} iconRight={<ArrowRight size={14} strokeWidth={1.7} />}>
-                  Explícame
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <motion.button
-            onClick={openIt}
-            aria-label={`Ayuda: ${title}${urgent ? `, ${urgent} pendientes urgentes` : ''}`}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={spring.suave}
-            className="pointer-events-auto glass relative inline-flex h-12 items-center gap-2 rounded-full pr-4 pl-3 text-[14.5px] font-medium text-ink shadow-[var(--shadow-2)] ring-1 ring-line-strong hover:shadow-[var(--shadow-3)]"
-          >
-            <Compass size={19} strokeWidth={1.7} className="text-primary" />
-            {coach && !coach.cancelled ? `Ayuda · Fase ${coach.current.n}` : 'Ayuda'}
-            {mode === 'siempre' && urgent > 0 && <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-chispa px-1 text-[11px] text-on-chispa ring-2 ring-paper">{urgent}</span>}
-          </motion.button>
-        </div>
-      )}
-
       <Sheet
         open={open}
         onClose={() => setOpen(false)}
@@ -536,7 +478,7 @@ export function AssistantDock() {
         subtitle={coach ? coach.headline : 'Qué ves aquí, en qué orden se trabaja y qué sigue'}
         footer={
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-ink-soft">Asistente</span>
+            <span className="text-xs text-detail">Asistente</span>
             <Segmented size="sm" value={mode} onChange={setMode} options={ASSISTANT_MODES.map((m) => ({ value: m.value, label: m.label }))} />
           </div>
         }
@@ -556,9 +498,60 @@ export function AssistantDock() {
         <button onClick={() => go({ label: 'Guías', to: '/ayuda' })} className="mt-6 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary">
           Ver todas las guías paso a paso <ArrowRight size={14} strokeWidth={1.7} />
         </button>
-        {mode === 'apagado' && <p className="mt-3 text-xs text-ink-soft">El asistente está apagado: no verás el botón «Ayuda». Lo puedes prender abajo o en Ajustes → Tu panel.</p>}
+        {mode === 'apagado' && <p className="mt-3 text-xs text-detail">El asistente está apagado: no se ofrecerá solo en cada pantalla. Lo puedes prender abajo o en Ajustes → Tu panel.</p>}
       </Sheet>
     </>
+  )
+}
+
+/** Abre la ayuda de esta pantalla; si la pantalla no tiene guía, lleva a la lista de guías */
+export function useHelp() {
+  const me = useMe()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const setOpen = useAssistantUI((s) => s.setOpen)
+  const key = me ? guideKeyFor(location.pathname, location.search, me.role) : ''
+  return () => {
+    haptic.light()
+    if (GUIDES[key]) setOpen(true)
+    else navigate('/ayuda')
+  }
+}
+
+/** Renglón discreto arriba de la página la primera vez que alguien entra a una pantalla (en vez de una burbuja flotante) */
+export function AssistantIntro() {
+  const me = useMe()
+  const location = useLocation()
+  const { mode, seen, markSeen } = useAssistant()
+  const setOpen = useAssistantUI((s) => s.setOpen)
+  const key = me ? guideKeyFor(location.pathname, location.search, me.role) : ''
+  const guide = GUIDES[key]
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    setReady(false)
+    const t = setTimeout(() => setReady(true), 600)
+    return () => clearTimeout(t)
+  }, [key])
+  const show = ready && !!guide && mode === 'siempre' && !seen.includes(key)
+  return (
+    <AnimatePresence initial={false}>
+      {show && (
+        <motion.div key={key} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto', transition: { duration: 0.32, ease: ease.calma } }} exit={{ opacity: 0, height: 0, transition: { duration: 0.2, ease: ease.salida } }} className="overflow-hidden">
+          <div className="mb-5 flex items-center gap-3 rounded-[14px] bg-[color-mix(in_oklab,var(--matiz)_14%,var(--surface))] py-2.5 pr-2 pl-3.5 ring-1 ring-[color-mix(in_oklab,var(--matiz)_30%,transparent)]" role="status">
+            <Compass size={17} strokeWidth={1.7} className="shrink-0 text-detail" />
+            <p className="min-w-0 flex-1 text-[13.5px] leading-snug text-ink-soft">
+              <span className="font-semibold text-ink">¿Primera vez en «{guide!.title}»?</span> Te explico qué ves y qué sigue.
+            </p>
+            <Button size="sm" variant="ghost" className="shrink-0 font-semibold !text-ink" onClick={() => (haptic.light(), setOpen(true))}>
+              Explícame
+            </Button>
+            <button onClick={() => markSeen(key)} aria-label="No, gracias" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-detail hover:bg-wash hover:text-ink">
+              <X size={15} strokeWidth={1.8} />
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -625,7 +618,7 @@ export function AssistantSettings() {
           </button>
         ))}
       </div>
-      <Button variant="ghost" size="sm" className="mt-3" onClick={resetSeen}>
+      <Button variant="ghost" size="sm" className="mt-3 h-auto min-h-10 max-w-full py-2 text-left whitespace-normal" onClick={resetSeen}>
         Volver a mostrar las explicaciones de cada pantalla
       </Button>
       {admin && (
@@ -650,7 +643,7 @@ export function AssistantCallout() {
       </span>
       <div className="min-w-0 flex-1 basis-52">
         <p className="font-semibold">Tu asistente</p>
-        <p className="text-sm text-ink-soft">{mode === 'apagado' ? 'Está apagado. Préndelo y te explicará cada pantalla y qué sigue en cada evento.' : 'En cualquier pantalla toca «Ayuda» (abajo): te dice dónde estás, qué ves y qué sigue.'}</p>
+        <p className="text-sm text-ink-soft">{mode === 'apagado' ? 'Está apagado. Préndelo y te explicará cada pantalla y qué sigue en cada evento.' : 'En cualquier pantalla toca «Ayuda» en el menú (la brújula en el celular): te dice dónde estás, qué ves y qué sigue.'}</p>
       </div>
       {mode === 'apagado' ? (
         <Button size="sm" onClick={() => setMode('siempre')}>

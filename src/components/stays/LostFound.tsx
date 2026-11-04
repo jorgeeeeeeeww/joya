@@ -154,7 +154,7 @@ export function LostFoundList({ className }: { className?: string }) {
                       {st.label}
                     </Badge>
                   </div>
-                  <p className="mt-0.5 text-xs text-ink-soft">
+                  <p className="mt-0.5 text-xs text-detail">
                     {unit?.name ?? 'Área común'} · {who ? `${who.name.split(' ')[0]} · ` : ''}
                     {ago(i.foundAt)}
                     {res ? ` · huésped: ${res.guestName}` : ''}

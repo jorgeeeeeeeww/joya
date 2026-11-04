@@ -584,7 +584,7 @@ export function RanchPlan2D({ selectedId, onSelect, onClear, compact, className,
 
           {/* Barra de escala */}
           <div className="glass pointer-events-none absolute bottom-3 left-3 rounded-full px-3 py-1.5 shadow-[var(--shadow-1)] ring-1 ring-line md:bottom-4 md:left-4" aria-label={`Escala: ${scaleLen} metros`}>
-            <div className="flex items-center gap-2 text-[10px] text-ink-soft">
+            <div className="flex items-center gap-2 text-[10px] text-detail">
               <span className="relative block h-1.5 overflow-hidden rounded-full bg-ink" style={{ width: Math.max(24, Math.min(160, scalePx)) }}>
                 <span className="absolute inset-y-0 right-0 w-1/2 bg-paper" />
               </span>
@@ -593,7 +593,7 @@ export function RanchPlan2D({ selectedId, onSelect, onClear, compact, className,
           </div>
 
           {legend && (
-            <div className="glass absolute top-3 left-1/2 flex -translate-x-1/2 flex-wrap justify-center gap-x-3 gap-y-1 rounded-full px-4 py-1.5 text-[11px] text-ink-soft shadow-[var(--shadow-1)] ring-1 ring-line">
+            <div className="glass absolute top-3 left-1/2 flex -translate-x-1/2 flex-wrap justify-center gap-x-3 gap-y-1 rounded-full px-4 py-1.5 text-[11px] text-detail shadow-[var(--shadow-1)] ring-1 ring-line">
               {(Object.keys(UNIT_STATUS) as UnitStatus[]).map((s) => (
                 <span key={s} className="inline-flex items-center gap-1.5">
                   <span className={cx('h-2 w-2 rounded-full', TONE[UNIT_STATUS[s].tone].solid)} />

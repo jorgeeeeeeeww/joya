@@ -155,15 +155,15 @@ export default function Equipo() {
                 <div className="mt-5 grid grid-cols-3 divide-x divide-line rounded-[18px] bg-sunken py-3 text-center">
                   <div>
                     <div className="display-num text-[1.7rem]">{s.open}</div>
-                    <div className="mt-0.5 text-[11px] text-ink-soft">Abiertas</div>
+                    <div className="mt-0.5 text-[11px] text-detail">Abiertas</div>
                   </div>
                   <div>
                     <div className="display-num text-[1.7rem]">{s.done}</div>
-                    <div className="mt-0.5 text-[11px] text-ink-soft">Hechas · 30 d</div>
+                    <div className="mt-0.5 text-[11px] text-detail">Hechas · 30 d</div>
                   </div>
                   <div>
                     <div className="display-num text-[1.7rem]">{s.avg ?? '—'}</div>
-                    <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-ink-soft">
+                    <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-detail">
                       <Timer size={11} strokeWidth={1.6} /> min por limpieza
                     </div>
                   </div>

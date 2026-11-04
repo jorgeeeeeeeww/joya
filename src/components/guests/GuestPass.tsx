@@ -46,11 +46,11 @@ async function passImage(ev: RanchEvent, g: Guest, ranchName: string): Promise<B
   x.arc(W - 140, 130, 44, 0, Math.PI * 2)
   x.fill()
   x.fillStyle = '#F3E6DE'
-  x.font = '600 22px "DM Sans Variable", system-ui'
+  x.font = '600 22px "Geist Variable", system-ui'
   x.fillText(ranchName.toUpperCase(), 60, 90)
-  x.font = '400 60px "Fraunces Variable", Georgia, serif'
+  x.font = '600 60px "Geist Variable", system-ui'
   wrap(x, ev.title, 60, 200, W - 120, 66)
-  x.font = '400 26px "DM Sans Variable", system-ui'
+  x.font = '400 26px "Geist Variable", system-ui'
   x.fillStyle = '#E8D6CC'
   x.fillText(`${fmt(ev.date, "EEEE d 'de' MMMM")} · ${ev.startTime}`, 60, 360)
   x.fillText(VENUE[ev.venue].label, 60, 398)
@@ -59,9 +59,9 @@ async function passImage(ev: RanchEvent, g: Guest, ranchName: string): Promise<B
   roundRect(x, 60, 470, W - 120, 540, 28)
   x.fill()
   x.fillStyle = '#2B1D24'
-  x.font = '400 40px "Fraunces Variable", Georgia, serif'
+  x.font = '600 40px "Geist Variable", system-ui'
   wrap(x, g.name, 100, 540, W - 200, 46)
-  x.font = '500 24px "DM Sans Variable", system-ui'
+  x.font = '500 24px "Geist Variable", system-ui'
   x.fillStyle = '#7A5C62'
   x.fillText(`${g.count === 1 ? '1 pase' : `${g.count} pases`}${g.table !== undefined ? ` · ${tableLabel(g.table)}` : ''}`, 100, 610)
   const qr = await QRCode.toDataURL(passCode(ev, g), { margin: 1, width: 320, color: { dark: '#2B1D24', light: '#FFFFFF' } })
@@ -69,7 +69,7 @@ async function passImage(ev: RanchEvent, g: Guest, ranchName: string): Promise<B
   img.src = qr
   await img.decode()
   x.drawImage(img, (W - 320) / 2, 650, 320, 320)
-  x.font = '400 20px "DM Sans Variable", system-ui'
+  x.font = '400 20px "Geist Variable", system-ui'
   x.fillStyle = '#9A8086'
   x.textAlign = 'center'
   x.fillText('Muestra este código en la entrada', W / 2, 995)

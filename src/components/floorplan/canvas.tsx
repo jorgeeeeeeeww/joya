@@ -44,7 +44,7 @@ export const SWATCH = {
 export type SwatchKey = keyof typeof SWATCH
 export const PAPER = Object.fromEntries(Object.entries(SWATCH).map(([k, v]) => [k, v[0]])) as Record<SwatchKey, string>
 
-const FONT = 'DM Sans Variable, system-ui, sans-serif'
+const FONT = 'Geist Variable, system-ui, sans-serif'
 
 export interface SeatInfo {
   label: string

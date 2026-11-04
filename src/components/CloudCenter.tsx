@@ -48,7 +48,7 @@ import { LightDots, Sparkle } from './step1'
 function Metric({ icon, label, value, hint }: { icon: ReactNode; label: string; value: ReactNode; hint?: ReactNode }) {
   return (
     <motion.div variants={fadeRise} className="rounded-[var(--r-md)] bg-sunken p-4">
-      <div className="flex items-center gap-2 text-xs text-ink-soft">
+      <div className="flex items-center gap-2 text-xs text-detail">
         {icon}
         {label}
       </div>

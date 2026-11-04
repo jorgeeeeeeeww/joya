@@ -138,7 +138,7 @@ export function SeatingView({ ev, onChange }: { ev: RanchEvent; onChange: (next:
           <div className="p-3 md:p-5">
             <SeatPlan ev={ev} tables={tables} occ={occ} highlight={drag?.over ?? null} focus={focusTable} armed={!!pickedGuest} onTable={(k) => (pickedGuest ? assign(pickedGuest.id, k) : setFocusTable((f) => (f === k ? null : k)))} />
           </div>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line px-5 py-3.5 text-xs text-ink-soft md:px-6">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line px-5 py-3.5 text-xs text-detail md:px-6">
             <Legend swatch="var(--surface)" ring label="Libre" />
             <Legend swatch="color-mix(in oklab, var(--sage) 28%, var(--surface))" label="Con lugares" />
             <Legend swatch="color-mix(in oklab, var(--sage) 62%, var(--surface))" label="Llena" />
@@ -259,7 +259,7 @@ export function SeatingView({ ev, onChange }: { ev: RanchEvent; onChange: (next:
                       {g.vip && <Crown size={14} strokeWidth={1.6} className="shrink-0 text-chispa" />}
                       <span className="truncate">{g.name}</span>
                     </span>
-                    <span className="block truncate text-xs text-ink-soft">
+                    <span className="block truncate text-xs text-detail">
                       {[g.side, g.group, rsvpOf(g) === 'pendiente' ? 'Sin confirmar' : null].filter(Boolean).join(' · ') || 'Invitado'}
                     </span>
                   </span>
@@ -377,7 +377,7 @@ function SeatPlan({ ev, tables, occ, highlight, focus, armed, onTable }: { ev: R
             ) : (
               <rect x={r.x} y={r.y} width={r.w} height={r.h} rx={0.25} fill={fill} stroke="var(--line-strong)" strokeWidth={0.06} />
             )}
-            <text x={it.x} y={it.y - 0.18} fontSize={t.key === 0 ? 0.55 : 0.78} textAnchor="middle" dominantBaseline="central" fill="var(--ink)" style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}>
+            <text x={it.x} y={it.y - 0.18} fontSize={t.key === 0 ? 0.55 : 0.78} textAnchor="middle" dominantBaseline="central" fill="var(--ink)" style={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}>
               {t.key === 0 ? 'Principal' : t.key}
             </text>
             <text x={it.x} y={it.y + 0.5} fontSize={0.4} textAnchor="middle" dominantBaseline="central" fill={over ? 'var(--danger)' : 'var(--ink-soft)'} style={{ fontFamily: 'var(--font-sans)' }}>

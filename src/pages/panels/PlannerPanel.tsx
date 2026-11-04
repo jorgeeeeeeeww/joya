@@ -279,7 +279,7 @@ export default function PlannerPanel() {
               const d = daysUntil(ev.date)
               return (
                 <button key={ev.id} onClick={() => (setSelId(ev.id), window.scrollTo({ top: 0, behavior: 'smooth' }))} aria-pressed={on} className={cx('pressable flex w-full items-center gap-3.5 rounded-[20px] p-3 text-left transition-colors', on ? 'bg-paper ring-2 ring-[color-mix(in_oklab,var(--primary)_45%,transparent)]' : 'hover:bg-wash')}>
-                  <span className={cx('heading flex h-12 w-12 shrink-0 items-center justify-center rounded-full italic', on ? 'bg-night text-luz' : 'bg-secondary text-primary', monogram(ev).length > 1 ? 'text-[15px]' : 'text-xl')}>{monogram(ev)}</span>
+                  <span className={cx('heading flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-semibold', on ? 'bg-night text-luz' : 'bg-secondary text-primary', monogram(ev).length > 1 ? 'text-[15px]' : 'text-xl')}>{monogram(ev)}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold leading-snug">{ev.title}</span>
                     <span className="block text-[13px] text-ink-soft">
@@ -294,7 +294,7 @@ export default function PlannerPanel() {
                   </span>
                   <span className="flex shrink-0 flex-col items-end">
                     <span className="display-num text-[2rem] leading-none text-primary">{d}</span>
-                    <span className="text-xs text-ink-soft">{d === 1 ? 'día' : 'días'}</span>
+                    <span className="text-xs text-detail">{d === 1 ? 'día' : 'días'}</span>
                   </span>
                 </button>
               )
@@ -328,7 +328,7 @@ export default function PlannerPanel() {
                 <span className="display-num text-xl">
                   {fmt(addDaysISO(w.date, -1), 'd')}–{fmt(addDaysISO(w.date, 1), 'd')}
                 </span>
-                <span className="text-xs text-ink-soft">{fmt(w.date, 'MMM')}</span>
+                <span className="text-xs text-detail">{fmt(w.date, 'MMM')}</span>
               </div>
               <div className="mt-2 flex flex-col gap-1.5">
                 {(['salon', 'jardin'] as const).map((v) => {
@@ -398,7 +398,7 @@ export default function PlannerPanel() {
               </div>
             ))}
           </div>
-          <div className="mt-2 flex gap-2 px-1 text-center text-[11px] leading-tight text-ink-soft">
+          <div className="mt-2 flex gap-2 px-1 text-center text-[11px] leading-tight text-detail">
             <span className="flex-1 text-danger">Vencido</span>
             {weeks.buckets.map((b) => (
               <span key={b.from} className="flex-1">
@@ -515,7 +515,7 @@ function EventStage({ ev, health, ms, first, onOpen, onGuests }: { ev: RanchEven
               <span className="rounded-full bg-[color-mix(in_oklab,var(--on-night)_12%,transparent)] px-3 py-1 text-xs text-on-night">{EVENT_TYPE[ev.type].label}</span>
             </div>
             <div className="mt-4 flex items-center gap-4">
-              <span className="heading hidden h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--luz)_35%,transparent)] bg-[color-mix(in_oklab,var(--on-night)_8%,transparent)] text-2xl text-luz italic sm:flex">{monogram(ev)}</span>
+              <span className="heading hidden h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--luz)_35%,transparent)] bg-[color-mix(in_oklab,var(--on-night)_8%,transparent)] text-2xl text-luz font-semibold sm:flex">{monogram(ev)}</span>
               <h2 className="heading text-[clamp(2rem,1.5rem+2.6vw,3.8rem)] leading-[1.02] text-on-night">{ev.title}</h2>
             </div>
             <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[15px] text-on-night-soft">

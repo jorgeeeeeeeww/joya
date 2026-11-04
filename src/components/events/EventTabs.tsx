@@ -150,7 +150,7 @@ export function GuestsTab({ ev }: { ev: RanchEvent }) {
                   {/* En celular: nombre en su propio renglón; personas, mesa y quitar bajan al siguiente */}
                   <div className="min-w-0 flex-1 max-md:basis-[calc(100%-3.5rem)]">
                     <input value={g.name} onChange={(e) => update(g.id, { name: e.target.value })} aria-label="Nombre del invitado" className="w-full rounded-[10px] bg-transparent px-1.5 py-0.5 font-medium outline-none hover:bg-wash focus:bg-sunken" />
-                    <div className="flex flex-wrap items-center gap-x-2 px-1.5 text-xs text-ink-soft">
+                    <div className="flex flex-wrap items-center gap-x-2 px-1.5 text-xs text-detail">
                       {g.side && <span>{g.side}</span>}
                       <span>{g.confirmed ? 'Confirmado' : 'Por confirmar'}</span>
                     </div>
@@ -199,7 +199,7 @@ export function GuestsTab({ ev }: { ev: RanchEvent }) {
 function MiniStat({ label, value, sub, warn, accent }: { label: string; value: number; sub?: string; warn?: boolean; accent?: boolean }) {
   return (
     <div className="card p-5">
-      <div className="text-xs text-ink-soft">{label}</div>
+      <div className="text-xs text-detail">{label}</div>
       <CountUp value={value} className={cx('mt-2 block text-[2rem]', warn ? 'text-danger' : accent && 'text-chispa')} />
       {sub && <div className="mt-1 text-xs text-ink-3">{sub}</div>}
     </div>
@@ -281,7 +281,7 @@ export function TimelineTab({ ev }: { ev: RanchEvent }) {
           </div>
         </div>
         {live && (
-          <div className="mb-5 flex items-center gap-2 rounded-full bg-sunken px-4 py-2 text-xs text-ink-soft">
+          <div className="mb-5 flex items-center gap-2 rounded-full bg-sunken px-4 py-2 text-xs text-detail">
             {awake ? <Sun size={14} strokeWidth={1.6} className="text-chispa-soft" /> : <Eye size={14} strokeWidth={1.6} />}
             {awake ? 'La pantalla se mantiene encendida mientras dure el modo día del evento' : 'Modo día del evento activo'}
           </div>
@@ -411,7 +411,7 @@ export function ChecklistTab({ ev }: { ev: RanchEvent }) {
               <RoundCheck done={p.confirmed} onClick={() => setProviders(providers.map((x) => (x.id === p.id ? { ...x, confirmed: !x.confirmed } : x)))} label={p.confirmed ? `Quitar confirmación de ${p.name}` : `Confirmar a ${p.name}`} />
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium">{p.name}</div>
-                <div className="truncate text-xs text-ink-soft">{p.service}</div>
+                <div className="truncate text-xs text-detail">{p.service}</div>
               </div>
               {p.phone && (
                 <>

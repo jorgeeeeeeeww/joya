@@ -94,7 +94,7 @@ export function ProjectionCard({ className }: { className?: string }) {
             { label: '90 días', v: buckets.d90 },
           ].map((b, i) => (
             <div key={b.label} className={cx('rounded-[var(--r-md)] p-4', i === 0 ? 'bg-[color-mix(in_oklab,var(--luz)_32%,var(--surface))]' : 'bg-sunken')}>
-              <div className="text-xs text-ink-soft">Próximos {b.label}</div>
+              <div className="text-xs text-detail">Próximos {b.label}</div>
               <div className="display-num mt-1.5 text-[1.7rem] sm:text-[2rem]">
                 <CountUp value={b.v} format={compactMxn} />
               </div>
@@ -119,7 +119,7 @@ export function ProjectionCard({ className }: { className?: string }) {
               {next.map((i) => (
                 <li key={i.refId + i.label} className="flex items-center gap-3 border-b border-line py-2.5 text-sm last:border-0">
                   <span className={cx('h-2 w-2 shrink-0 rounded-full', i.kind === 'evento' ? 'bg-rose' : 'bg-sky')} />
-                  <span className="w-16 shrink-0 text-xs text-ink-soft tabular">{fmtDate(i.date)}</span>
+                  <span className="w-16 shrink-0 text-xs text-detail tabular">{fmtDate(i.date)}</span>
                   <Link to={i.kind === 'evento' ? `/eventos/${i.refId}` : `/hospedaje?r=${i.refId}`} className="min-w-0 flex-1 truncate hover:underline">
                     {i.label}
                   </Link>
@@ -166,7 +166,7 @@ export function CashflowCard({ className }: { className?: string }) {
             </li>
           ))}
         </ul>
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-ink-soft">
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-detail">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-success" /> Entra
           </span>
@@ -229,19 +229,19 @@ export function OwnerOverview() {
           <Estela className="my-4" />
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-[14px] bg-sunken p-3">
-              <dt className="text-xs text-ink-soft">Entró</dt>
+              <dt className="text-xs text-detail">Entró</dt>
               <dd className="display-num mt-1 text-xl">{compactMxn(profit.income)}</dd>
             </div>
             <div className="rounded-[14px] bg-sunken p-3">
-              <dt className="text-xs text-ink-soft">Salió</dt>
+              <dt className="text-xs text-detail">Salió</dt>
               <dd className="display-num mt-1 text-xl">{compactMxn(profit.spent)}</dd>
             </div>
             <div className="rounded-[14px] bg-sunken p-3">
-              <dt className="text-xs text-ink-soft">Hospedaje</dt>
+              <dt className="text-xs text-detail">Hospedaje</dt>
               <dd className="display-num mt-1 text-xl">{compactMxn(profit.incomeLodging)}</dd>
             </div>
             <div className="rounded-[14px] bg-sunken p-3">
-              <dt className="text-xs text-ink-soft">Eventos</dt>
+              <dt className="text-xs text-detail">Eventos</dt>
               <dd className="display-num mt-1 text-xl">{compactMxn(profit.incomeEvents)}</dd>
             </div>
           </dl>
@@ -298,7 +298,7 @@ export function OwnerOverview() {
                 <div className="min-w-0">
                   <div className="mb-1.5 flex items-baseline justify-between gap-2 text-sm">
                     <span className="truncate font-medium">{u.unit.name}</span>
-                    <span className="shrink-0 text-xs text-ink-soft">
+                    <span className="shrink-0 text-xs text-detail">
                       {u.nights} noches · {pct(u.occupancy)} · ADR {compactMxn(u.adr)}
                     </span>
                   </div>
@@ -326,7 +326,7 @@ export function OwnerOverview() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[15px] font-medium">{ev.title}</span>
-                    <span className="block text-xs text-ink-soft">
+                    <span className="block text-xs text-detail">
                       {fmtDate(ev.date)} · {ev.guests} invitados · {compactMxn(perGuest)} por persona
                     </span>
                   </span>
@@ -355,9 +355,9 @@ export function OwnerOverview() {
               <div className="truncate font-medium">{g.name}</div>
               <div className="mt-2 flex items-baseline gap-1.5">
                 <span className="display-num text-2xl">{g.stays}</span>
-                <span className="text-xs text-ink-soft">estancias</span>
+                <span className="text-xs text-detail">estancias</span>
               </div>
-              <div className="mt-1 text-xs text-ink-soft">
+              <div className="mt-1 text-xs text-detail">
                 {compactMxn(g.spent)} · última {fmtDate(g.last)}
               </div>
             </div>

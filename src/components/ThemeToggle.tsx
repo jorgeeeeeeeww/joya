@@ -27,24 +27,32 @@ export function useEffectiveTheme(): 'light' | 'dark' {
   return pref === 'auto' ? (systemDark ? 'dark' : 'light') : pref
 }
 
+/** Preferencia de tema guardada (claro, oscuro o la del sistema) */
+export function useThemePref(): 'light' | 'dark' | 'auto' {
+  return useStore((s) => (s.session.userId && s.settings.userPrefs?.[s.session.userId]?.theme) || s.settings.theme)
+}
+
+/** Cambia el tema de la persona (o el del rancho si nadie ha entrado) con un fundido suave */
+export function setThemePref(next: 'light' | 'dark' | 'auto') {
+  haptic.select()
+  const apply = () => {
+    const s = useStore.getState()
+    const uid = s.session.userId
+    if (uid) s.setSettings({ userPrefs: { ...(s.settings.userPrefs ?? {}), [uid]: { ...(s.settings.userPrefs?.[uid] ?? {}), theme: next } } })
+    else s.setSettings({ theme: next })
+    // Aplica de inmediato para que la transición capture el estado final
+    if (next === 'auto') document.documentElement.removeAttribute('data-theme')
+    else document.documentElement.setAttribute('data-theme', next)
+  }
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => Parameters<typeof quiet>[0] }
+  if (doc.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) quiet(doc.startViewTransition(() => flushSync(apply)))
+  else apply()
+}
+
 export function ThemeToggle({ className }: { className?: string }) {
   const effective = useEffectiveTheme()
   const next = effective === 'dark' ? 'light' : 'dark'
-
-  const toggle = () => {
-    haptic.select()
-    const apply = () => {
-      const s = useStore.getState()
-      const uid = s.session.userId
-      if (uid) s.setSettings({ userPrefs: { ...(s.settings.userPrefs ?? {}), [uid]: { ...(s.settings.userPrefs?.[uid] ?? {}), theme: next } } })
-      else s.setSettings({ theme: next })
-      // Aplica de inmediato para que la transición capture el estado final
-      document.documentElement.setAttribute('data-theme', next)
-    }
-    const doc = document as Document & { startViewTransition?: (cb: () => void) => Parameters<typeof quiet>[0] }
-    if (doc.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) quiet(doc.startViewTransition(() => flushSync(apply)))
-    else apply()
-  }
+  const toggle = () => setThemePref(next)
 
   return (
     <button

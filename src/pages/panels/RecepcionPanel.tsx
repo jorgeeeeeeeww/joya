@@ -226,7 +226,7 @@ export default function RecepcionPanel() {
                 { label: 'Por cobrar (30 días)', value: totalDue, sub: `${balances.length} reservas con saldo`, icon: Wallet, money: true },
               ].map((k) => (
                 <div key={k.label} className="rounded-[18px] bg-surface p-4 shadow-[var(--shadow-1)] ring-1 ring-line">
-                  <div className="flex items-center gap-1.5 text-xs text-ink-soft">
+                  <div className="flex items-center gap-1.5 text-xs text-detail">
                     <k.icon size={14} strokeWidth={1.6} /> {k.label}
                   </div>
                   <div className="display-num mt-2 text-[2.1rem]">{k.money ? <CountUp value={k.value} format={compactMxn} /> : <CountUp value={k.value} />}</div>
@@ -266,7 +266,7 @@ export default function RecepcionPanel() {
                       const progress = task?.checklist.length ? task.checklist.filter((c) => c.done).length / task.checklist.length : 0
                       return (
                         <motion.li key={m.id} layout className={cx('relative flex gap-3 py-2.5', done && 'opacity-60')}>
-                          <span className="w-11 shrink-0 pt-1 text-right text-xs text-ink-soft tabular">{m.time}</span>
+                          <span className="w-11 shrink-0 pt-1 text-right text-xs text-detail tabular">{m.time}</span>
                           <span className="relative z-[1] mt-2 flex h-[13px] w-[13px] shrink-0 items-center justify-center">
                             <span className={cx('h-[9px] w-[9px] rounded-full ring-[3px] ring-surface', isNext ? 'bg-chispa-soft shadow-[0_0_12px_3px_var(--luz)]' : done ? 'bg-success' : m.kind === 'in' ? 'bg-sky' : 'bg-peach')} />
                           </span>
@@ -390,7 +390,7 @@ export default function RecepcionPanel() {
                       <span className="flex items-center gap-2">
                         {cleaner && <Avatar name={cleaner.name} tone={cleaner.color} size={22} />}
                         <ProgressBar value={progress} className="flex-1" />
-                        <span className="text-[11px] text-ink-soft tabular">{Math.round(progress * 100)}%</span>
+                        <span className="text-[11px] text-detail tabular">{Math.round(progress * 100)}%</span>
                       </span>
                     )}
                   </button>
@@ -451,7 +451,7 @@ export default function RecepcionPanel() {
                 <li key={r.id}>
                   <button onClick={() => setSheet({ open: true, id: r.id })} className="pressable flex min-h-14 w-full items-center gap-3 rounded-[14px] px-2 py-2 text-left hover:bg-wash">
                     <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[14px] bg-sunken">
-                      <span className="text-[10px] text-ink-soft uppercase">{fmt(r.checkIn, 'EEE')}</span>
+                      <span className="text-[10px] text-detail uppercase">{fmt(r.checkIn, 'EEE')}</span>
                       <span className="display-num text-lg leading-none">{d.getDate()}</span>
                     </span>
                     <span className="min-w-0 flex-1">
@@ -481,7 +481,7 @@ export default function RecepcionPanel() {
                 <li key={u.id} className="flex min-h-11 items-center gap-3 rounded-[14px] px-2 py-1.5">
                   <span className={cx('h-2 w-2 shrink-0 rounded-full', connected ? 'bg-success shadow-[0_0_8px_var(--luz)]' : 'bg-line-strong')} />
                   <span className="min-w-0 flex-1 truncate text-sm">{u.name}</span>
-                  <span className="text-xs text-ink-soft">{connected ? (sync ? `Sincronizada ${sync}` : 'Calendario conectado') : 'Sin conectar'}</span>
+                  <span className="text-xs text-detail">{connected ? (sync ? `Sincronizada ${sync}` : 'Calendario conectado') : 'Sin conectar'}</span>
                 </li>
               )
             })}
@@ -514,7 +514,7 @@ export default function RecepcionPanel() {
               </IconBubble>
               <span className="min-w-0">
                 <span className="block text-[15px] font-medium">{q.label}</span>
-                <span className="block truncate text-xs text-ink-soft">{q.sub}</span>
+                <span className="block truncate text-xs text-detail">{q.sub}</span>
               </span>
             </Link>
           ))}

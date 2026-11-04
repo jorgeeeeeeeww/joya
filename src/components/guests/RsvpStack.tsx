@@ -103,7 +103,7 @@ export function RsvpStack({ ev, onChange, onWhatsApp }: { ev: RanchEvent; onChan
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-5">
       <div className="w-full">
-        <div className="mb-1.5 flex justify-between text-xs text-ink-soft">
+        <div className="mb-1.5 flex justify-between text-xs text-detail">
           <span>{answered} respondieron</span>
           <span className="tabular">{totalPending} por confirmar</span>
         </div>

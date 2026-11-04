@@ -247,7 +247,7 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
 
             <div className="mb-5 grid grid-cols-2 gap-3">
               <div className="rounded-[18px] bg-sunken p-4">
-                <p className="flex items-center gap-1.5 text-xs text-ink-soft">
+                <p className="flex items-center gap-1.5 text-xs text-detail">
                   <Users size={14} strokeWidth={1.6} /> Próximos huéspedes
                 </p>
                 <p className={cx('mt-1.5 font-medium', arrivalToday && 'text-warning')}>{next ? (arrivalToday ? `Hoy ${next.arrivalTime ?? ''}` : fmtDate(next.checkIn)) : 'Sin llegada'}</p>
@@ -258,7 +258,7 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
                 )}
               </div>
               <div className="rounded-[18px] bg-sunken p-4">
-                <p className="flex items-center gap-1.5 text-xs text-ink-soft">
+                <p className="flex items-center gap-1.5 text-xs text-detail">
                   <Timer size={14} strokeWidth={1.6} /> Tiempo
                 </p>
                 <p className="display-num mt-1.5 text-[1.6rem]">{elapsed || '—'}</p>
@@ -344,7 +344,7 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
               <PackageSearch size={20} strokeWidth={1.6} className="shrink-0 text-ink-soft" />
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-medium">¿Encontraste algo olvidado?</span>
-                <span className="block text-xs text-ink-soft">Regístralo con foto para devolverlo al huésped</span>
+                <span className="block text-xs text-detail">Regístralo con foto para devolverlo al huésped</span>
               </span>
             </button>
           </>

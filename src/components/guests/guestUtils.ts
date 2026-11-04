@@ -231,8 +231,8 @@ export function tableCardsHtml(ev: RanchEvent) {
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:10mm}
     .tc{border:1px solid #EEDBD0;border-radius:6mm;padding:9mm 8mm;text-align:center;break-inside:avoid;min-height:95mm}
     .ev{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#74484E}
-    .num{font-family:'Fraunces Variable','Fraunces',Georgia,serif;font-weight:300;font-size:64px;line-height:1;margin:6mm 0 1mm;color:#8A4649}
-    .lbl{font-family:'Fraunces Variable','Fraunces',Georgia,serif;font-size:16px;margin-bottom:5mm}
+    .num{font-family:'Geist Variable','Geist',-apple-system,'Segoe UI',sans-serif;font-weight:600;letter-spacing:-.04em;font-size:64px;line-height:1;margin:6mm 0 1mm;color:#8A4649}
+    .lbl{font-family:'Geist Variable','Geist',-apple-system,'Segoe UI',sans-serif;font-size:16px;margin-bottom:5mm}
     .names{font-size:13px;line-height:1.75}
   </style><div class="grid">${cards}</div>`
 }

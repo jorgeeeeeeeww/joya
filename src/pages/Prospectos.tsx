@@ -12,7 +12,7 @@ import { addDaysISO, compactMxn, daysUntil, fmtDate, fmtDateFull, mxn, pct, toda
 import { followBucket, FOLLOW_META, useEventMoney, type FollowBucket } from '@/lib/planner'
 import { ease } from '@/lib/motion'
 import { withUndo } from '@/lib/undo'
-import { Badge, Button, Card, CardHeader, Empty, PageHeader, Segmented, Sheet, Stat, cx } from '@/components/ui'
+import { Badge, Button, Card, CardHeader, Empty, PageHeader, Segmented, Sheet, Stat, cx, StatStrip } from '@/components/ui'
 import { DateField, NotesField, SearchField, Slider } from '@/components/fields'
 import { DragBoard, SwipeRow } from '@/components/interact'
 import { CountUp } from '@/components/step1'
@@ -77,12 +77,12 @@ export default function Prospectos({ embedded }: { embedded?: boolean }) {
     <div>
       {!embedded && <PageHeader eyebrow="CRM" title="Prospectos" subtitle="Cada pareja o familia que pregunta por una fecha. Da seguimiento a tiempo y conviértela en evento." primary={{ label: 'Nuevo prospecto', icon: <Plus size={18} strokeWidth={1.6} />, onClick: () => setNewOpen(true) }} />}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatStrip className="mb-6">
         <Stat label="Prospectos abiertos" value={<CountUp value={leads.filter((l) => l.status !== 'apartado').length} />} sub={`${leads.filter((l) => l.status === 'cotizado').length} con cotización`} tone="rose" icon={<Inbox size={16} strokeWidth={1.6} />} />
         <Stat label="Seguimientos vencidos" value={<CountUp value={stats.overdue} />} sub={stats.overdue ? 'Contesta hoy' : 'Todo al día'} tone="peach" icon={<Clock size={16} strokeWidth={1.6} />} accent={stats.overdue > 0} />
         <Stat label="Conversión" value={pct(stats.conversion)} sub="Últimos 6 meses" tone="sage" icon={<TrendingUp size={16} strokeWidth={1.6} />} />
         {showMoney && <Stat label="Valor ponderado" value={<CountUp value={stats.weighted} format={compactMxn} />} sub="Cotizado × probabilidad de cierre" tone="butter" icon={<Wallet size={16} strokeWidth={1.6} />} />}
-      </div>
+      </StatStrip>
 
       <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <Segmented<View>
@@ -137,7 +137,7 @@ export default function Prospectos({ embedded }: { embedded?: boolean }) {
                     </section>
                   )
                 })}
-                {open.length > 0 && <p className="px-1 text-center text-xs text-ink-soft">Desliza una tarjeta a la derecha cuando ya diste seguimiento, o a la izquierda para dejarla para mañana.</p>}
+                {open.length > 0 && <p className="px-1 text-center text-xs text-detail">Desliza una tarjeta a la derecha cuando ya diste seguimiento, o a la izquierda para dejarla para mañana.</p>}
               </div>
               <SourcesCard sources={stats.sources} />
             </div>
@@ -174,10 +174,10 @@ function SourcesCard({ sources }: { sources: { label: string; tone: any; value: 
       <Card>
         <CardHeader eyebrow="Origen" title="¿Cómo nos encuentran?" />
         <div className="flex flex-col items-center gap-5 p-5 sm:flex-row xl:flex-col">
-          <Donut segments={sources.length ? sources : [{ label: 'Sin datos', value: 1, tone: 'sky' }]} center={<><span className="display-num text-2xl">{sources.reduce((n, s) => n + s.value, 0)}</span><span className="text-xs text-ink-soft">contactos</span></>} />
+          <Donut segments={sources.length ? sources : [{ label: 'Sin datos', value: 1, tone: 'sky' }]} center={<><span className="display-num text-2xl">{sources.reduce((n, s) => n + s.value, 0)}</span><span className="text-xs text-detail">contactos</span></>} />
           <div className="w-full">
             <Legend items={sources.map((s) => ({ label: s.label, tone: s.tone, value: `${s.won}/${s.value}` }))} />
-            <p className="mt-3 text-xs text-ink-soft">Apartados / contactos por origen.</p>
+            <p className="mt-3 text-xs text-detail">Apartados / contactos por origen.</p>
           </div>
         </div>
       </Card>
@@ -210,7 +210,7 @@ function LeadCard({ lead: l, total, showMoney, onFollow, onBook }: { lead: Ranch
           <div className="mt-0.5 truncate text-sm text-ink-soft">
             {l.title} · {VENUE[l.venue].label} · {l.guests} invitados
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-soft">
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-detail">
             <span>
               Fecha deseada: {fmtDate(l.date)}
               {d >= 0 ? ` (en ${d} días)` : ''}
@@ -262,7 +262,7 @@ function BoardCard({ lead: l, total, showMoney }: { lead: RanchEvent; total: num
         <EventOrb type={l.type} size="sm" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14.5px] font-medium">{l.clientName}</span>
-          <span className="block truncate text-xs text-ink-soft">
+          <span className="block truncate text-xs text-detail">
             {l.title} · {fmtDate(l.date)}
           </span>
         </span>

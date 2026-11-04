@@ -99,7 +99,7 @@ export function QuoteTab({ ev }: { ev: RanchEvent }) {
                   {priceOf(prices, p.id) !== undefined ? (
                     <>
                       <span className="display-num text-[1.9rem]">{mxn(priceOf(prices, p.id)!)}</span>
-                      <span className="text-xs text-ink-soft">por persona</span>
+                      <span className="text-xs text-detail">por persona</span>
                     </>
                   ) : (
                     <span className="text-sm text-ink-soft">Sin precio · se pone en Ajustes</span>
@@ -145,7 +145,7 @@ export function QuoteTab({ ev }: { ev: RanchEvent }) {
               <motion.div layout key={l.id} className="grid grid-cols-[1fr_auto] items-center gap-2 py-3 sm:grid-cols-[1fr_84px_120px_120px_44px]">
                 <div className="col-span-2 sm:col-span-1">
                   <input value={l.concept} onChange={(e) => updateLine(l.id, { concept: e.target.value })} aria-label="Concepto" className="w-full rounded-[10px] bg-transparent px-1.5 py-1 font-medium outline-none hover:bg-wash focus:bg-sunken" />
-                  <span className="px-1.5 text-xs text-ink-soft">{l.category}</span>
+                  <span className="px-1.5 text-xs text-detail">{l.category}</span>
                 </div>
                 <Input type="number" inputMode="numeric" aria-label="Cantidad" value={l.qty} onChange={(e) => updateLine(l.id, { qty: Math.max(0, Number(e.target.value)) })} className="h-10 text-right tabular" />
                 <Input type="number" inputMode="decimal" aria-label="Precio" value={l.price} onChange={(e) => updateLine(l.id, { price: Math.max(0, Number(e.target.value)) })} className="h-10 text-right tabular" />
@@ -169,7 +169,7 @@ export function QuoteTab({ ev }: { ev: RanchEvent }) {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">{p.concept}</div>
-                  <div className="text-xs text-ink-soft">
+                  <div className="text-xs text-detail">
                     {fmtDate(p.date)} · {PAYMENT_METHOD[p.method]}
                   </div>
                 </div>
@@ -211,11 +211,11 @@ export function QuoteTab({ ev }: { ev: RanchEvent }) {
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <div className="rounded-[14px] bg-sunken p-3.5">
-              <div className="text-xs text-ink-soft">Saldo</div>
+              <div className="text-xs text-detail">Saldo</div>
               <div className="display-num mt-1 text-xl">{mxn(q.balance)}</div>
             </div>
             <div className="rounded-[14px] bg-sunken p-3.5">
-              <div className="text-xs text-ink-soft">Anticipo {q.depositPercent}%</div>
+              <div className="text-xs text-detail">Anticipo {q.depositPercent}%</div>
               <div className="display-num mt-1 text-xl">{mxn(q.deposit)}</div>
             </div>
           </div>
@@ -271,7 +271,7 @@ function ExtrasSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => v
                   <span>{x.concept}</span>
                   <span className="flex items-center gap-2 text-sm tabular">
                     {mxn(x.price)}
-                    {x.perGuest && <span className="text-xs text-ink-soft">/pers.</span>}
+                    {x.perGuest && <span className="text-xs text-detail">/pers.</span>}
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary">
                       <Plus size={15} strokeWidth={1.6} />
                     </span>

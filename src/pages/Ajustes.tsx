@@ -98,7 +98,7 @@ function AtmosPreview({ a, active, onPick }: { a: (typeof ATMOS)[number]; active
             </span>
           )}
         </div>
-        <p className="mt-1 min-h-[2.6em] text-xs leading-snug text-ink-soft">{a.description}</p>
+        <p className="mt-1 min-h-[2.6em] text-xs leading-snug text-detail">{a.description}</p>
         <div className="mt-3 flex items-center gap-2">
           <span className="inline-flex h-8 items-center rounded-full bg-primary px-3.5 text-xs text-on-primary">Botón</span>
           <span className="h-3 w-3 rounded-full bg-chispa" />
@@ -288,7 +288,7 @@ function Automatizaciones() {
                 <motion.li key={n.t} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.09, duration: 0.48, ease: [0.22, 1, 0.36, 1] }} className="relative flex w-[20%] flex-col items-center text-center">
                   <span className={cx('relative z-[1] h-[22px] w-[22px] rounded-full ring-[5px] ring-surface', TONE[n.tone].solid, i === FLOW.length - 1 && 'shadow-[0_0_14px_4px_var(--luz)]')} />
                   <span className="heading mt-3 text-lg">{n.t}</span>
-                  <span className="mt-0.5 text-xs text-ink-soft">{n.s}</span>
+                  <span className="mt-0.5 text-xs text-detail">{n.s}</span>
                 </motion.li>
               ))}
             </ol>
@@ -416,7 +416,7 @@ export function Respaldos() {
                   <span className={cx('h-1.5 w-1.5 rounded-full', TONE[tone].solid)} />
                 </div>
                 <div className="mt-1.5 text-[15px] font-medium">{t}</div>
-                <div className="mt-0.5 text-xs text-ink-soft">{s}</div>
+                <div className="mt-0.5 text-xs text-detail">{s}</div>
               </li>
             ))}
           </ol>
@@ -460,7 +460,7 @@ export function Respaldos() {
               <HardDrive size={16} strokeWidth={1.6} className="shrink-0 text-ink-3" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[15px] font-medium capitalize">{fmt(s.date, "EEEE d 'de' MMMM")}</p>
-                <p className="text-xs text-ink-soft">
+                <p className="text-xs text-detail">
                   {(s.size / 1024).toFixed(0)} KB · {ago(s.at)}
                 </p>
               </div>
@@ -527,7 +527,7 @@ function Bitacora() {
               <span className={cx('relative z-[1] mt-1.5 h-[11px] w-[11px] shrink-0 rounded-full ring-[3px] ring-surface', TONE[ACTION_TONE[a.action] ?? 'sky'].solid)} />
               <div className="min-w-0 flex-1">
                 <p className="text-[15px]">{a.summary}</p>
-                <p className="mt-0.5 text-xs text-ink-soft">
+                <p className="mt-0.5 text-xs text-detail">
                   {a.userId ? employees[a.userId]?.name ?? 'Sistema' : 'Sistema'} · {fmt(a.at, "d MMM, HH:mm")} · {a.action}
                 </p>
               </div>
@@ -603,7 +603,7 @@ export function Sistema() {
   const Box = ({ x, y, w, h, title, sub, tone }: { x: number; y: number; w: number; h: number; title: string; sub: string; tone: Pastel }) => (
     <g>
       <rect x={x} y={y} width={w} height={h} rx="18" fill={`var(--${tone}-soft)`} stroke="var(--line-strong)" strokeWidth="1" />
-      <text x={x + w / 2} y={y + h / 2 - 5} textAnchor="middle" fontSize="16" fill="var(--ink)" style={{ fontFamily: 'var(--font-display)', fontVariationSettings: '"SOFT" 100', fontWeight: 400 }}>
+      <text x={x + w / 2} y={y + h / 2 - 5} textAnchor="middle" fontSize="16" fill="var(--ink)" style={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}>
         {title}
       </text>
       <text x={x + w / 2} y={y + h / 2 + 15} textAnchor="middle" fontSize="12" fill="var(--ink-soft)">
@@ -722,7 +722,7 @@ export default function Ajustes() {
     <div>
       <PageHeader eyebrow="Sistema" title="Ajustes" subtitle={admin ? 'Tu panel, los datos del rancho, los avisos automáticos, los celulares del equipo y el respaldo.' : 'Tu panel, tu atmósfera y cómo instalar la app.'} />
       <div className={cx('grid gap-6 lg:gap-8', tabs.length > 1 && 'lg:grid-cols-[232px_1fr]')}>
-        <nav hidden={tabs.length < 2} className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:sticky lg:top-4 lg:mx-0 lg:flex-col lg:self-start lg:px-0" aria-label="Secciones de ajustes">
+        <nav hidden={tabs.length < 2} className="flex flex-wrap gap-1.5 lg:sticky lg:top-4 lg:mx-0 lg:flex-col lg:self-start lg:px-0" aria-label="Secciones de ajustes">
           {tabs.map((t) => {
             const Icon = t.icon
             const active = tab === t.value

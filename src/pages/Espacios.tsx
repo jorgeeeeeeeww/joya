@@ -170,7 +170,7 @@ export default function Espacios() {
               </div>
               <div className="mt-4 flex flex-wrap gap-1.5">
                 {info.perks.map((p) => (
-                  <span key={p} className="rounded-full bg-sunken px-2.5 py-1 text-xs text-ink-soft">
+                  <span key={p} className="rounded-full bg-sunken px-2.5 py-1 text-xs text-detail">
                     {p}
                   </span>
                 ))}
@@ -191,7 +191,7 @@ export default function Espacios() {
 
       {/* Eventos del recinto */}
       {venueEvents.length + otherEvents.length > 0 ? (
-        <div className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 md:mx-0 md:px-0">
+        <div className="flex flex-wrap gap-2">
           {venueEvents.map((e) => {
             const on = e.id === ev?.id
             const d = daysUntil(e.date)
@@ -410,7 +410,7 @@ export default function Espacios() {
                       <Undo2 size={17} strokeWidth={1.6} /> Volver a la vista general
                     </button>
                   )}
-                  <div className="glass pointer-events-none absolute right-3 bottom-3 hidden max-w-[50%] rounded-full px-3 py-1.5 text-xs text-ink-soft ring-1 ring-line sm:block">
+                  <div className="glass pointer-events-none absolute right-3 bottom-3 hidden max-w-[50%] rounded-full px-3 py-1.5 text-xs text-detail ring-1 ring-line sm:block">
                     {tour ? 'Recorrido a la altura de una persona · toca Recorrido para detenerlo' : viewFrom ? 'Vista desde la mesa · arrastra para mirar alrededor' : 'Arrastra para girar · pellizca para acercar · toca una mesa'}
                   </div>
                 </div>

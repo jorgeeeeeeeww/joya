@@ -215,7 +215,7 @@ export function Timeline({ units, reservations, start, days, onCell, onBar, onCr
               const inDraft = draft && d >= draft.checkIn && d < draft.checkOut
               return (
                 <div key={d} className="relative flex shrink-0 flex-col items-center justify-center text-center" style={{ width: colW, height: HEAD_H }}>
-                  <span className="text-[10px] text-ink-soft uppercase">{fmt(d, 'EEEEE')}</span>
+                  <span className="text-[10px] text-detail uppercase">{fmt(d, 'EEEEE')}</span>
                   <span className={cx('mt-1 flex h-7 w-7 items-center justify-center rounded-full text-[13px] tabular transition-colors duration-[var(--dur-1)]', isToday ? 'bg-ink text-paper shadow-[0_0_14px_color-mix(in_oklab,var(--luz)_70%,transparent)]' : inDraft ? 'bg-[color-mix(in_oklab,var(--primary)_16%,transparent)] font-semibold text-primary' : d < t ? 'text-ink-3' : 'text-ink')}>{fmt(d, 'd')}</span>
                 </div>
               )
@@ -229,7 +229,7 @@ export function Timeline({ units, reservations, start, days, onCell, onBar, onCr
                 <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', TONE[UNIT_STATUS[u.status].tone].solid)} title={UNIT_STATUS[u.status].label} />
                 <span className="min-w-0 leading-tight">
                   <span className="block truncate text-[15px] font-medium">{u.name.replace('Cabaña ', '').replace('Casa ', '')}</span>
-                  <span className="block text-[11px] text-ink-soft">
+                  <span className="block text-[11px] text-detail">
                     {u.kind === 'cabana' ? 'Cabaña' : 'Casa'} · {u.capacity} pers.
                   </span>
                 </span>
@@ -306,7 +306,7 @@ export function Timeline({ units, reservations, start, days, onCell, onBar, onCr
           )}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-line px-5 py-3 text-xs text-ink-soft">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-line px-5 py-3 text-xs text-detail">
         {Object.entries(RES_SOURCE).map(([k, v]) => (
           <span key={k} className="inline-flex items-center gap-1.5">
             <span className={cx('h-2.5 w-2.5 rounded-full', TONE[v.tone].solid)} /> {v.label}

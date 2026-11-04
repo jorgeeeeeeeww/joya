@@ -4,7 +4,7 @@
 Brief step1
 Proyecto: Sistema de gestión de Jardines La Joya · Plataforma: PWA (móvil, tablet, iMac) · Rubro: salón de eventos + cabañas y casas en renta (Tototlán, Jal.)
 Modo: Rediseño · Atmósfera: Flor · Tema: claro + oscuro automático
-Intensidad: Equilibrada · Tipografía: Editorial (Fraunces + DM Sans) · Densidad: Aireada (táctil, 48 px)
+Intensidad: Equilibrada · Tipografía: Geist (una sola familia, sin serif ni cursiva) · Densidad: Aireada (táctil, 48 px)
 Stack: Vite + React 19 + Tailwind v4 + Motion + three.js · Backend: Supabase (offline-first)
 Pantallas clave: Centro de control (admin) · Panel de la Wedding planner · Mi día (limpieza) · Mapa 3D · Evento con plano de mesas
 Firma visual: "La luz del atardecer guía el día del rancho"
@@ -18,7 +18,7 @@ Respeta la regla de gravedad: solo un dial queda fuera de la base.
 |---|---|---|
 | Atmósfera | **Flor** (rosa polvo, terracota, borgoña, oliva) | Bodas, XV años y jardines. Las casas llevan nombres de flores (Girasol, Lavanda, Magnolia, Bugambilia) y la calle se llama Crisantemo. |
 | Intensidad | Equilibrada | Hay grano (0.07), la luz respira y la entrada sube 12 px. |
-| Tipografía | Editorial | Fraunces SOFT 100 (peso 340) en titulares y cifras de peso 300; DM Sans en la interfaz. |
+| Tipografía | Geist | Una sola familia: títulos en 600 con interletra cerrada (−0.032em), cifras en 560 tabulares, texto en 400/500. Sin serif ni cursiva. |
 | Densidad | Aireada | Las empleadas usan la app con una mano, así que los controles miden 48 px. |
 | Tema | Claro + oscuro | Sigue al sistema o a la preferencia de cada persona. |
 
@@ -40,6 +40,18 @@ Respeta la regla de gravedad: solo un dial queda fuera de la base.
 | Primitivas de la huella (Luz, Horizonte, losa noche, cielo, ✦, puntos de luz) | `src/components/step1.tsx` |
 | Movimiento "deriva" | `src/lib/motion.ts` |
 | Vitrina de componentes | ruta `/diseno` |
+
+## Pulido de noviembre 2026: claridad y anti-slop
+
+| Regla | Cómo se aplica |
+|---|---|
+| **Jerarquía de texto con pasteles** | Título = `--ink` · texto = `--ink-soft` · **detalle** (fechas, horas, notas, etiquetas) = `--tx-detail` (`text-detail`, salvia en Flor) · **importante** (pendientes, horas de hoy, contadores) = `--tx-key` (`text-key`, terracota apagado). `text-ink-3` ahora es el detalle. Dentro de las losas noche se aclaran solos. |
+| **Encabezados** | Página: título + una línea (`PageHeader`, ya no dibuja `eyebrow`). Tarjeta: título + una línea (`CardHeader`). Sección: `SectionTitle`. Nada de etiquetas en mayúsculas. |
+| **Cifras** | `StatStrip`: una tarjeta con celdas separadas por línea fina, en vez de cuatro tarjetas gemelas. Cada cifra puede llevar a su pantalla (`onClick`). |
+| **Filtros** | 2–3 opciones: `Segmented`. 5 o más: `FilterMenu` (botón con su lista). Nada de filas de chips que se salgan de lado. |
+| **Barra lateral** | Panel flotante: marca con fecha y clima, búsqueda, tres grupos fijos (Hoy · Rentas · Negocio), y abajo Ayuda, Ajustes y tu cuenta (tema, sincronización, bloquear). En PC no hay barra superior. |
+| **Ayuda** | Sin botón flotante: «Ayuda» en la barra lateral, brújula en el celular y un renglón discreto la primera vez en cada pantalla (`AssistantIntro`). |
+| **Prohibido** | Bordes de color a un lado de la tarjeta, tarjetas dentro de tarjetas para listas (se usan renglones con divisor), carruseles que dejan tarjetas a medias. |
 
 ## Mapa de tokens (rediseño)
 

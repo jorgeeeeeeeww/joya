@@ -325,7 +325,7 @@ function Summary({ ev, showMoney, goTab }: { ev: RanchEvent; showMoney: boolean;
               .filter((x): x is { label: string; v: number; sub: string; tab: Tab } => !!x)
               .map((x) => (
               <button key={x.label} onClick={() => goTab(x.tab)} className="pressable w-full min-w-0 rounded-[18px] p-3 text-left hover:bg-wash">
-                <div className="text-xs text-ink-soft">{x.label}</div>
+                <div className="text-xs text-detail">{x.label}</div>
                 <div className="display-num mt-1 text-[1.7rem]">{Math.round(x.v * 100)}%</div>
                 <ProgressBar value={x.v} className="mt-2" />
                 <div className="mt-1.5 text-xs text-ink-3 tabular">{x.sub}</div>
@@ -337,7 +337,7 @@ function Summary({ ev, showMoney, goTab }: { ev: RanchEvent; showMoney: boolean;
 
       {showMoney && (
         <Card className="p-6" onClick={() => goTab('cotizacion')} as="button">
-          <div className="text-xs text-ink-soft">Total del evento</div>
+          <div className="text-xs text-detail">Total del evento</div>
           <div className="display-num mt-2 text-[2.3rem]">{mxn(q.total)}</div>
           <ProgressBar value={q.total ? q.paid / q.total : 0} className="mt-4 h-2.5" />
           <div className="mt-2.5 flex justify-between text-sm">
@@ -384,7 +384,7 @@ function Summary({ ev, showMoney, goTab }: { ev: RanchEvent; showMoney: boolean;
                 {/* En celular las etiquetas bajan junto a la fecha: así el título conserva todo el ancho */}
                 <div className="min-w-0 flex-1">
                   <div className={cx('font-medium leading-snug', done && 'text-ink-3 line-through')}>{t.title.replace(` · ${ev.title}`, '')}</div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-soft">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-detail">
                     <span>
                       {t.due ? fmtDate(t.due.slice(0, 10)) : 'Sin fecha'} · {t.checklist.filter((c) => c.done).length}/{t.checklist.length} pasos
                     </span>

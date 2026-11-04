@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { ArrowRight, Heart, Plus, Sparkles } from 'lucide-react'
 import { AreaChart, BarChart, Donut, Legend } from '@/components/charts'
-import { Avatar, Badge, Button, Card, CardHeader, Chip, Empty, Estela, Field, IconBubble, Input, PageHeader, ProgressBar, ProgressRing, Segmented, Select, Stat, Textarea, Toggle, toast } from '@/components/ui'
+import { Avatar, Badge, Button, Card, CardHeader, Chip, Empty, Estela, Field, IconBubble, Input, PageHeader, ProgressBar, ProgressRing, Segmented, Select, Stat, Textarea, Toggle, toast, StatStrip } from '@/components/ui'
 import { CountUp, Horizon, LightDots, Luz, NightSlab, SkyBlock, Sparkle } from '@/components/step1'
 import type { Pastel } from '@/lib/types'
 import { TONE } from '@/lib/meta'
@@ -115,12 +115,12 @@ export default function Diseno() {
         </Card>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatStrip>
         <Stat label="Ocupación hoy" value="5/7" sub="71% de las unidades" tone="sky" icon={<Heart size={16} />} />
         <Stat label="Ingresos del mes" value={<CountUp value={184500} format={(n) => '$' + Math.round(n).toLocaleString('es-MX')} />} accent delta={{ value: '+12%', good: true }} />
         <Stat label="Eventos" value="6" sub="Este mes" tone="rose" />
         <Stat label="Limpiezas" value="3" sub="Pendientes hoy" tone="peach" />
-      </section>
+      </StatStrip>
 
       <section className="grid gap-5 lg:grid-cols-3">
         <Card className="p-6">

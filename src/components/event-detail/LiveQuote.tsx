@@ -73,7 +73,7 @@ export function LiveQuote({ ev }: { ev: RanchEvent }) {
               { icon: <ConciergeBell size={16} strokeWidth={1.6} />, label: 'Meseros', value: calc.waiters },
             ].map((k) => (
               <div key={k.label} className="rounded-[14px] bg-sunken p-3">
-                <span className="flex items-center gap-1.5 text-xs text-ink-soft">
+                <span className="flex items-center gap-1.5 text-xs text-detail">
                   {k.icon} {k.label}
                 </span>
                 <span className="mt-1 block text-[1.4rem] font-semibold">

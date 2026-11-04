@@ -8,7 +8,7 @@ import { EXPENSE_CATEGORY, PAYMENT_METHOD } from '@/lib/meta'
 import { addDaysISO, compactMxn, fmt, fmtDate, mxn, nights, pct, today, toISODate } from '@/lib/format'
 import type { BusinessLine, Expense, ExpenseCategory, PaymentMethod } from '@/lib/types'
 import { BarChart, Donut, Legend } from '@/components/charts'
-import { Badge, Button, Card, CardHeader, Chip, cx, Empty, PageHeader, Segmented, Sheet, Stat, toast } from '@/components/ui'
+import { Badge, Button, Card, CardHeader, Chip, cx, Empty, PageHeader, Segmented, Sheet, Stat, toast, StatStrip } from '@/components/ui'
 import { CountUp } from '@/components/step1'
 import { MonthReportButton, OwnerOverview } from '@/components/owner/OwnerOverview'
 
@@ -205,7 +205,7 @@ export default function Finanzas() {
         menu={[{ label: 'Exportar a Excel', icon: <Download />, hint: 'Movimientos del periodo', onClick: exportCsv }]}
       />
       <div className="mb-7 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+        <div className="flex flex-wrap gap-2">
           {PERIODS.map((p) => (
             <Chip key={p.value} active={!focusMonth && period === p.value} onClick={() => (setFocus(null), setPeriod(p.value))}>
               {p.label}
@@ -228,12 +228,12 @@ export default function Finanzas() {
         />
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <StatStrip className="mb-6">
         <Stat label="Ingresos" value={<CountUp value={income} format={compactMxn} />} sub={`${pays.length} pagos recibidos`} tone="sage" icon={<ArrowUpRight size={16} strokeWidth={1.6} />} />
         <Stat label="Gastos" value={<CountUp value={spent} format={compactMxn} />} sub={`${exps.length} movimientos`} tone="rose" icon={<ArrowDownRight size={16} strokeWidth={1.6} />} />
         <Stat label="Utilidad" value={<CountUp value={profit} format={compactMxn} />} accent sub={income ? `Margen de ${pct(profit / income)}` : 'Sin ingresos aún'} />
         <Stat label="Tarifa promedio por noche" value={<CountUp value={adr} format={compactMxn} />} sub={`Casas ocupadas el ${pct(occ)} de las noches · cada casa deja ${mxn(revpar)} por noche en promedio`} tone="butter" icon={<Wallet size={16} strokeWidth={1.6} />} />
-      </div>
+      </StatStrip>
 
       <div className="grid gap-5 lg:grid-cols-[1.55fr_1fr] lg:gap-6">
         <Card>
@@ -269,7 +269,7 @@ export default function Finanzas() {
               center={
                 <>
                   <span className="display-num text-xl">{compactMxn(spent)}</span>
-                  <span className="text-xs text-ink-soft">en gastos</span>
+                  <span className="text-xs text-detail">en gastos</span>
                 </>
               }
             />
@@ -353,7 +353,7 @@ export default function Finanzas() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-medium">{m.concept}</p>
-                    <p className="truncate text-xs text-ink-soft">
+                    <p className="truncate text-xs text-detail">
                       {m.sub} · {fmtDate(m.date)}
                     </p>
                   </div>

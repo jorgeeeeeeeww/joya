@@ -19,14 +19,14 @@
 :root {
   color-scheme: light dark;
 
-  /* Tipografía — pareja "editorial" (base) */
-  --font-display: "Fraunces Variable", "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --font-sans: "DM Sans Variable", "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --display-settings: "SOFT" 100, "WONK" 0; /* terminales suaves = formas redondeadas de las ilustraciones */
-  --display-weight: 340;                    /* serif ligera, como las referencias web y móvil */
-  --display-tracking: -0.022em;
-  --display-leading: 1.04;
+  /* Tipografía — una sola familia: Geist (sin serif ni cursiva). Títulos en semibold con interletra cerrada. */
+  --font-display: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --display-settings: normal;
+  --display-weight: 600;
+  --display-tracking: -0.032em;
+  --display-leading: 1.06;
 
   /* Escala fluida (ratio ~1.25) */
   --text-2xs: 0.6875rem;                                 /* 11 — solo etiquetas en mayúsculas */
@@ -34,9 +34,9 @@
   --text-sm: 0.875rem;                                   /* 14 */
   --text-base: 1rem;                                     /* 16 */
   --text-lg: 1.125rem;                                   /* 18 */
-  --text-xl: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);     /* 20→24 */
-  --text-2xl: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);       /* 24→32 */
-  --text-3xl: clamp(2rem, 1.5rem + 2vw, 3rem);           /* 32→48 */
+  --text-xl: 1.25rem;                                    /* 20 — títulos de sección */
+  --text-2xl: clamp(1.375rem, 1.25rem + 0.4vw, 1.625rem); /* 22→26 */
+  --text-3xl: clamp(1.75rem, 1.5rem + 1vw, 2.25rem);     /* 28→36 */
   --text-4xl: clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem);     /* 40→72 */
   --text-display: clamp(3rem, 1.8rem + 5vw, 6.5rem);     /* 48→104 */
   --leading-body: 1.6;

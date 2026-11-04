@@ -108,7 +108,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 const Icon = r.icon
                 return (
                   <div key={r.group + r.id}>
-                    {header && <div className="px-3 pt-3 pb-1 text-xs font-extrabold tracking-wide text-ink-3 uppercase">{r.group}</div>}
+                    {header && <div className="px-3 pt-3 pb-1 text-[12px] font-medium text-ink-3">{r.group}</div>}
                     <button onMouseEnter={() => setActive(i)} onClick={() => go(r)} className={cx('flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left', i === active && 'bg-secondary')}>
                       <Icon size={18} className="shrink-0 text-ink-3" />
                       <span className="min-w-0 flex-1">

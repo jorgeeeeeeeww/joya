@@ -48,14 +48,14 @@ export function printHtml(title: string, body: string) {
   const doc = iframe.contentDocument!
   doc.open()
   doc.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${title}</title><style>
-    *{box-sizing:border-box} body{font-family:'DM Sans Variable','DM Sans',-apple-system,'Segoe UI',Roboto,sans-serif;color:#43222A;margin:28px;line-height:1.5}
-    h1{font-family:'Fraunces Variable','Fraunces',Georgia,serif;font-weight:340;letter-spacing:-.02em;font-size:28px;margin:0 0 4px}
-    h2{font-family:'Fraunces Variable','Fraunces',Georgia,serif;font-weight:400;font-size:17px;margin:22px 0 8px;color:#8A4649}
+    *{box-sizing:border-box} body{font-family:'Geist Variable','Geist',-apple-system,'Segoe UI',Roboto,sans-serif;color:#43222A;margin:28px;line-height:1.5}
+    h1{font-family:'Geist Variable','Geist',-apple-system,'Segoe UI',sans-serif;font-weight:600;letter-spacing:-.03em;font-size:28px;margin:0 0 4px}
+    h2{font-family:'Geist Variable','Geist',-apple-system,'Segoe UI',sans-serif;font-weight:400;font-size:17px;margin:22px 0 8px;color:#8A4649}
     .muted{color:#74484E;font-size:12px}
     table{width:100%;border-collapse:collapse;font-size:13px} th,td{text-align:left;padding:7px 6px;border-bottom:1px solid #EEDBD0;vertical-align:top} th{color:#74484E;font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
     td.r,th.r{text-align:right} .tot td{font-weight:600;border:0} img,svg{max-width:100%} .brand{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #F3D8BC;padding-bottom:12px;margin-bottom:12px}
     .pill{display:inline-block;background:#EBD2CB;color:#8A4649;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:600}
-    .tables{columns:2;column-gap:28px} .tbl{break-inside:avoid;margin:0 0 14px} .tbl h3{font-family:'Fraunces Variable','Fraunces',Georgia,serif;font-weight:400;font-size:15px;margin:0 0 4px;border-bottom:1px solid #F3D8BC;padding-bottom:3px} .tbl li{font-size:12.5px} .tbl ul{margin:0;padding-left:16px}
+    .tables{columns:2;column-gap:28px} .tbl{break-inside:avoid;margin:0 0 14px} .tbl h3{font-family:'Geist Variable','Geist',-apple-system,'Segoe UI',sans-serif;font-weight:400;font-size:15px;margin:0 0 4px;border-bottom:1px solid #F3D8BC;padding-bottom:3px} .tbl li{font-size:12.5px} .tbl ul{margin:0;padding-left:16px}
     @page{margin:14mm}
   </style></head><body>${body}</body></html>`)
   doc.close()

@@ -107,20 +107,20 @@ export default function Invitados() {
       </motion.div>
 
       {/* Selector de evento */}
-      <motion.div variants={fadeRise} className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 md:mx-0 md:px-0">
-        {candidates.slice(0, 14).map((e) => {
+      <motion.div variants={fadeRise} className="flex flex-wrap gap-2">
+        {candidates.slice(0, 8).map((e) => {
           const active = e.id === ev.id
           const d = daysUntil(e.date)
           return (
             <button
               key={e.id}
               onClick={() => setParam('e', e.id)}
-              className={cx('pressable flex min-h-[64px] shrink-0 items-center gap-3 rounded-[18px] py-2.5 pr-4 pl-2.5 text-left transition-colors', active ? 'bg-ink text-paper shadow-[var(--shadow-2)]' : 'bg-surface ring-1 ring-line hover:bg-wash')}
+              className={cx('pressable flex min-h-14 min-w-0 items-center gap-3 rounded-[16px] py-2 pr-4 pl-2 text-left transition-colors max-sm:w-full', active ? 'bg-ink text-paper shadow-[var(--shadow-2)]' : 'bg-surface ring-1 ring-line hover:bg-wash')}
               aria-pressed={active}
             >
               <EventOrb type={e.type} size="sm" orb={active} />
               <span className="min-w-0">
-                <span className="block max-w-[200px] truncate text-sm font-medium">{e.title}</span>
+                <span className="block text-sm font-medium">{e.title}</span>
                 <span className={cx('block text-xs', active ? 'text-paper/70' : 'text-ink-soft')}>
                   {fmt(e.date, "d MMM")} · {d >= 0 ? countdownLabel(d) : 'Realizado'} · {e.guestList.length} inv.
                 </span>
@@ -147,15 +147,15 @@ export default function Invitados() {
           </div>
           <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
             <div className="rounded-[var(--r-md)] bg-sunken p-3 sm:p-4">
-              <div className="text-xs text-ink-soft">Lugares en el plano</div>
+              <div className="text-xs text-detail">Lugares en el plano</div>
               <div className="display-num mt-1.5 text-[1.9rem]">{seats}</div>
             </div>
             <div className="rounded-[var(--r-md)] bg-sunken p-3 sm:p-4">
-              <div className="text-xs text-ink-soft">Personas confirmadas</div>
+              <div className="text-xs text-detail">Personas confirmadas</div>
               <div className="display-num mt-1.5 text-[1.9rem]">{stats.conf}</div>
             </div>
             <div className="rounded-[var(--r-md)] bg-sunken p-3 sm:p-4">
-              <div className="text-xs text-ink-soft">{stats.conf + stats.pend > seats ? 'Faltan lugares' : 'Sobran lugares'}</div>
+              <div className="text-xs text-detail">{stats.conf + stats.pend > seats ? 'Faltan lugares' : 'Sobran lugares'}</div>
               <div className={cx('display-num mt-1.5 text-[1.9rem]', stats.conf + stats.pend > seats && 'text-danger')}>{Math.abs(seats - stats.conf - stats.pend)}</div>
               <div className="mt-0.5 text-[11px] leading-tight text-ink-3">contando a {stats.pend} por confirmar</div>
             </div>
@@ -174,7 +174,7 @@ export default function Invitados() {
             center={
               <>
                 <span className="display-num text-[2rem]">{stats.people ? Math.round((stats.conf / stats.people) * 100) : 0}%</span>
-                <span className="text-xs text-ink-soft">confirmado</span>
+                <span className="text-xs text-detail">confirmado</span>
               </>
             }
           />
@@ -199,7 +199,7 @@ export default function Invitados() {
       <motion.div variants={fadeRise} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {kpis.map((k) => (
           <div key={k.label} className="card p-4">
-            <div className="text-xs text-ink-soft">{k.label}</div>
+            <div className="text-xs text-detail">{k.label}</div>
             <div className={cx('display-num mt-2 text-[1.85rem]', k.tone)}>
               <CountUp value={k.value} />
             </div>
@@ -211,13 +211,14 @@ export default function Invitados() {
       {/* Vistas */}
       <motion.div variants={fadeRise} className="flex flex-wrap items-center justify-between gap-3">
         <Segmented<View>
+          className="max-sm:flex max-sm:w-full"
           value={view}
           onChange={(v) => setParam('v', v)}
           options={[
-            { value: 'confirmar', label: <><Heart size={16} strokeWidth={1.6} /> Confirmar</> },
-            { value: 'lista', label: <><List size={16} strokeWidth={1.6} /> Lista</> },
-            { value: 'mesas', label: <><Armchair size={16} strokeWidth={1.6} /> Mesas</> },
-            { value: 'puerta', label: <><DoorOpen size={16} strokeWidth={1.6} /> Recepción</> },
+            { value: 'confirmar', label: <><Heart size={16} strokeWidth={1.6} className="max-sm:hidden" /> Confirmar</> },
+            { value: 'lista', label: <><List size={16} strokeWidth={1.6} className="max-sm:hidden" /> Lista</> },
+            { value: 'mesas', label: <><Armchair size={16} strokeWidth={1.6} className="max-sm:hidden" /> Mesas</> },
+            { value: 'puerta', label: <><DoorOpen size={16} strokeWidth={1.6} className="max-sm:hidden" /> Recepción</> },
           ]}
         />
         {view === 'mesas' && (

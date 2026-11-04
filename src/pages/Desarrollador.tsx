@@ -132,7 +132,7 @@ function Panel() {
             ['Rechazados por la nube', String(sync.rejected.length), sync.rejected.length ? 'rose' : 'sage'],
           ].map(([l, v, tone]) => (
             <div key={l} className="rounded-[16px] bg-sunken/60 p-3.5">
-              <div className="text-xs text-ink-soft">{l}</div>
+              <div className="text-xs text-detail">{l}</div>
               <div className="mt-1 flex items-center gap-1.5 font-medium">
                 <Badge tone={tone as 'sage'} dot>
                   {v}
@@ -141,7 +141,7 @@ function Panel() {
             </div>
           ))}
         </div>
-        <p className="px-6 pb-5 text-xs text-ink-soft">
+        <p className="px-6 pb-5 text-xs text-detail">
           Última vez sincronizado: {sync.lastSyncAt ? ago(sync.lastSyncAt) : 'nunca'} · Subidos {sync.pushed} · Bajados {sync.pulled} · Combinados {sync.merged}
           {sync.error ? ` · Último error: ${sync.error}` : ''}
         </p>
@@ -191,7 +191,7 @@ function Panel() {
             ))}
             {[...syncErrors.map((l) => ({ at: l.at, source: 'sync', message: l.msg, page: '' })), ...errors].slice(0, 60).map((e, i) => (
               <li key={i} className="rounded-[14px] bg-sunken/60 p-3 text-sm">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-detail">
                   <Badge tone={e.source === 'sync' ? 'sky' : 'rose'}>{e.source === 'sync' ? 'Sincronización' : e.source === 'promesa' ? 'Proceso' : 'Pantalla'}</Badge>
                   {fmt(e.at, "d MMM · HH:mm")}
                   {e.page && <span className="text-ink-3">{e.page}</span>}

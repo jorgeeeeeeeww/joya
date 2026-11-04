@@ -230,10 +230,10 @@ export function monthReportHtml(data: DataState, settings: Settings, key = today
     <div style="text-align:right"><span class="pill">Resumen ejecutivo</span><div class="muted" style="margin-top:6px">Generado el ${esc(fmt(new Date(), "d 'de' MMMM yyyy, HH:mm"))}</div></div></div>
 
     <table style="margin-top:6px"><tr>
-      <td style="border:0;padding:0 18px 0 0"><div class="muted">Ingresos</div><div style="font-family:Fraunces,Georgia,serif;font-size:30px;font-weight:300">${money.format(profit.income)}</div></td>
-      <td style="border:0;padding:0 18px"><div class="muted">Gastos</div><div style="font-family:Fraunces,Georgia,serif;font-size:30px;font-weight:300">${money.format(profit.spent)}</div></td>
-      <td style="border:0;padding:0 18px"><div class="muted">Utilidad</div><div style="font-family:Fraunces,Georgia,serif;font-size:30px;font-weight:300;color:#B04D3D">${money.format(profit.profit)}</div></td>
-      <td style="border:0;padding:0 0 0 18px"><div class="muted">Margen</div><div style="font-family:Fraunces,Georgia,serif;font-size:30px;font-weight:300">${Math.round(profit.margin * 100)}%</div></td>
+      <td style="border:0;padding:0 18px 0 0"><div class="muted">Ingresos</div><div style="font-family:'Geist Variable','Geist',system-ui,sans-serif;font-size:28px;font-weight:600;letter-spacing:-.03em">${money.format(profit.income)}</div></td>
+      <td style="border:0;padding:0 18px"><div class="muted">Gastos</div><div style="font-family:'Geist Variable','Geist',system-ui,sans-serif;font-size:28px;font-weight:600;letter-spacing:-.03em">${money.format(profit.spent)}</div></td>
+      <td style="border:0;padding:0 18px"><div class="muted">Utilidad</div><div style="font-family:'Geist Variable','Geist',system-ui,sans-serif;font-size:28px;font-weight:600;letter-spacing:-.03em;color:#B04D3D">${money.format(profit.profit)}</div></td>
+      <td style="border:0;padding:0 0 0 18px"><div class="muted">Margen</div><div style="font-family:'Geist Variable','Geist',system-ui,sans-serif;font-size:28px;font-weight:600;letter-spacing:-.03em">${Math.round(profit.margin * 100)}%</div></td>
     </tr></table>
 
     <h2>Ingresos por línea</h2>

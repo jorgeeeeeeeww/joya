@@ -113,7 +113,7 @@ export function MoneyWeek({ data }: { data: DataState }) {
 
   const cell = (label: string, value: number, tone = '') => (
     <div className="rounded-[16px] bg-sunken/60 p-3.5">
-      <div className="text-xs text-ink-soft">{label}</div>
+      <div className="text-xs text-detail">{label}</div>
       <div className={cx('display-num mt-1 text-[1.5rem] leading-none', tone)}>{mxn(value)}</div>
     </div>
   )
@@ -163,7 +163,7 @@ export function Occupancy7({ data }: { data: DataState; settings?: Settings }) {
           const pct = x.total ? x.busy / x.total : 0
           return (
             <Link key={x.d} to={`/hospedaje?d=${x.d}`} className="pressable flex flex-col items-center gap-1.5 rounded-[14px] py-2 hover:bg-wash" aria-label={`${fmtDate(x.d)}: ${x.busy} de ${x.total} casas ocupadas${x.events.length ? `, ${x.events.length} evento` : ''}`}>
-              <span className={cx('text-[11px] uppercase', i === 0 ? 'font-semibold text-ink' : 'text-ink-soft')}>{i === 0 ? 'Hoy' : fmt(x.d, 'EEE').slice(0, 3)}</span>
+              <span className={cx('text-[12px] capitalize', i === 0 ? 'font-semibold text-ink' : 'text-ink-soft')}>{i === 0 ? 'Hoy' : fmt(x.d, 'EEE').replace('.', '').slice(0, 3)}</span>
               <span className="relative flex h-24 w-full max-w-10 items-end overflow-hidden rounded-[10px] bg-sunken">
                 <span className="w-full rounded-[10px] bg-primary/70 transition-[height] duration-[var(--dur-4)]" style={{ height: `${Math.max(6, pct * 100)}%` }} />
               </span>
@@ -175,7 +175,7 @@ export function Occupancy7({ data }: { data: DataState; settings?: Settings }) {
           )
         })}
       </div>
-      <p className="px-6 pb-5 text-xs text-ink-soft">
+      <p className="px-6 pb-5 text-xs text-detail">
         <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-chispa align-middle" />
         Día con evento en el salón o el jardín
       </p>

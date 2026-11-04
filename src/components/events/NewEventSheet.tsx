@@ -137,7 +137,7 @@ export function NewEventSheet({ open, onClose, initialDate, initialVenue, asLead
         <EventOrb type={type} />
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold">{title.trim() || autoTitle}</p>
-          <p className="text-xs text-ink-soft first-letter:uppercase">{fmtDateLong(date)}</p>
+          <p className="text-xs text-detail first-letter:uppercase">{fmtDateLong(date)}</p>
         </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[13px]">
@@ -256,16 +256,16 @@ export function NewEventSheet({ open, onClose, initialDate, initialVenue, asLead
                             <span className="text-[15px] font-semibold">{p.name}</span>
                             {showMoney && priceOf(prices, p.id) !== undefined && <span className="text-xs tabular">{mxn(priceOf(prices, p.id)!)}/pers.</span>}
                           </div>
-                          <p className="mt-1 text-xs text-ink-soft">{p.description}</p>
+                          <p className="mt-1 text-xs text-detail">{p.description}</p>
                           {showMoney && priceOf(prices, p.id) !== undefined && <p className="mt-2 text-[13px] font-medium tabular">{mxn(priceOf(prices, p.id)! * guests)}</p>}
                         </button>
                       ))}
                     </div>
-                    {showMoney && price === undefined && <p className="mt-2 text-xs text-ink-soft">Este paquete aún no tiene precio. Ponlo en Ajustes → Rancho → Paquetes y precios; mientras, la cotización queda en blanco para llenarla a mano.</p>}
+                    {showMoney && price === undefined && <p className="mt-2 text-xs text-detail">Este paquete aún no tiene precio. Ponlo en Ajustes → Rancho → Paquetes y precios; mientras, la cotización queda en blanco para llenarla a mano.</p>}
                   </div>
                   <div>
                     <span className="mb-1 block text-[13px] font-medium">¿Qué vas a usar en este evento?</span>
-                    <p className="mb-2.5 text-xs text-ink-soft">Viene listo según el tipo de evento. Apaga lo que no necesites; lo puedes cambiar después.</p>
+                    <p className="mb-2.5 text-xs text-detail">Viene listo según el tipo de evento. Apaga lo que no necesites; lo puedes cambiar después.</p>
                     <ModulesPicker value={mods} showMoney={showMoney} onChange={(m, on) => setModsTouched((x) => ({ ...x, [m]: on }))} />
                   </div>
                   <NotesField label="Notas" value={notes} onChange={setNotes} placeholder="Temática, colores, peticiones especiales…" templates={['Quiere visitar el rancho', 'Ceremonia en el jardín', 'Barra libre', 'Menú infantil']} minRows={2} />

@@ -401,7 +401,7 @@ function PeekCard({ featureId, info, onOpen, onClose }: { featureId: string; inf
             {info?.cleaning !== undefined && <span className="text-[13px] text-ink-soft tabular-nums">{Math.round(info.cleaning * 100)}% listo</span>}
           </div>
           {info?.guest && <p className="mt-1.5 text-[13px] text-ink">{info.guest}</p>}
-          {info?.detail && <p className="text-[12px] text-ink-soft">{info.detail}</p>}
+          {info?.detail && <p className="text-[12px] text-detail">{info.detail}</p>}
         </div>
         <Button size="icon" variant="ghost" aria-label="Cerrar" onClick={onClose}>
           <X size={18} strokeWidth={1.6} />
@@ -437,7 +437,7 @@ function TourCard({ featureId, index, total, info, onStop }: { featureId: string
             <Badge tone={st.tone} dot>
               {st.label}
             </Badge>
-            {info?.guest && <span className="truncate text-xs text-ink-soft">{info.guest}</span>}
+            {info?.guest && <span className="truncate text-xs text-detail">{info.guest}</span>}
           </div>
         </div>
         <Button size="icon" variant="tinta" aria-label="Detener recorrido" onClick={onStop}>
@@ -468,7 +468,7 @@ function ListItem({ active, dim, onClick, dot, icon, title, sub }: { active: boo
       {dot ? <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', dot)} /> : <span className="text-ink-soft">{icon}</span>}
       <span className="min-w-0">
         <span className="block truncate text-[15px] font-medium">{title}</span>
-        <span className="block truncate text-xs text-ink-soft">{sub}</span>
+        <span className="block truncate text-xs text-detail">{sub}</span>
       </span>
     </button>
   )

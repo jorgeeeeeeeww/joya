@@ -3,12 +3,12 @@ import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { CalendarClock, Check, CheckCircle2, Circle, CornerDownLeft, MapPin, Plus, Sparkles, Trash2, User, Wand2, X, Zap } from 'lucide-react'
 import { db, useCollection, useDoc, useMe } from '@/lib/store'
-import { PRIORITY, TASK_STATUS, TASK_TYPE, TONE } from '@/lib/meta'
+import { PRIORITY, TASK_STATUS, TASK_TYPE } from '@/lib/meta'
 import { addDaysISO, ago, fmt, today, uid } from '@/lib/format'
 import { ease, haptic } from '@/lib/motion'
 import { removeWithUndo, withUndo } from '@/lib/undo'
 import type { ChecklistItem, Priority, Task, TaskStatus, TaskType } from '@/lib/types'
-import { Avatar, Badge, Button, Chip, cx, Empty, PageHeader, ProgressBar, Segmented, Sheet, toast } from '@/components/ui'
+import { Avatar, Badge, Button, cx, Empty, FilterMenu, PageHeader, ProgressBar, Segmented, Sheet, toast } from '@/components/ui'
 import { Choices, Combobox, DateField, FormScope, NotesField, TextField, TimeField } from '@/components/fields'
 import { DragBoard, SwipeRow } from '@/components/interact'
 import { PhotoButton, PhotoThumb } from '@/components/Photos'
@@ -58,7 +58,6 @@ function TaskCard({ t, onOpen, compact, showAction = true }: { t: Task; onOpen: 
   const urgent = t.priority === 'urgente' || t.priority === 'alta'
   return (
     <article className="card relative overflow-hidden">
-      {urgent && <span aria-hidden className={cx('absolute top-4 bottom-4 left-0 w-[3px] rounded-r-full', TONE[PRIORITY[t.priority].tone].solid)} />}
       <button onClick={onOpen} className="block w-full p-4 pb-3 text-left">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -72,20 +71,20 @@ function TaskCard({ t, onOpen, compact, showAction = true }: { t: Task; onOpen: 
               )}
             </div>
             <p className={cx('mt-2 text-[15px] leading-snug font-medium', t.status === 'verificada' && 'text-ink-soft')}>{t.title}</p>
-            {!compact && unit && <p className="mt-0.5 text-[13px] text-ink-soft">{unit.name}</p>}
+            {!compact && unit && <p className="mt-0.5 text-[13px] text-detail">{unit.name}</p>}
           </div>
           {emp && <Avatar name={emp.name} tone={emp.color} size={30} />}
         </div>
         {t.checklist.length > 0 && !compact && (
           <div className="mt-3 flex items-center gap-2.5">
             <ProgressBar value={done / t.checklist.length} tone={done === t.checklist.length ? 'sage' : undefined} className="flex-1" />
-            <span className="text-xs text-ink-soft tabular">
+            <span className="text-xs text-detail tabular">
               {done}/{t.checklist.length}
             </span>
           </div>
         )}
         {due && !compact && (
-          <p className={cx('mt-2.5 inline-flex items-center gap-1.5 text-xs', late ? 'text-danger' : 'text-ink-soft')}>
+          <p className={cx('mt-2.5 inline-flex items-center gap-1.5 text-xs', late ? 'font-medium text-danger' : due.label.startsWith('Hoy') ? 'font-medium text-key' : 'text-detail')}>
             <CalendarClock size={13} strokeWidth={1.6} /> {late ? 'Atrasada · ' : ''}
             {due.label}
           </p>
@@ -208,7 +207,7 @@ export function TaskSheet({ taskId, open, onClose, draft }: { taskId?: string; o
                   )
                 })}
             </div>
-            <p className="mt-1.5 text-xs text-ink-soft">{form.assigneeId ? 'Le llega un aviso y la ve en su panel.' : 'Si no eliges a nadie, queda para quien la tome primero.'}</p>
+            <p className="mt-1.5 text-xs text-detail">{form.assigneeId ? 'Le llega un aviso y la ve en su panel.' : 'Si no eliges a nadie, queda para quien la tome primero.'}</p>
           </div>
           <div className="grid gap-3 @xl:grid-cols-2">
             <Combobox label="Lugar" icon={<MapPin />} value={form.unitId ?? ''} onChange={(v) => set({ unitId: v || undefined })} clearable disabled={!canEditAll} options={units.map((u) => ({ value: u.id, label: u.name, hint: u.short, tone: u.color }))} />
@@ -220,7 +219,7 @@ export function TaskSheet({ taskId, open, onClose, draft }: { taskId?: string; o
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[13px] font-medium">Lista de pasos</span>
               {(form.checklist?.length ?? 0) > 0 && (
-                <span className="text-xs text-ink-soft tabular">
+                <span className="text-xs text-detail tabular">
                   {doneCount} de {form.checklist!.length}
                 </span>
               )}
@@ -332,7 +331,7 @@ function QuickAdd({ onCreated }: { onCreated?: () => void }) {
         </Button>
       </div>
       {!parsed && (
-        <p className="px-1 pt-2 text-[12.5px] leading-snug text-ink-soft">
+        <p className="px-1 pt-2 text-[12.5px] leading-snug text-detail">
           Escríbela como la dirías: <span className="text-ink">«foco casa Lavanda mañana 10am @Chuy»</span>. La app entiende el lugar, el día, la hora y a quién se la asignas.
         </p>
       )}
@@ -349,7 +348,7 @@ function QuickAdd({ onCreated }: { onCreated?: () => void }) {
                   </Badge>
                 ) : (
                   c && (
-                    <span key={c.k} className="inline-flex h-[22px] items-center gap-1 rounded-full bg-sunken px-2 text-[11.5px] font-medium text-ink-soft">
+                    <span key={c.k} className="inline-flex h-[22px] items-center gap-1 rounded-full bg-sunken px-2 text-[11.5px] font-medium text-detail">
                       {'icon' in c && c.icon}
                       {c.label}
                     </span>
@@ -451,34 +450,35 @@ export default function Tareas() {
 
       <QuickAdd />
 
-      <div className="no-scrollbar -mx-4 mb-5 flex items-center gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6 md:mx-0 md:flex-wrap md:px-0">
-        <Chip active={scope === 'mias'} onClick={() => setScope('mias')}>
-          Mis tareas
-        </Chip>
-        <Chip active={scope === 'todas'} onClick={() => setScope('todas')}>
-          Todo el equipo
-        </Chip>
-        <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-line-strong" />
-        <Chip active={type === 'todas'} onClick={() => setType('todas')}>
-          Todos los tipos
-        </Chip>
-        {(Object.keys(TASK_TYPE) as TaskType[]).map((k) => (
-          <Chip key={k} active={type === k} onClick={() => setType(k)} count={tasks.filter((t) => t.type === k && (t.status === 'pendiente' || t.status === 'en-progreso')).length}>
-            {TASK_TYPE[k].label}
-          </Chip>
-        ))}
-        {isManager && (
-          <>
-            <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-line-strong" />
-            {employees
-              .filter((e) => e.active)
-              .map((e) => (
-                <button key={e.id} onClick={() => (haptic.select(), setWho(who === e.id ? '' : e.id))} title={e.name} aria-pressed={who === e.id} className={cx('pressable shrink-0 rounded-full transition-opacity', who && who !== e.id && 'opacity-40')}>
-                  <Avatar name={e.name} tone={e.color} size={32} className={who === e.id ? '!outline-2 !outline-primary' : ''} />
-                </button>
-              ))}
-          </>
-        )}
+      {/* Filtros: de quién (2 opciones = segmentado), qué tipo y quién (listas = menú) */}
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <Segmented
+          className="max-sm:flex max-sm:w-full"
+          value={scope}
+          onChange={setScope}
+          options={[
+            { value: 'mias', label: 'Mis tareas' },
+            { value: 'todas', label: 'Todo el equipo' },
+          ]}
+        />
+        <div className="flex gap-2 max-sm:w-full [&>*]:max-sm:flex-1">
+          <FilterMenu
+            label="Tipo de tarea"
+            allLabel="Tipo"
+            value={type === 'todas' ? '' : type}
+            onChange={(v) => setType(v || 'todas')}
+            options={(Object.keys(TASK_TYPE) as TaskType[]).map((k) => ({ value: k, label: TASK_TYPE[k].label, count: tasks.filter((t) => t.type === k && (t.status === 'pendiente' || t.status === 'en-progreso')).length }))}
+          />
+          {isManager && (
+            <FilterMenu
+              label="Persona"
+              allLabel="Persona"
+              value={who}
+              onChange={setWho}
+              options={employees.filter((e) => e.active).map((e) => ({ value: e.id, label: e.name.split(' ').slice(0, 2).join(' '), icon: <Avatar name={e.name} tone={e.color} size={22} /> }))}
+            />
+          )}
+        </div>
       </div>
 
       {view === 'tablero' ? (

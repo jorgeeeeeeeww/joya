@@ -294,7 +294,7 @@ export function PropertiesContent({
               ))}
             </ul>
           )}
-          {people < (single.seats ?? 0) && <p className="mt-2 text-xs text-ink-soft">{(single.seats ?? 0) - people} lugares libres</p>}
+          {people < (single.seats ?? 0) && <p className="mt-2 text-xs text-detail">{(single.seats ?? 0) - people} lugares libres</p>}
           {guestsLink && (
             <Link to={guestsLink} className="mt-3 inline-flex h-10 items-center rounded-full px-1 text-sm text-primary hover:underline">
               Abrir acomodo de invitados
@@ -341,7 +341,7 @@ export function PaletteSheet({ open, onClose, onPick, venue }: { open: boolean; 
                   >
                     <PaletteIcon type={t} size={52} />
                     <span className="text-sm leading-tight">{s.label}</span>
-                    <span className="text-[11px] text-ink-soft">
+                    <span className="text-[11px] text-detail">
                       {s.seats ? `${s.seats} lugares · ` : ''}
                       {s.shape === 'circle' ? `⌀ ${s.w} m` : `${s.w}×${s.h} m`}
                     </span>
@@ -419,7 +419,7 @@ export function SceneSheet({
               </button>
             ))}
           </div>
-          {isMain && <p className="mt-2 text-xs text-ink-soft">Cambia el espacio de la recepción del evento. Las piezas se conservan: revisa que quepan.</p>}
+          {isMain && <p className="mt-2 text-xs text-detail">Cambia el espacio de la recepción del evento. Las piezas se conservan: revisa que quepan.</p>}
         </div>
         {!isMain && (
           <div className="grid grid-cols-[1fr_120px] gap-3">
@@ -520,7 +520,7 @@ export function TemplateSheet({ open, onClose, onApply, guests, venue }: { open:
           </button>
         ))}
       </div>
-      <p className="mt-4 text-xs text-ink-soft">Puedes deshacer si no te gusta el resultado.</p>
+      <p className="mt-4 text-xs text-detail">Puedes deshacer si no te gusta el resultado.</p>
     </Sheet>
   )
 }

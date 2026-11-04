@@ -77,7 +77,7 @@ export function OutboxCard({ item, compact, hint }: { item: OutboxItem; compact?
                     <li key={guest.id} className="flex items-center gap-3 border-b border-line py-2.5 last:border-0">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{guest.name}</span>
-                        <span className="block text-xs text-ink-soft">{guest.remindedAt ? `Último recordatorio ${ago(guest.remindedAt)}` : guest.invitedAt ? `Invitado ${ago(guest.invitedAt)}` : 'Sin invitación registrada'}</span>
+                        <span className="block text-xs text-detail">{guest.remindedAt ? `Último recordatorio ${ago(guest.remindedAt)}` : guest.invitedAt ? `Invitado ${ago(guest.invitedAt)}` : 'Sin invitación registrada'}</span>
                       </span>
                       <Button
                         size="sm"

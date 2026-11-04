@@ -9,7 +9,7 @@ import { RES_SOURCE, seesMoney, TONE, UNIT_STATUS } from '@/lib/meta'
 import { addDaysISO, capitalize, compactMxn, fmt, fmtDate, fmtDateLong, mxn, nights, pct, today } from '@/lib/format'
 import { fadeRise } from '@/lib/motion'
 import type { ID, Reservation, Unit } from '@/lib/types'
-import { Badge, Button, Card, CardHeader, Confirm, cx, Empty, IconBubble, PageHeader, ProgressBar, Segmented, Stat } from '@/components/ui'
+import { Badge, Button, Card, CardHeader, Confirm, cx, Empty, IconBubble, PageHeader, ProgressBar, Segmented, Stat, StatStrip } from '@/components/ui'
 import { Reveal } from '@/components/step1'
 import { Timeline } from '@/components/stays/Timeline'
 import { ReservationSheet, type ReservationDefaults } from '@/components/stays/ReservationSheet'
@@ -100,7 +100,7 @@ export default function Hospedaje() {
         primary={{ label: 'Nueva reserva', icon: <Plus size={18} strokeWidth={1.6} />, onClick: () => setSheet({ open: true, defaults: {} }) }}
       />
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 [&>*]:min-w-0">
+      <StatStrip className="mb-6">
         <Stat label="Ocupación del mes" value={pct(totalOcc)} sub={capitalize(fmt(t, 'MMMM'))} tone="sky" icon={<CalendarDays size={16} strokeWidth={1.6} />} />
         <Stat label="En casa ahora" value={inHouse.length} sub={`${inHouse.reduce((n, r) => n + r.guests, 0)} huéspedes`} tone="lavender" icon={<Users size={16} strokeWidth={1.6} />} />
         <Stat label="Hoy" value={`${arrivals.length} · ${departures.length}`} sub="por llegar · por salir" tone="peach" icon={<LogIn size={16} strokeWidth={1.6} />} />
@@ -109,7 +109,7 @@ export default function Hospedaje() {
         ) : (
           <Stat label="Unidades listas" value={units.filter((u) => u.status === 'lista').length} sub={`de ${units.length}`} tone="sage" icon={<BedDouble size={16} strokeWidth={1.6} />} />
         )}
-      </div>
+      </StatStrip>
 
       {/* Llegadas y salidas de hoy */}
       <div className="mb-8 grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
@@ -195,7 +195,7 @@ function UnitCard({ unit: u, active, occ, onOpen, onReserve, onMap }: { unit: Un
               {st.label}
             </Badge>
           </div>
-          <span className="absolute top-3 left-4 text-xs text-ink-soft">
+          <span className="absolute top-3 left-4 text-xs text-detail">
             {u.kind === 'cabana' ? 'Cabaña' : 'Casa'} · {u.capacity} personas
           </span>
         </div>
@@ -225,7 +225,7 @@ function UnitCard({ unit: u, active, occ, onOpen, onReserve, onMap }: { unit: Un
             )}
           </div>
           <div className="mt-4">
-            <div className="mb-1.5 flex justify-between text-xs text-ink-soft">
+            <div className="mb-1.5 flex justify-between text-xs text-detail">
               <span>Ocupación del mes</span>
               <span className="tabular text-ink">{pct(occ)}</span>
             </div>
@@ -308,7 +308,7 @@ function UpcomingList({ reservations, units, onOpen, money }: { reservations: Re
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{r.guestName}</p>
-                <p className="truncate text-xs text-ink-soft">
+                <p className="truncate text-xs text-detail">
                   {units.find((u) => u.id === r.unitId)?.name} · {nights(r.checkIn, r.checkOut)} {nights(r.checkIn, r.checkOut) === 1 ? 'noche' : 'noches'} · {r.guests} huéspedes
                 </p>
               </div>

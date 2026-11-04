@@ -182,7 +182,7 @@ export function DayLine({ units, reservations, events, tasks, settings, items }:
                       <Icon size={13} strokeWidth={1.6} className="shrink-0 text-ink-soft" />
                       <span className="text-[14px] font-medium">{it.title}</span>
                     </span>
-                    <span className="block text-[12.5px] text-ink-soft">{it.sub}</span>
+                    <span className="block text-[12.5px] text-detail">{it.sub}</span>
                   </span>
                 </Link>
               </li>

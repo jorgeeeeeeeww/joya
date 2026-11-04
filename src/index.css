@@ -1,10 +1,10 @@
 /* ==========================================================================
    La Joya · step1 (Rediseño) — atmósfera Flor, intensidad equilibrada,
-   tipografía editorial (Fraunces + DM Sans), claro + oscuro.
+   tipografía Geist (una sola familia, sin serif ni cursiva), claro + oscuro.
    Fuente de verdad de color: src/styles/step1.css. Aquí solo hay alias y utilidades.
    ========================================================================== */
-@import '@fontsource-variable/fraunces/full.css';
-@import '@fontsource-variable/dm-sans/opsz.css';
+@import '@fontsource-variable/geist/wght.css';
+@import '@fontsource-variable/geist-mono/wght.css';
 @import 'tailwindcss';
 @import './styles/step1.css' layer(base);
 
@@ -32,7 +32,16 @@
   --glass: var(--bruma);
   --line-2: var(--line-strong);
   --ink-2: var(--ink-soft);
-  --ink-3: color-mix(in oklab, var(--ink-soft) 84%, var(--paper));
+
+  /* ── Jerarquía de texto con los pasteles de la atmósfera (sin saturar) ──
+     · Título / nombre:        --ink (neutro, el más fuerte)
+     · Texto normal:           --ink-soft (gris neutro)
+     · Detalle (fechas, horas, notas, etiquetas): --tx-detail, el matiz pastel (salvia en Flor)
+     · Importante (pendientes, montos por cobrar, lo de hoy): --tx-key, la chispa apagada (terracota en Flor)
+     Todos pasan AA sobre papel y superficie, en claro y en oscuro. */
+  --tx-detail: light-dark(color-mix(in oklab, var(--matiz-ink) 86%, var(--paper)), color-mix(in oklab, var(--matiz-ink) 74%, var(--paper)));
+  --tx-key: color-mix(in oklab, var(--chispa) 85%, var(--ink));
+  --ink-3: var(--tx-detail);
 
   /* tono → color de datos de la atmósfera */
   --lavender: var(--data-5);
@@ -115,6 +124,8 @@
   --color-line-2: var(--line-2);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
+  --color-detail: var(--tx-detail);
+  --color-key: var(--tx-key);
   --color-lavender: var(--lavender);
   --color-lavender-soft: var(--lavender-soft);
   --color-lavender-ink: var(--lavender-ink);
@@ -204,27 +215,24 @@
    -------------------------------------------------------------------------- */
 @utility heading {
   font-family: var(--font-display);
-  font-variation-settings: var(--display-settings);
   font-weight: var(--display-weight);
   letter-spacing: var(--display-tracking);
-  line-height: 1.08;
+  line-height: 1.1;
   text-wrap: balance;
 }
 @utility display-num {
-  font-family: var(--font-display);
-  font-variation-settings: 'SOFT' 100, 'WONK' 0, 'opsz' 96;
-  font-weight: 300;
-  letter-spacing: -0.035em;
+  font-family: var(--font-sans);
+  font-weight: 560;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums lining-nums;
   line-height: 1;
 }
+/* Etiqueta pequeña: minúsculas, sin interletra abierta ni mayúsculas (menos ruido) */
 @utility eyebrow {
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  /* Las etiquetas pequeñas (detalles) llevan su propio color para separarse del texto importante */
-  color: var(--matiz-ink);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--tx-detail);
 }
 /* Degradados de cielo de step1 (bg-sky / bg-sky-soft quedan para el tono "sky") */
 @utility bg-cielo {
@@ -387,11 +395,20 @@
 
 /* Tarjetas de bruma dentro de una losa noche: recuperan la tinta original (step1: --ink-base),
    porque su fondo es claro en tema claro. Así se leen en claro y en oscuro. */
+/* Dentro de la losa noche, los detalles y lo importante se aclaran para leerse sobre el fondo oscuro */
+.losa--noche {
+  --tx-detail: color-mix(in oklab, var(--on-night-soft) 70%, var(--matiz));
+  --tx-key: var(--luz);
+  --ink-3: var(--tx-detail);
+}
 .losa--noche .glass,
 .losa--noche .card {
   --ink: var(--ink-base);
   --ink-soft: var(--ink-soft-base);
   --line: color-mix(in oklab, var(--ink-base) 12%, transparent);
+  --tx-detail: light-dark(color-mix(in oklab, var(--matiz-ink) 86%, var(--paper)), color-mix(in oklab, var(--matiz-ink) 74%, var(--paper)));
+  --tx-key: color-mix(in oklab, var(--chispa) 85%, var(--ink-base));
+  --ink-3: var(--tx-detail);
   color: var(--ink);
 }
 
@@ -402,9 +419,7 @@
 }
 
 /* ==========================================================================
-   Mezcla step1 × "Fintrack": medidas y tipografía de dashboard profesional
-   - Datos (tarjetas, indicadores, tablas, menús): DM Sans, escala compacta y precisa.
-   - Momentos editoriales (títulos de página, saludos, losas noche, login): Fraunces.
+   Medidas de dashboard: escala compacta y precisa, todo en Geist.
    ========================================================================== */
 :root,
 [data-atmos] {
@@ -425,28 +440,17 @@
   }
 }
 
-/* Cifras y títulos dentro de tarjetas: sans semibold tabular (precisión de datos) */
-.card .display-num {
-  font-family: var(--font-sans);
-  font-variation-settings: normal;
-  font-weight: 600;
-  letter-spacing: -0.028em;
-  font-variant-numeric: tabular-nums lining-nums;
-}
+/* Títulos dentro de tarjetas: un poco menos cerrados que los de página */
 .card .heading {
-  font-family: var(--font-sans);
-  font-variation-settings: normal;
-  font-weight: 600;
-  letter-spacing: -0.016em;
+  letter-spacing: -0.02em;
   line-height: 1.25;
 }
-/* Categoría pequeña en mayúsculas (como "HOUSING" en las tarjetas de datos) */
+/* Etiqueta de dato (sin mayúsculas: se lee como texto, no como grito) */
 @utility kicker {
-  font-size: var(--fs-label);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--matiz-ink);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--tx-detail);
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;

@@ -233,7 +233,7 @@ export function ReservationSheet({ open, onClose, reservationId, defaults = {} }
       </FormScope>
 
       {conflicts.length > 0 && (
-        <div className="mt-5 flex gap-3 rounded-[14px] border-l-[3px] border-l-danger bg-[color-mix(in_oklab,var(--danger)_8%,var(--surface))] p-4 text-danger" role="alert">
+        <div className="mt-5 flex gap-3 rounded-[14px] ring-1 ring-[color-mix(in_oklab,var(--danger)_30%,transparent)] bg-[color-mix(in_oklab,var(--danger)_8%,var(--surface))] p-4 text-danger" role="alert">
           <AlertTriangle size={20} strokeWidth={1.6} className="mt-0.5 shrink-0" />
           <p className="text-sm font-medium">Esas fechas ya están ocupadas en {unit?.name}. Elige otras noches u otra unidad.</p>
         </div>
@@ -276,7 +276,7 @@ export function ReservationSheet({ open, onClose, reservationId, defaults = {} }
       )}
 
       {unit && (
-        <p className="mt-6 flex items-center gap-2 text-xs text-ink-soft">
+        <p className="mt-6 flex items-center gap-2 text-xs text-detail">
           <DoorOpen size={14} strokeWidth={1.6} /> Entrada {settings.checkInTime} · Salida {settings.checkOutTime} · {unit.beds}
         </p>
       )}

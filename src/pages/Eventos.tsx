@@ -12,7 +12,7 @@ import { useEventMoney } from '@/lib/planner'
 import { ease, haptic } from '@/lib/motion'
 import { withUndo } from '@/lib/undo'
 import { morphNavigate, vt, vtName } from '@/lib/transitions'
-import { Badge, Button, Card, Chip, Empty, PageHeader, Segmented, Stat, cx, toast } from '@/components/ui'
+import { Badge, Button, Card, Chip, Empty, PageHeader, Segmented, Stat, cx, toast, StatStrip } from '@/components/ui'
 import { Combobox, SearchField } from '@/components/fields'
 import Prospectos from './Prospectos'
 import { CountUp } from '@/components/step1'
@@ -83,12 +83,12 @@ export default function Eventos() {
         primary={{ label: 'Nuevo evento', icon: <Plus size={18} strokeWidth={1.6} />, onClick: () => openNew() }}
       />
 
-      {view !== 'prospectos' && <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {view !== 'prospectos' && <StatStrip className="mb-6">
         <Stat label="Eventos este mes" value={<CountUp value={kpis.count} />} icon={<PartyPopper size={16} strokeWidth={1.6} />} tone="rose" />
         <Stat label="Invitados del mes" value={<CountUp value={kpis.guests} format={(n) => Math.round(n).toLocaleString('es-MX')} />} icon={<Users size={16} strokeWidth={1.6} />} tone="sky" />
         {showMoney && <Stat label="Ingresos comprometidos" value={<CountUp value={kpis.income} format={compactMxn} />} sub="Apartados, confirmados y realizados" icon={<Wallet size={16} strokeWidth={1.6} />} tone="sage" accent />}
         {showMoney && <Stat label="Por cobrar" value={<CountUp value={kpis.receivable} format={compactMxn} />} sub="De eventos próximos" icon={<Clock size={16} strokeWidth={1.6} />} tone="peach" />}
-      </div>}
+      </StatStrip>}
 
       <div className="mb-5 flex items-center justify-between gap-3">
         <Segmented<View>
@@ -218,7 +218,7 @@ function CalendarView({ events, onNew, onOpen }: { events: RanchEvent[]; onNew: 
                       </button>
                     )
                   })}
-                  {list.length > 3 && <span className="px-2 text-[11px] text-ink-soft">+{list.length - 3} más</span>}
+                  {list.length > 3 && <span className="px-2 text-[11px] text-detail">+{list.length - 3} más</span>}
                 </div>
                 {!list.length && inMonth && iso >= t && <Plus size={14} strokeWidth={1.6} className="absolute right-2 bottom-2 hidden text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 md:block" />}
               </div>
@@ -226,7 +226,7 @@ function CalendarView({ events, onNew, onOpen }: { events: RanchEvent[]; onNew: 
           })}
         </div>
         {drag.ghost}
-        <div className="flex flex-wrap gap-4 border-t border-line px-5 py-3 text-xs text-ink-soft">
+        <div className="flex flex-wrap gap-4 border-t border-line px-5 py-3 text-xs text-detail">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-lavender" /> Salón
           </span>
@@ -363,7 +363,7 @@ function EventRow({ e, onOpen, right }: { e: RanchEvent; onOpen: (id: string) =>
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium">{e.title}</span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-ink-soft">
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-detail">
           <span>{fmtDate(e.date)}</span>·<span>{e.startTime}</span>·<span>{e.guests} invitados</span>
         </span>
       </span>
@@ -403,7 +403,7 @@ function ListView({ events, money, showMoney, onOpen }: { events: RanchEvent[]; 
     <div>
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
         <SearchField value={q} onChange={setQ} placeholder="Buscar por evento o cliente" className="flex-1" shortcut />
-        <div className="no-scrollbar flex gap-2 overflow-x-auto">
+        <div className="flex flex-wrap gap-2">
           <Chip active={!past} onClick={() => setPast(false)}>
             Próximos
           </Chip>

@@ -81,7 +81,7 @@ export function ChannelSync() {
             <div key={u.id} className="grid gap-3 px-6 py-4 lg:grid-cols-[190px_1fr_auto] lg:items-center">
               <div>
                 <p className="heading text-[1.15rem]">{u.name}</p>
-                <p className="text-xs text-ink-soft">{count ? `${count} reservas importadas` : 'Sin importar todavía'}</p>
+                <p className="text-xs text-detail">{count ? `${count} reservas importadas` : 'Sin importar todavía'}</p>
               </div>
               <div className="flex min-w-0 flex-col gap-2">
                 <div className="relative">
@@ -144,7 +144,7 @@ export function ChannelSync() {
         })}
       </div>
       {!cloud && (
-        <p className="border-t border-line px-6 py-4 text-xs text-ink-soft">
+        <p className="border-t border-line px-6 py-4 text-xs text-detail">
           Con la nube conectada, el sistema revisa Airbnb y Booking cada 30 minutos y les publica tus reservas directas automáticamente. Sin nube puedes importar el archivo .ics manualmente.
         </p>
       )}

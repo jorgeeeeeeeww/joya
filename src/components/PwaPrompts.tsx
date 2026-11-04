@@ -180,7 +180,7 @@ export function PresenceStack() {
             </span>
           ))}
         </span>
-        {others.length > 3 && <span className="ml-1.5 text-xs text-ink-soft">+{others.length - 3}</span>}
+        {others.length > 3 && <span className="ml-1.5 text-xs text-detail">+{others.length - 3}</span>}
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Conectados ahora" subtitle="En tiempo real">
         <div className="flex flex-col gap-2">

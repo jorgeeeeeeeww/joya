@@ -57,7 +57,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: s
             {showDetail ? 'Ocultar detalle técnico' : 'Ver detalle técnico'}
           </button>
         )}
-        {showDetail && <pre className="mt-3 max-w-full overflow-auto rounded-[12px] bg-sunken p-3 text-left text-[11px] whitespace-pre-wrap text-ink-soft">{error.message}</pre>}
+        {showDetail && <pre className="mt-3 max-w-full overflow-auto rounded-[12px] bg-sunken p-3 text-left text-[11px] whitespace-pre-wrap text-detail">{error.message}</pre>}
       </div>
     )
   }

@@ -135,7 +135,7 @@ export function GuestListView({ ev, onChange, onEdit, onWhatsApp }: { ev: RanchE
               </div>
             )}
             <Card className="overflow-hidden">
-              <div className="hidden grid-cols-[minmax(0,2.4fr)_70px_minmax(0,1fr)_96px_132px_120px] gap-3 border-b border-line bg-sunken/60 px-5 py-2.5 text-[11px] font-medium tracking-[.08em] text-ink-soft uppercase lg:grid">
+              <div className="hidden grid-cols-[minmax(0,2.4fr)_70px_minmax(0,1fr)_96px_132px_120px] gap-3 border-b border-line bg-sunken/60 px-5 py-2.5 text-[11px] font-medium tracking-[.08em] text-detail uppercase lg:grid">
                 <span>Invitado</span>
                 <span className="text-right">Pers.</span>
                 <span>Lado</span>
@@ -159,7 +159,7 @@ export function GuestListView({ ev, onChange, onEdit, onWhatsApp }: { ev: RanchE
                                 {g.vip && <Crown size={14} strokeWidth={1.6} className="shrink-0 text-chispa" aria-label="VIP" />}
                                 <span className="truncate font-medium">{g.name}</span>
                               </span>
-                              <span className="flex flex-wrap items-center gap-x-2 text-xs text-ink-soft">
+                              <span className="flex flex-wrap items-center gap-x-2 text-xs text-detail">
                                 <span className="lg:hidden">{g.count} pers.</span>
                                 {g.kids ? (
                                   <span className="inline-flex items-center gap-1">

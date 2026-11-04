@@ -102,7 +102,7 @@ export default function MantenimientoPanel() {
               .filter((u) => !urgent.some((x) => x.unitId === u.id))
               .map((u) => (
                 <motion.div key={u.id} variants={fadeRise}>
-                  <Card className="flex items-center gap-4 border-l-[3px] border-l-danger p-5">
+                  <Card className="flex items-center gap-4 p-5 ring-1 ring-[color-mix(in_oklab,var(--danger)_35%,transparent)]">
                     <Hammer size={22} strokeWidth={1.6} className="shrink-0 text-danger" />
                     <div className="min-w-0 flex-1">
                       <p className="heading text-[1.25rem]">{u.name}</p>
@@ -146,10 +146,10 @@ export default function MantenimientoPanel() {
               <Card className="divide-y divide-line">
                 {upcoming.slice(0, 6).map((x) => (
                   <Link key={x.id} to={`/tareas?t=${x.id}`} className="flex items-center gap-3 px-5 py-3.5 hover:bg-wash">
-                    <span className="w-16 shrink-0 text-xs text-ink-soft capitalize">{relativeDay(dueDay(x.due))}</span>
+                    <span className="w-16 shrink-0 text-xs text-detail capitalize">{relativeDay(dueDay(x.due))}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[15px] font-medium">{x.title}</span>
-                      <span className="block text-xs text-ink-soft">
+                      <span className="block text-xs text-detail">
                         {TASK_TYPE[x.type].label}
                         {x.unitId ? ` · ${units.find((u) => u.id === x.unitId)?.name ?? ''}` : ''}
                       </span>
@@ -201,7 +201,7 @@ export default function MantenimientoPanel() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{x.title}</span>
-                    <span className="block text-xs text-ink-soft">{ago(x.completedAt ?? x.updatedAt)}</span>
+                    <span className="block text-xs text-detail">{ago(x.completedAt ?? x.updatedAt)}</span>
                   </span>
                 </Link>
               ))}
@@ -240,7 +240,7 @@ function SectionTitle({ icon, title, sub }: { icon: React.ReactNode; title: stri
 function UrgentCard({ task, unitName }: { task: Task; unitName?: string }) {
   return (
     <motion.div variants={fadeRise}>
-      <Card className="border-l-[3px] border-l-danger p-5">
+      <Card className="p-5 ring-1 ring-[color-mix(in_oklab,var(--danger)_35%,transparent)]">
         <div className="flex items-start gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -248,7 +248,7 @@ function UrgentCard({ task, unitName }: { task: Task; unitName?: string }) {
                 Urgente
               </Badge>
               <Badge tone={TASK_STATUS[task.status].tone}>{TASK_STATUS[task.status].label}</Badge>
-              <span className="text-xs text-ink-soft">{ago(task.createdAt)}</span>
+              <span className="text-xs text-detail">{ago(task.createdAt)}</span>
             </div>
             <Link to={`/tareas?t=${task.id}`} className="heading mt-2.5 block text-[1.3rem] hover:underline">
               {task.title}
@@ -286,7 +286,7 @@ function RouteStop({ task, unitName, hint }: { task: Task; unitName?: string; hi
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-ink-soft tabular">{task.due ? (dueDay(task.due) < today() ? `Atrasada · ${fmt(task.due, 'd MMM')}` : fmt(task.due, 'HH:mm')) : 'Sin hora'}</span>
+          <span className="text-xs text-detail tabular">{task.due ? (dueDay(task.due) < today() ? `Atrasada · ${fmt(task.due, 'd MMM')}` : fmt(task.due, 'HH:mm')) : 'Sin hora'}</span>
           <Badge tone={TASK_TYPE[task.type].tone}>{TASK_TYPE[task.type].label}</Badge>
           {task.priority === 'alta' && <Badge tone={PRIORITY.alta.tone}>Alta</Badge>}
         </div>
@@ -297,7 +297,7 @@ function RouteStop({ task, unitName, hint }: { task: Task; unitName?: string; hi
         {task.checklist.length > 0 && (
           <div className="mt-2.5 flex items-center gap-2.5">
             <ProgressBar value={done / task.checklist.length} className="flex-1" />
-            <span className="text-xs text-ink-soft tabular">
+            <span className="text-xs text-detail tabular">
               {done}/{task.checklist.length}
             </span>
           </div>

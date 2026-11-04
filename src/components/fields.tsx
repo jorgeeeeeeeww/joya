@@ -1885,7 +1885,7 @@ export function SearchField({ value, onChange, placeholder = 'Buscar…', classN
           <X size={16} strokeWidth={1.8} />
         </button>
       ) : (
-        shortcut && <kbd className="mr-3 hidden rounded-md bg-sunken px-1.5 py-0.5 text-[10.5px] font-medium text-ink-soft pointer-fine:inline">/</kbd>
+        shortcut && <kbd className="mr-3 hidden rounded-md bg-sunken px-1.5 py-0.5 text-[10.5px] font-medium text-detail pointer-fine:inline">/</kbd>
       )}
     </label>
   )

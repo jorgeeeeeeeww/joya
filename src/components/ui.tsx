@@ -1,5 +1,5 @@
 // step1 · componentes base (Rediseño La Joya). Solo tokens: sin colores hex.
-import { forwardRef, useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type RefObject, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import { createContext, forwardRef, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type RefObject, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { create } from 'zustand'
@@ -107,17 +107,33 @@ export function Card({ className, children, onClick, as = 'div' }: { className?:
   )
 }
 
-export function CardHeader({ title, subtitle, action, icon, eyebrow }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode; icon?: ReactNode; eyebrow?: ReactNode }) {
+/**
+ * Encabezado de tarjeta: título y, si hace falta, una línea de contexto. Nada más.
+ * `eyebrow` se acepta por compatibilidad pero ya no se dibuja (tres niveles de texto eran ruido).
+ */
+export function CardHeader({ title, subtitle, action, icon }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode; icon?: ReactNode; eyebrow?: ReactNode }) {
   return (
     // Si la acción no cabe junto al título baja a su propio renglón, en vez de aplastar el título
-    <div className="flex flex-wrap items-start justify-between gap-3 px-4 pt-4 md:px-5 md:pt-5">
-      <div className="flex min-w-0 flex-1 basis-48 items-center gap-2.5">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pt-4 md:px-5 md:pt-5">
+      <div className="flex min-w-0 flex-1 basis-48 items-center gap-3">
         {icon}
         <div className="min-w-0">
-          {eyebrow && <div className="kicker mb-0.5">{eyebrow}</div>}
-          <h3 className="truncate text-[length:var(--fs-title)] leading-tight font-semibold tracking-[-0.012em]">{title}</h3>
-          {subtitle && <p className="mt-0.5 text-[12.5px] leading-snug text-ink-3">{subtitle}</p>}
+          <h3 className="text-[15px] leading-tight font-semibold tracking-[-0.015em]">{title}</h3>
+          {subtitle && <p className="mt-1 text-[13px] leading-snug text-ink-3">{subtitle}</p>}
         </div>
+      </div>
+      {action}
+    </div>
+  )
+}
+
+/** Encabezado de una sección dentro de la página (fuera de tarjetas) */
+export function SectionTitle({ title, subtitle, action, className }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode; className?: string }) {
+  return (
+    <div className={cx('mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-1', className)}>
+      <div className="min-w-0">
+        <h2 className="text-[17px] leading-tight font-semibold tracking-[-0.02em]">{title}</h2>
+        {subtitle && <p className="mt-1 text-[13px] text-ink-3">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -163,8 +179,8 @@ export function Avatar({ name, tone = 'lavender', size = 36, className }: { name
   const t = TONE[tone]
   return (
     <span
-      className={cx('inline-flex shrink-0 items-center justify-center rounded-full font-[family-name:var(--font-display)] ring-2 ring-surface outline outline-1 outline-line', t.soft, t.ink, className)}
-      style={{ width: size, height: size, fontSize: size * 0.4, fontVariationSettings: '"SOFT" 100, "WONK" 0', fontWeight: 420 }}
+      className={cx('inline-flex shrink-0 items-center justify-center rounded-full font-semibold tracking-[-0.02em] ring-2 ring-surface outline outline-1 outline-line', t.soft, t.ink, className)}
+      style={{ width: size, height: size, fontSize: size * 0.36 }}
       aria-hidden
     >
       {initials(name)}
@@ -183,7 +199,7 @@ export function Field({ label, hint, error, children, className }: { label: stri
           <AlertTriangle size={13} /> {error}
         </span>
       ) : (
-        hint && <span className="mt-1.5 block text-xs text-ink-soft">{hint}</span>
+        hint && <span className="mt-1.5 block text-xs text-detail">{hint}</span>
       )}
     </label>
   )
@@ -258,7 +274,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
             haptic.select()
             onChange(o.value)
           }}
-          className={cx('relative flex-1 rounded-full font-medium whitespace-nowrap transition-colors duration-[var(--dur-3)]', size === 'sm' ? 'h-8 px-3 text-[12.5px] pointer-fine:h-7' : 'h-10 px-4 text-[13.5px] pointer-fine:h-8 pointer-fine:px-3.5 pointer-fine:text-[13px]', value === o.value ? 'text-ink' : 'text-ink-soft hover:text-ink')}
+          className={cx('relative flex-1 rounded-full font-medium whitespace-nowrap transition-colors duration-[var(--dur-3)]', size === 'sm' ? 'h-8 px-3 text-[12.5px] pointer-fine:h-7' : 'h-10 px-4 text-[13.5px] max-sm:px-2.5 pointer-fine:h-8 pointer-fine:px-3.5 pointer-fine:text-[13px]', value === o.value ? 'text-ink' : 'text-ink-soft hover:text-ink')}
         >
           {value === o.value && <motion.span layoutId={id} className="absolute inset-0 rounded-full bg-surface shadow-[var(--shadow-1)] ring-1 ring-line" transition={spring.suave} />}
           <span className="relative z-10 inline-flex items-center gap-1.5">{o.label}</span>
@@ -284,6 +300,46 @@ export function Chip({ active, onClick, children, count }: { active?: boolean; o
       {children}
       {count !== undefined && <span className={cx('tabular text-xs', active ? 'opacity-70' : 'text-ink-3')}>{count}</span>}
     </button>
+  )
+}
+
+// ── Filtro en menú: un botón con lo elegido y la lista al tocarlo ──
+/** Para filtros de 5 o más opciones: en vez de una fila de chips que no cabe, un botón con su lista */
+export function FilterMenu<T extends string>({ value, onChange, options, allLabel, label, className }: { value: T | ''; onChange: (v: T | '') => void; options: { value: T; label: string; count?: number; icon?: ReactNode }[]; /** Texto cuando no hay filtro */ allLabel: string; /** Nombre del filtro (accesibilidad y título del menú) */ label: string; className?: string }) {
+  const ref = useRef<HTMLButtonElement>(null)
+  const [open, setOpen] = useState(false)
+  const current = options.find((o) => o.value === value)
+  const pick = (v: T | '') => {
+    haptic.select()
+    onChange(v)
+    setOpen(false)
+  }
+  const item = (v: T | '', text: string, count?: number, icon?: ReactNode) => (
+    <button key={v || '_all'} role="menuitemradio" aria-checked={value === v} onClick={() => pick(v)} className="flex min-h-12 w-full items-center gap-3 rounded-[10px] px-3 text-left text-[15px] hover:bg-wash pointer-fine:min-h-9 pointer-fine:text-sm">
+      {icon && <span className="flex shrink-0">{icon}</span>}
+      <span className={cx('min-w-0 flex-1', value === v && 'font-semibold')}>{text}</span>
+      {count !== undefined && <span className="text-xs text-ink-3 tabular">{count}</span>}
+      <span className={cx('h-1.5 w-1.5 shrink-0 rounded-full', value === v ? 'bg-chispa-soft' : 'bg-transparent')} />
+    </button>
+  )
+  return (
+    <>
+      <button ref={ref} onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label={`${label}: ${current?.label ?? allLabel}`} className={cx('pressable inline-flex h-10 items-center justify-between gap-2 rounded-full px-4 text-[13.5px] font-medium ring-1 ring-inset pointer-fine:h-9 pointer-fine:px-3.5 pointer-fine:text-[13px]', current ? 'bg-ink text-paper ring-ink' : 'text-ink-soft ring-line-strong hover:bg-wash hover:text-ink', className)}>
+        <span className="inline-flex min-w-0 items-center gap-1.5">
+          {current?.icon}
+          <span className="truncate">{current?.label ?? allLabel}</span>
+        </span>
+        <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 opacity-70" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      <Popover open={open} onClose={() => setOpen(false)} anchor={ref} width={248} title={label} label={label}>
+        <div role="menu" className="flex flex-col">
+          {item('', allLabel)}
+          {options.map((o) => item(o.value, o.label, o.count, o.icon))}
+        </div>
+      </Popover>
+    </>
   )
 }
 
@@ -328,24 +384,56 @@ export function ProgressBar({ value, tone, className }: { value: number; tone?: 
 }
 
 // ── KPI ──────────────────────────────────────────────────
-export function Stat({ label, value, sub, tone = 'lavender', icon, onClick, accent, delta, spark }: { label: string; value: ReactNode; sub?: ReactNode; tone?: Pastel; icon?: ReactNode; onClick?: () => void; accent?: boolean; delta?: { value: string; good: boolean }; spark?: ReactNode }) {
-  const t = TONE[tone]
+/** Dentro de una franja, cada cifra es una celda (sin tarjeta propia) */
+const StripContext = createContext(false)
+
+/**
+ * Franja de cifras: una sola tarjeta con celdas separadas por una línea fina,
+ * en lugar de cuatro tarjetas gemelas. 2 columnas en el celular, 4 (o las que haya) en PC.
+ */
+export function StatStrip({ children, className, cols = 4 }: { children: ReactNode; className?: string; cols?: 2 | 3 | 4 }) {
   return (
-    <Card className="flex flex-col p-4 md:p-5" onClick={onClick} as={onClick ? 'button' : 'div'}>
+    <StripContext.Provider value={true}>
+      <div className={cx('card grid gap-px overflow-hidden bg-line', cols === 3 ? 'grid-cols-3' : cols === 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4', className)}>{children}</div>
+    </StripContext.Provider>
+  )
+}
+
+export function Stat({ label, value, sub, tone = 'lavender', icon, onClick, accent, delta, spark }: { label: string; value: ReactNode; sub?: ReactNode; tone?: Pastel; icon?: ReactNode; onClick?: () => void; accent?: boolean; delta?: { value: string; good: boolean }; spark?: ReactNode }) {
+  const inStrip = useContext(StripContext)
+  void tone
+  void accent
+  const body = (
+    <>
       <div className="flex items-center justify-between gap-2">
-        <span className="inline-flex min-w-0 items-center gap-2 text-[length:var(--fs-ui)] font-medium text-ink-soft">
-          {icon && <span className={cx('inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md [&>svg]:h-3.5 [&>svg]:w-3.5', t.soft, t.ink)}>{icon}</span>}
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-ink-soft">
+          {icon && <span className="inline-flex shrink-0 text-ink-3 [&>svg]:h-[15px] [&>svg]:w-[15px]">{icon}</span>}
           <span className="truncate">{label}</span>
         </span>
         {delta && (
-          <span className={cx('inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-[11px] font-semibold tabular ring-1 ring-inset', delta.good ? 'text-success ring-[color-mix(in_oklab,var(--success)_30%,transparent)]' : 'text-danger ring-[color-mix(in_oklab,var(--danger)_30%,transparent)]')}>
+          <span className={cx('inline-flex shrink-0 items-center text-[12px] font-semibold tabular', delta.good ? 'text-success' : 'text-danger')}>
             {delta.good ? '↑' : '↓'} {delta.value.replace(/^[+-]/, '')}
           </span>
         )}
       </div>
-      <div className={cx('display-num mt-3 text-[length:var(--fs-kpi)] leading-none', accent && 'text-chispa')}>{value}</div>
-      {sub && <div className="mt-1.5 text-[length:var(--fs-meta)] leading-snug text-ink-3">{sub}</div>}
+      <div className="display-num mt-2.5 text-[26px] leading-none md:text-[28px]">{value}</div>
+      {sub && <div className="mt-1.5 text-[12.5px] leading-snug text-ink-3">{sub}</div>}
       {spark && <div className="mt-3">{spark}</div>}
+    </>
+  )
+  if (inStrip) {
+    const cls = 'flex min-w-0 flex-col bg-surface p-4 text-left md:px-5 md:py-[18px]'
+    return onClick ? (
+      <button onClick={onClick} className={cx(cls, 'pressable hover:bg-[color-mix(in_oklab,var(--surface)_94%,var(--ink))]')}>
+        {body}
+      </button>
+    ) : (
+      <div className={cls}>{body}</div>
+    )
+  }
+  return (
+    <Card className="flex flex-col p-4 md:p-5" onClick={onClick} as={onClick ? 'button' : 'div'}>
+      {body}
     </Card>
   )
 }
@@ -375,25 +463,19 @@ export interface PageAction {
  * Una sola acción principal por vista (`primary`) y lo demás en el menú "…" (`menu`).
  * `actions` queda para controles propios de la página (filtros, segmentados).
  */
-export function PageHeader({ title, subtitle, actions, eyebrow, primary, menu, fab = true }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; eyebrow?: ReactNode; primary?: PageAction; menu?: MenuItem[]; fab?: boolean }) {
+export function PageHeader({ title, subtitle, actions, primary, menu, fab = true }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; /** Ya no se dibuja: la barra lateral dice dónde estás */ eyebrow?: ReactNode; primary?: PageAction; menu?: MenuItem[]; fab?: boolean }) {
   const hasMenu = !!menu?.some((m) => !m.hidden)
   return (
-    <div className="relative mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="relative mb-7 flex flex-wrap items-end justify-between gap-x-4 gap-y-3 md:mb-8">
       <div className={cx('min-w-0', hasMenu && 'max-md:pr-12')}>
-        {eyebrow && (
-          <div className="eyebrow mb-2 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-chispa-soft shadow-[0_0_10px_var(--luz)]" />
-            {eyebrow}
-          </div>
-        )}
-        <h1 className="heading text-[clamp(1.75rem,1.45rem+1.1vw,2.35rem)]">{title}</h1>
-        {subtitle && <p className="mt-1.5 max-w-[62ch] text-[length:var(--fs-body)] text-ink-soft">{subtitle}</p>}
+        <h1 className="heading text-[28px] leading-[1.1] md:text-[32px]">{title}</h1>
+        {subtitle && <p className="mt-1.5 max-w-[60ch] text-[14px] text-ink-soft">{subtitle}</p>}
       </div>
       {(actions || hasMenu || primary) && (
         <div className="flex flex-wrap items-center gap-2">
           {actions}
           {/* En el celular, "más acciones" va en la esquina, junto al título (no en un renglón solo) */}
-          {hasMenu && <OverflowMenu items={menu!} className="max-md:absolute max-md:-top-1 max-md:right-0" />}
+          {hasMenu && <OverflowMenu items={menu!} className="max-md:absolute max-md:top-0 max-md:right-0" />}
           {primary && (
             <Button data-tour="primary-action" icon={primary.icon} onClick={primary.onClick} className={cx(fab && 'max-md:hidden')}>
               {primary.label}

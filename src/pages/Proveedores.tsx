@@ -9,7 +9,7 @@ import { db, useCollection } from '@/lib/store'
 import { VENDOR_CATEGORY } from '@/lib/meta'
 import { fmtDate, mxn, today } from '@/lib/format'
 import { haptic } from '@/lib/motion'
-import { Badge, Button, Card, Chip, Empty, PageHeader, Sheet, Stat, Toggle, cx, toast } from '@/components/ui'
+import { Badge, Button, Card, Chip, Empty, PageHeader, Sheet, Stat, Toggle, cx, toast, StatStrip, FilterMenu } from '@/components/ui'
 import { Choices, EmailField, FormScope, MoneyField, NotesField, PhoneField, SearchField, TextField } from '@/components/fields'
 import { removeWithUndo } from '@/lib/undo'
 import { CountUp, Sparkle } from '@/components/step1'
@@ -60,28 +60,26 @@ export default function Proveedores() {
           </Button>
         }
       />
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatStrip className="mb-6">
         <Stat label="Proveedores" value={<CountUp value={vendors.length} />} tone="lavender" icon={<Store size={16} strokeWidth={1.6} />} />
         <Stat label="Favoritos" value={<CountUp value={vendors.filter((v) => v.favorite).length} />} tone="rose" icon={<Heart size={16} strokeWidth={1.6} />} onClick={() => setFavOnly((v) => !v)} />
         <Stat label="Calificación promedio" value={avg.toFixed(1)} sub="De 5 estrellas" tone="butter" />
         <Stat label="Categorías" value={cats.length} tone="sage" />
-      </div>
+      </StatStrip>
 
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
         <SearchField value={q} onChange={setQ} placeholder="Buscar proveedor" className="lg:w-80" shortcut />
-        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+        <div className="flex gap-2 [&>*]:max-sm:flex-1">
           <Chip active={favOnly} onClick={() => setFavOnly((v) => !v)}>
             <Heart size={14} strokeWidth={1.6} /> Favoritos
           </Chip>
-          <span className="mx-1 w-px shrink-0 bg-line" />
-          <Chip active={cat === 'todas'} onClick={() => setCat('todas')} count={vendors.length}>
-            Todos
-          </Chip>
-          {cats.map((c) => (
-            <Chip key={c} active={cat === c} onClick={() => setCat(c)} count={vendors.filter((v) => v.category === c).length}>
-              {VENDOR_CATEGORY[c].label}
-            </Chip>
-          ))}
+          <FilterMenu
+            label="Categoría"
+            allLabel={`Todas · ${vendors.length}`}
+            value={cat === 'todas' ? '' : cat}
+            onChange={(v) => setCat(v || 'todas')}
+            options={cats.map((c) => ({ value: c, label: VENDOR_CATEGORY[c].label, count: vendors.filter((v) => v.category === c).length }))}
+          />
         </div>
       </div>
 

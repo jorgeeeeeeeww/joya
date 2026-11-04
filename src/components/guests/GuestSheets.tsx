@@ -147,7 +147,7 @@ export function ImportSheet({ ev, open, onClose, onImport, sides }: { ev: RanchE
               return (
                 <div key={g.id} className={cx('flex items-center gap-3 rounded-[12px] px-3 py-2.5', dup && 'opacity-45')}>
                   <span className="min-w-0 flex-1 truncate">{g.name}</span>
-                  <span className="tabular text-xs text-ink-soft">{g.count} {g.count === 1 ? 'persona' : 'personas'}</span>
+                  <span className="tabular text-xs text-detail">{g.count} {g.count === 1 ? 'persona' : 'personas'}</span>
                   {g.phone && <span className="tabular hidden text-xs text-ink-3 sm:inline">{g.phone}</span>}
                   {dup && <span className="text-xs text-ink-3">ya está</span>}
                 </div>
