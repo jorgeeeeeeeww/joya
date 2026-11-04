@@ -1,7 +1,7 @@
 // Salón y jardín: el espacio de trabajo de la Wedding planner para montar cada evento.
 // Elige el recinto y el evento, acomoda las mesas en el plano 2D y revisa el montaje en 3D.
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Armchair, Box, CalendarPlus, ChevronRight, Eye, Footprints, LayoutGrid, Maximize2, Minimize2, Plus, Ruler, Sparkles, Trees, Undo2, Users, UtensilsCrossed } from 'lucide-react'
 import { db, useCollection, useMe } from '@/lib/store'
@@ -43,6 +43,7 @@ function useFurniture(layout: FloorItem[]) {
 }
 
 export default function Espacios() {
+  const navigate = useNavigate()
   const events = useCollection('events')
   const [params, setParams] = useSearchParams()
   const venue = (params.get('v') === 'jardin' ? 'jardin' : 'salon') as Venue
@@ -120,7 +121,7 @@ export default function Espacios() {
       <PageHeader
         eyebrow="Espacios de eventos"
         title="Salón y jardín"
-        subtitle="Monta cada evento en su espacio: acomoda mesas en el plano y revisa cómo se verá en 3D."
+        subtitle={can3d ? 'Monta cada evento en su espacio: acomoda mesas en el plano y revisa cómo se verá en 3D.' : 'Monta cada evento en su espacio: elige el evento y acomoda las mesas en el plano.'}
         actions={
           <Button variant="tinta" icon={<CalendarPlus size={18} strokeWidth={1.6} />} onClick={() => setNewOpen(true)}>
             Evento en {VENUE[venue].label.toLowerCase()}
@@ -259,7 +260,7 @@ export default function Espacios() {
                   {fmt(ev.date, "EEEE d 'de' MMMM")} · {ev.startTime}–{ev.endTime} · {EVENT_TYPE[ev.type].label}
                 </p>
               </div>
-              <PaletteDots colors={ev.palette} className="ml-1 hidden sm:inline-flex" />
+              <PaletteDots colors={ev.palette} className="ml-1 max-sm:hidden" />
             </div>
             {scene && (
               <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
@@ -443,16 +444,13 @@ export default function Espacios() {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Link to={`/invitados?e=${ev.id}`}>
-                    <Button variant="secondary" icon={<Users size={17} strokeWidth={1.6} />}>
-                      Invitados y mesas
-                    </Button>
-                  </Link>
-                  <Link to={`/eventos/${ev.id}`}>
-                    <Button variant="ghost" iconRight={<ChevronRight size={17} strokeWidth={1.6} />}>
-                      Ver evento
-                    </Button>
-                  </Link>
+                  {/* Botones que navegan (un botón dentro de un enlace recargaba toda la app) */}
+                  <Button variant="secondary" icon={<Users size={17} strokeWidth={1.6} />} onClick={() => navigate(`/invitados?e=${ev.id}`)}>
+                    Invitados y mesas
+                  </Button>
+                  <Button variant="ghost" iconRight={<ChevronRight size={17} strokeWidth={1.6} />} onClick={() => navigate(`/eventos/${ev.id}`)}>
+                    Ver evento
+                  </Button>
                 </div>
               </div>
             </Card>

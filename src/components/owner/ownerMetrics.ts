@@ -246,7 +246,7 @@ export function monthReportHtml(data: DataState, settings: Settings, key = today
     <table>
       ${row('Ocupación del mes', `${Math.round((soldNights / available) * 100)}% · ${soldNights} de ${available} noches`)}
       ${row('Tarifa promedio por noche (ADR)', money.format(adr))}
-      ${row('Ingreso por unidad disponible (RevPAR)', money.format(revpar))}
+      ${row('Ingreso por casa por noche (contando las vacías)', money.format(revpar))}
       ${row('Reservas con llegada en el mes', String(res.length))}
     </table>
     <table style="margin-top:10px"><tr><th>Unidad</th><th class="r">Noches</th><th class="r">Ocupación</th><th class="r">Ingreso</th></tr>

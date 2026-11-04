@@ -412,7 +412,8 @@ export default function RecepcionPanel() {
               const bal = balanceOf(r)
               return (
                 <li key={r.id} className="flex flex-wrap items-center gap-3 border-b border-line px-2 py-3 last:border-0">
-                  <div className="min-w-0 flex-1">
+                  {/* Si no cabe todo en un renglón, el saldo y los botones bajan y el nombre conserva su ancho */}
+                  <div className="min-w-0 flex-1 basis-48">
                     <button onClick={() => setSheet({ open: true, id: r.id })} className="block truncate text-left text-[15px] font-medium hover:underline">
                       {r.guestName}
                     </button>
@@ -421,7 +422,7 @@ export default function RecepcionPanel() {
                     </span>
                   </div>
                   <span className="display-num text-xl">{mxn(bal)}</span>
-                  <div className="flex gap-1.5">
+                  <div className="ml-auto flex gap-1.5">
                     {r.phone && (
                       <a href={waLink(r.phone, balanceText(r))} target="_blank" rel="noreferrer" aria-label={`Recordar saldo a ${r.guestName}`} className="pressable flex h-10 w-10 items-center justify-center rounded-full text-ink-soft ring-1 ring-line-strong ring-inset hover:bg-wash">
                         <MessageCircle size={16} strokeWidth={1.6} />

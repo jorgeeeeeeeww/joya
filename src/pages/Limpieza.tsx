@@ -34,7 +34,8 @@ export default function Limpieza() {
   const [report, setReport] = useState<{ open: boolean; unitId?: ID }>({ open: false })
   const [lostOpen, setLostOpen] = useState(false)
   const [readyUnit, setReadyUnit] = useState<ID>()
-  const supervisor = me?.role === 'admin' || me?.role === 'mantenimiento'
+  // Recepción también ve todas las casas: necesita saber cuál está lista antes de recibir huéspedes
+  const supervisor = me?.role === 'admin' || me?.role === 'mantenimiento' || me?.role === 'recepcion'
   const t = today()
 
   const cleaning = useMemo(() => tasks.filter((x) => x.type === 'limpieza'), [tasks])
@@ -75,7 +76,7 @@ export default function Limpieza() {
       <div className={cx('mb-8 grid gap-3', supervisor ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-3')}>
         <Stat label="Pendientes" value={open.length} tone="peach" icon={<Clock size={16} strokeWidth={1.6} />} />
         <Stat label="Hechas hoy" value={doneToday.length} tone="sage" icon={<CheckCircle2 size={16} strokeWidth={1.6} />} accent={supervisor} />
-        <Stat label="Promedio" value={avg ? `${avg}′` : '—'} sub={avg ? 'minutos por limpieza' : undefined} tone="sky" icon={<Sparkles size={16} strokeWidth={1.6} />} />
+        <Stat label="Tarda en promedio" value={avg ? (avg >= 60 ? `${Math.floor(avg / 60)} h ${avg % 60 ? `${avg % 60} min` : ''}`.trim() : `${avg} min`) : '—'} sub={avg ? 'por cada limpieza' : undefined} tone="sky" icon={<Sparkles size={16} strokeWidth={1.6} />} />
         {supervisor && <Stat label="Por revisar" value={toReview.length} tone="mint" icon={<ShieldCheck size={16} strokeWidth={1.6} />} />}
       </div>
 

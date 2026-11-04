@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeft, Ban, SlidersHorizontal, CalendarDays, Check, Clock, ListChecks, MapPin, MessageCircle, Pencil, Phone, Trash2, Users } from 'lucide-react'
@@ -20,6 +20,7 @@ import { vt } from '@/lib/transitions'
 import { modulesOf, type EventModule } from '@/lib/modules'
 import { ModulesPicker } from '@/components/events/ModulesPicker'
 import { LiveQuote } from '@/components/event-detail/LiveQuote'
+import { EventCoachCard } from '@/components/assistant/Asistente'
 
 const FloorPlanEditor = lazy(() => import('@/components/floorplan/FloorPlanEditor'))
 
@@ -36,9 +37,7 @@ export default function EventoDetalle() {
         title="No encontramos este evento"
         body="Puede que se haya eliminado o que el enlace esté incompleto."
         action={
-          <Link to="/eventos">
-            <Button>Volver a eventos</Button>
-          </Link>
+          <Button onClick={() => navigate("/eventos")}>Volver a eventos</Button>
         }
       />
     )
@@ -80,6 +79,13 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
     .map((g) => ({ ...g, tabs: g.tabs.filter(visible) }))
     .filter((g) => g.tabs.length)
   const group = groups.find((g) => g.tabs.includes(tab)) ?? groups[0]!
+  // La pestaña activa siempre a la vista (en el celular la barra se desplaza de lado)
+  const tabsRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = tabsRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')
+    const bar = tabsRef.current
+    if (el && bar) bar.scrollTo({ left: el.offsetLeft - bar.clientWidth / 2 + el.clientWidth / 2, behavior: 'smooth' })
+  }, [group.value])
 
   const setStatus = (s: EventStatus) => {
     if (s === ev.status) return
@@ -135,10 +141,10 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
               {ev.palette?.length ? <PaletteDots colors={ev.palette} size={20} className="ml-2" /> : null}
             </div>
           </div>
-          <div className="flex shrink-0 flex-row items-end gap-4 md:flex-col md:items-end">
+          <div className="flex shrink-0 flex-row flex-wrap items-end justify-between gap-4 md:flex-col md:items-end">
             <div className="md:text-right">
               <div className="eyebrow !text-on-night-soft">{fmtDate(ev.date)}</div>
-              <div className="display-num mt-1 text-[clamp(2.4rem,2rem+1.6vw,3.6rem)] text-on-night">{d > 1 ? d : countdownLabel(d)}</div>
+              <div className="display-num mt-1 text-[2.2rem] leading-none text-on-night md:text-[clamp(2.4rem,2rem+1.6vw,3.6rem)]">{d > 1 ? d : countdownLabel(d)}</div>
               {d > 1 && <div className="text-sm text-on-night-soft">días para el evento</div>}
             </div>
             <div className="flex gap-1.5">
@@ -186,8 +192,11 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
         </div>
       </div>
 
+      {/* Asistente: en qué fase va y qué sigue */}
+      <EventCoachCard ev={ev} />
+
       {/* Pestañas */}
-      <div className="glass no-scrollbar sticky top-0 z-20 -mx-4 mt-5 mb-5 flex gap-1 overflow-x-auto px-4 py-2 md:mx-0 md:rounded-full md:px-1.5 md:ring-1 md:ring-line" role="tablist" aria-label="Secciones del evento">
+      <div ref={tabsRef} className="glass no-scrollbar sticky top-0 z-20 -mx-4 mt-5 mb-5 flex gap-1 overflow-x-auto px-4 py-2 md:mx-0 md:rounded-full md:px-1.5 md:ring-1 md:ring-line" role="tablist" aria-label="Secciones del evento">
         {groups.map((g) => (
           <button key={g.value} role="tab" aria-selected={group.value === g.value} onClick={() => setTab(g.tabs[0]!)} className={cx('relative h-11 shrink-0 rounded-full px-4 text-[15px] whitespace-nowrap transition-colors duration-[var(--dur-2)] pointer-fine:h-10 pointer-fine:text-sm', group.value === g.value ? 'text-paper' : 'text-ink-soft hover:text-ink')}>
             {group.value === g.value && <motion.span layoutId="ev-tab" className="absolute inset-0 rounded-full bg-ink" transition={spring.suave} />}
@@ -215,7 +224,7 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--luz)_55%,var(--surface))] text-night ring-[5px] ring-[color-mix(in_oklab,var(--luz)_22%,transparent)]">
                   <Users size={20} strokeWidth={1.6} />
                 </span>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 basis-56">
                   <p className="heading text-xl">Estación de invitados</p>
                   <p className="text-sm text-ink-soft">Confirmaciones por WhatsApp, acomodo en mesas arrastrando y recepción en la puerta el día del evento.</p>
                 </div>
@@ -278,6 +287,7 @@ function HeroIcon({ children, onClick, label }: { children: React.ReactNode; onC
 }
 
 function Summary({ ev, showMoney, goTab }: { ev: RanchEvent; showMoney: boolean; goTab: (t: Tab) => void }) {
+  const mods = modulesOf(ev)
   const q = useQuote(ev, ev.lineItems, ev.discount, ev.includeIva)
   const allTasks = useCollection('tasks')
   const employees = useCollection('employees')
@@ -303,15 +313,17 @@ function Summary({ ev, showMoney, goTab }: { ev: RanchEvent; showMoney: boolean;
             <div>
               <div className="eyebrow">Preparación del evento</div>
               <div className="heading mt-1 text-2xl">{ready.overall >= 0.85 ? 'Casi todo listo' : ready.overall >= 0.5 ? 'Va muy bien' : 'Apenas empezamos'}</div>
-              <p className="mt-1 text-sm text-ink-soft">Combina checklist, pagos e invitados confirmados.</p>
+              <p className="mt-1 text-sm text-ink-soft">Combina {[mods.checklist && 'pendientes', (mods.pagos || mods.cotizacion) && 'pagos', mods.invitados && 'invitados confirmados'].filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' y $1')}.</p>
             </div>
           </div>
           <div className="grid min-w-0 flex-1 grid-cols-3 gap-2 sm:gap-4">
             {[
-              { label: 'Checklist', v: ready.checklist, sub: `${checklistDone}/${ev.checklist.length}`, tab: 'checklist' as Tab },
-              { label: 'Pagos', v: ready.payments, sub: showMoney ? mxn(q.paid) : `${Math.round(ready.payments * 100)}%`, tab: (showMoney ? 'pagos' : 'resumen') as Tab },
-              { label: 'Confirmados', v: ready.guests, sub: `${confirmedGuests} de ${people || ev.guests}`, tab: 'invitados' as Tab },
-            ].map((x) => (
+              mods.checklist && { label: 'Checklist', v: ready.checklist, sub: `${checklistDone}/${ev.checklist.length}`, tab: 'checklist' as Tab },
+              (mods.pagos || mods.cotizacion) && { label: 'Pagos', v: ready.payments, sub: showMoney ? mxn(q.paid) : `${Math.round(ready.payments * 100)}%`, tab: (showMoney ? 'pagos' : 'resumen') as Tab },
+              mods.invitados && { label: 'Confirmados', v: ready.guests, sub: `${confirmedGuests} de ${people || ev.guests}`, tab: 'invitados' as Tab },
+            ]
+              .filter((x): x is { label: string; v: number; sub: string; tab: Tab } => !!x)
+              .map((x) => (
               <button key={x.label} onClick={() => goTab(x.tab)} className="pressable w-full min-w-0 rounded-[18px] p-3 text-left hover:bg-wash">
                 <div className="text-xs text-ink-soft">{x.label}</div>
                 <div className="display-num mt-1 text-[1.7rem]">{Math.round(x.v * 100)}%</div>
@@ -369,17 +381,21 @@ function Summary({ ev, showMoney, goTab }: { ev: RanchEvent; showMoney: boolean;
                 <button onClick={() => db.patch('tasks', t.id, { status: done ? 'pendiente' : 'hecha', completedAt: done ? undefined : new Date().toISOString() })} aria-label={done ? `Reabrir ${t.title}` : `Terminar ${t.title}`} aria-pressed={done} className={cx('pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-full', done ? 'bg-success text-paper' : 'ring-[1.5px] ring-line-strong ring-inset hover:bg-wash')}>
                   {done && <Check size={17} strokeWidth={2} />}
                 </button>
+                {/* En celular las etiquetas bajan junto a la fecha: así el título conserva todo el ancho */}
                 <div className="min-w-0 flex-1">
-                  <div className={cx('truncate font-medium', done && 'text-ink-3 line-through')}>{t.title.replace(` · ${ev.title}`, '')}</div>
-                  <div className="text-xs text-ink-soft">
-                    {t.due ? fmtDate(t.due.slice(0, 10)) : 'Sin fecha'} · {t.checklist.filter((c) => c.done).length}/{t.checklist.length} pasos
+                  <div className={cx('font-medium leading-snug', done && 'text-ink-3 line-through')}>{t.title.replace(` · ${ev.title}`, '')}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-soft">
+                    <span>
+                      {t.due ? fmtDate(t.due.slice(0, 10)) : 'Sin fecha'} · {t.checklist.filter((c) => c.done).length}/{t.checklist.length} pasos
+                    </span>
+                    <Badge tone={TASK_STATUS[t.status].tone} className="md:hidden">{TASK_STATUS[t.status].label}</Badge>
                   </div>
                 </div>
-                <Badge tone={PRIORITY[t.priority].tone} className="hidden sm:inline-flex">
+                <Badge tone={PRIORITY[t.priority].tone} className="shrink-0 max-lg:hidden">
                   {PRIORITY[t.priority].label}
                 </Badge>
-                <Badge tone={TASK_STATUS[t.status].tone}>{TASK_STATUS[t.status].label}</Badge>
-                {who && <Avatar name={who.name} tone={who.color} size={32} />}
+                <Badge tone={TASK_STATUS[t.status].tone} className="shrink-0 max-md:hidden">{TASK_STATUS[t.status].label}</Badge>
+                {who && <Avatar name={who.name} tone={who.color} size={32} className="shrink-0" />}
               </div>
             )
           })}

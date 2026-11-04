@@ -9,7 +9,7 @@ import { RES_SOURCE, seesMoney, TONE, UNIT_STATUS } from '@/lib/meta'
 import { addDaysISO, capitalize, compactMxn, fmt, fmtDate, fmtDateLong, mxn, nights, pct, today } from '@/lib/format'
 import { fadeRise } from '@/lib/motion'
 import type { ID, Reservation, Unit } from '@/lib/types'
-import { Badge, Button, Card, CardHeader, cx, Empty, IconBubble, PageHeader, ProgressBar, Segmented, Stat } from '@/components/ui'
+import { Badge, Button, Card, CardHeader, Confirm, cx, Empty, IconBubble, PageHeader, ProgressBar, Segmented, Stat } from '@/components/ui'
 import { Reveal } from '@/components/step1'
 import { Timeline } from '@/components/stays/Timeline'
 import { ReservationSheet, type ReservationDefaults } from '@/components/stays/ReservationSheet'
@@ -69,6 +69,13 @@ export default function Hospedaje() {
     if (paramId) setParams({}, { replace: true })
   }
 
+  // Check-in a una casa que aún no está lista: se pregunta antes (puede que la limpieza vaya a medias)
+  const [notReadyAsk, setNotReadyAsk] = useState<Reservation | null>(null)
+  const checkIn = (r: Reservation) => {
+    const u = units.find((x) => x.id === r.unitId)
+    if (u && u.status !== 'lista' && u.status !== 'ocupada') return setNotReadyAsk(r)
+    quick(r, 'en-casa', 'Check-in registrado')
+  }
   const quick = (r: Reservation, status: Reservation['status'], msg: string) => {
     const prev = r.status
     db.patch('reservations', r.id, { status })
@@ -96,7 +103,7 @@ export default function Hospedaje() {
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 [&>*]:min-w-0">
         <Stat label="Ocupación del mes" value={pct(totalOcc)} sub={capitalize(fmt(t, 'MMMM'))} tone="sky" icon={<CalendarDays size={16} strokeWidth={1.6} />} />
         <Stat label="En casa ahora" value={inHouse.length} sub={`${inHouse.reduce((n, r) => n + r.guests, 0)} huéspedes`} tone="lavender" icon={<Users size={16} strokeWidth={1.6} />} />
-        <Stat label="Llegan · salen hoy" value={`${arrivals.length} · ${departures.length}`} sub="llegadas · salidas" tone="peach" icon={<LogIn size={16} strokeWidth={1.6} />} />
+        <Stat label="Hoy" value={`${arrivals.length} · ${departures.length}`} sub="por llegar · por salir" tone="peach" icon={<LogIn size={16} strokeWidth={1.6} />} />
         {money ? (
           <Stat label="Reservado este mes" value={compactMxn(monthRevenue)} sub="Hospedaje" tone="sage" icon={<Wallet size={16} strokeWidth={1.6} />} accent />
         ) : (
@@ -106,7 +113,7 @@ export default function Hospedaje() {
 
       {/* Llegadas y salidas de hoy */}
       <div className="mb-8 grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
-        <TodayList title="Llegan hoy" tone="lavender" icon={<LogIn size={18} strokeWidth={1.6} />} items={arrivals} units={units} empty="Sin llegadas hoy" action={(r) => ({ label: 'Check-in', onClick: () => quick(r, 'en-casa', 'Check-in registrado') })} onOpen={openRes} warnNotReady />
+        <TodayList title="Llegan hoy" tone="lavender" icon={<LogIn size={18} strokeWidth={1.6} />} items={arrivals} units={units} empty="Sin llegadas hoy" action={(r) => ({ label: 'Check-in', onClick: () => checkIn(r) })} onOpen={openRes} warnNotReady />
         <TodayList title="Salen hoy" tone="peach" icon={<LogOut size={18} strokeWidth={1.6} />} items={departures} units={units} empty="Sin salidas pendientes" action={(r) => ({ label: 'Check-out', onClick: () => quick(r, 'finalizada', 'Check-out: se creó la limpieza') })} onOpen={openRes} />
       </div>
 
@@ -153,6 +160,17 @@ export default function Hospedaje() {
         </div>
       )}
 
+      <Confirm
+        open={!!notReadyAsk}
+        onClose={() => setNotReadyAsk(null)}
+        title={`${units.find((u) => u.id === notReadyAsk?.unitId)?.name ?? 'La casa'} aún no está lista`}
+        body={`Está «${notReadyAsk ? UNIT_STATUS[units.find((u) => u.id === notReadyAsk.unitId)?.status ?? 'lista'].label.toLowerCase() : ''}». ¿Hacer el check-in de todos modos? Si la limpieza va a medias, avísale al equipo.`}
+        confirmLabel="Sí, hacer check-in"
+        onConfirm={() => {
+          if (notReadyAsk) quick(notReadyAsk, 'en-casa', 'Check-in registrado')
+          setNotReadyAsk(null)
+        }}
+      />
       <ReservationSheet open={sheet.open || !!paramId} onClose={closeSheet} reservationId={sheet.id ?? paramId} defaults={sheet.defaults} />
     </div>
   )

@@ -213,6 +213,7 @@ export default function PlannerPanel() {
               <b className="text-ink">{doneCount}</b> de {items.length}
             </p>
           </div>
+          <p className="mt-2 text-[13px] leading-snug text-ink-soft">Lo más urgente primero. Toca el botón de la acción (llamar, escribir, abrir) y luego <Check size={13} strokeWidth={2} className="inline align-[-2px]" /> cuando lo termines. Desliza un renglón para posponerlo.</p>
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sunken">
             <div className="h-full rounded-full bg-[linear-gradient(90deg,var(--chispa-soft),var(--primary))] transition-[width] duration-500 ease-[var(--ease-calma)]" style={{ width: `${items.length ? (doneCount / items.length) * 100 : 100}%` }} />
           </div>
@@ -506,7 +507,7 @@ function EventStage({ ev, health, ms, first, onOpen, onGuests }: { ev: RanchEven
   return (
     <motion.div variants={fadeRise} key={ev.id}>
       <NightSlab horizon={!isPhone} scene={<EventScene type={ev.type} />} className="px-5 pt-7 pb-2 md:px-10 md:pt-10" luzSize="clamp(64px, 11vw, 140px)" luzClassName="absolute -top-6 right-[6%]">
-        <div className="relative flex flex-wrap items-end justify-between gap-8">
+        <div className="relative flex flex-wrap items-end justify-between gap-6 sm:gap-8">
           <div className="min-w-0 flex-[1_1_420px]">
             <div className="flex flex-wrap items-center gap-2">
               <span className="eyebrow !text-on-night-soft">{first ? 'Próximo evento' : 'Evento en escena'}</span>
@@ -545,12 +546,13 @@ function EventStage({ ev, health, ms, first, onOpen, onGuests }: { ev: RanchEven
               ))}
             </div>
           </div>
-          <div className="flex items-end gap-7">
-            <div className="text-right">
-              <div className="display-num text-[clamp(6rem,4rem+8vw,12rem)] leading-[0.78] font-light text-luz">{d}</div>
+          {/* En el celular: cuenta regresiva y anillo lado a lado y más chicos, para que "Tu día" no quede tan abajo */}
+          <div className="flex w-full items-end justify-between gap-7 sm:w-auto sm:justify-start">
+            <div className="sm:text-right">
+              <div className="display-num text-[4.5rem] leading-[0.78] font-light text-luz sm:text-[clamp(6rem,4rem+8vw,12rem)]">{d}</div>
               <div className="mt-3 text-sm text-on-night-soft">{d === 1 ? 'día para el evento' : d === 0 ? 'es hoy' : 'días para el evento'}</div>
             </div>
-            <div className="relative h-[124px] w-[124px] shrink-0">
+            <div className="relative h-[100px] w-[100px] shrink-0 sm:h-[124px] sm:w-[124px]">
               <svg viewBox="0 0 132 132" className="h-full w-full -rotate-90" role="img" aria-label={`Salud del evento: ${ok} de 6 en orden`}>
                 {health.map((h, i) => (
                   <circle key={h.key} cx="66" cy="66" r="52" fill="none" strokeWidth="9" strokeLinecap="round" stroke={NIGHT[h.state]} strokeDasharray={`${seg - 10} ${C - seg + 10}`} strokeDashoffset={-i * seg} />
@@ -568,7 +570,7 @@ function EventStage({ ev, health, ms, first, onOpen, onGuests }: { ev: RanchEven
         </div>
 
         {/* Ruta crítica: un hilo con los pasos clave */}
-        <div className="relative mt-9 pb-6 sm:pb-36 md:pb-44">
+        <div className="relative mt-7 pb-6 sm:mt-9 sm:pb-36 md:pb-44">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="eyebrow !text-on-night-soft">Ruta crítica</span>
             <span className={cx('text-sm', step.tone === 'bad' ? 'text-[color:var(--danger)] [color:color-mix(in_oklab,var(--danger)_55%,var(--on-night))]' : 'text-luz')}>{step.text}</span>

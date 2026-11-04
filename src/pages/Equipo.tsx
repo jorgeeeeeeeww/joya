@@ -129,7 +129,7 @@ export default function Equipo() {
         <div className="mb-7 flex items-center gap-4 rounded-[var(--r-lg)] bg-[color-mix(in_oklab,var(--luz)_32%,var(--surface))] px-5 py-4 ring-1 ring-line">
           <Sparkle className="text-lg text-chispa" />
           <p className="text-[15px]">
-            <span className="font-medium">{top.name}</span> lleva <span className="display-num text-xl text-chispa">{stats[top.id]!.done}</span> tareas terminadas en los últimos 30 días.
+            <span className="font-medium">{top.name}</span> lleva <span className="display-num text-xl text-chispa">{stats[top.id]!.done}</span> {stats[top.id]!.done === 1 ? 'tarea terminada' : 'tareas terminadas'} en los últimos 30 días.
           </p>
         </div>
       )}
@@ -164,7 +164,7 @@ export default function Equipo() {
                   <div>
                     <div className="display-num text-[1.7rem]">{s.avg ?? '—'}</div>
                     <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-ink-soft">
-                      <Timer size={11} strokeWidth={1.6} /> min/limpieza
+                      <Timer size={11} strokeWidth={1.6} /> min por limpieza
                     </div>
                   </div>
                 </div>

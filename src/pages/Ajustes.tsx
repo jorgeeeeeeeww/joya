@@ -29,6 +29,7 @@ import type { Atmos, AutomationSettings, DataState, Pastel, ThemePref } from '@/
 import { Badge, Button, Card, CardHeader, Confirm, cx, Estela, Field, IconBubble, Input, PageHeader, Segmented, Select, Toggle, toast } from '@/components/ui'
 import { Horizon, PAPER_TONES, Sparkle } from '@/components/step1'
 import { AsistentesGrid, ConectarCelular } from '@/components/Asistentes'
+import { AssistantSettings } from '@/components/assistant/Asistente'
 import { EVENT_PACKAGES } from '@/lib/templates'
 
 type Tab = 'panel' | 'general' | 'automatizaciones' | 'nube' | 'respaldos' | 'bitacora' | 'instalar' | 'sistema'
@@ -691,7 +692,7 @@ function EstadoSimple() {
         <IconBubble tone={ok ? 'sage' : 'butter'} orb size="lg">
           {ok ? <ShieldCheck size={24} strokeWidth={1.6} /> : <Cloud size={24} strokeWidth={1.6} />}
         </IconBubble>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-52">
           <p className="heading text-2xl">{!linked ? 'Guardado solo en este equipo' : status === 'error' ? 'No se pudo compartir el último cambio' : pending ? `${pending} cambios esperando internet` : 'Todo guardado y compartido'}</p>
           <p className="mt-0.5 text-sm text-ink-soft">
             {!linked ? 'Para que el equipo vea lo mismo en sus celulares, hay que conectar la nube del rancho.' : status === 'error' ? 'Se vuelve a intentar solo. Si sigue así, revisa el panel de desarrollador.' : pending ? 'En cuanto haya señal se comparten solos. No se pierde nada.' : `Todo el equipo ve lo mismo${lastSyncAt ? ` · al día ${ago(lastSyncAt)}` : ''}.`}
@@ -719,7 +720,7 @@ export default function Ajustes() {
   const tab = (tabs.find((t) => t.value === wanted)?.value ?? 'panel') as Tab
   return (
     <div>
-      <PageHeader eyebrow="Sistema" title="Ajustes" subtitle={admin ? 'Tu panel, el rancho, la nube, los respaldos y la seguridad.' : 'Tu panel, tu atmósfera y cómo instalar la app.'} />
+      <PageHeader eyebrow="Sistema" title="Ajustes" subtitle={admin ? 'Tu panel, los datos del rancho, los avisos automáticos, los celulares del equipo y el respaldo.' : 'Tu panel, tu atmósfera y cómo instalar la app.'} />
       <div className={cx('grid gap-6 lg:gap-8', tabs.length > 1 && 'lg:grid-cols-[232px_1fr]')}>
         <nav hidden={tabs.length < 2} className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:sticky lg:top-4 lg:mx-0 lg:flex-col lg:self-start lg:px-0" aria-label="Secciones de ajustes">
           {tabs.map((t) => {
@@ -738,6 +739,7 @@ export default function Ajustes() {
           {tab === 'panel' && (
             <div className="flex flex-col gap-6">
               <TuPanel />
+              <AssistantSettings />
               <Instalar />
             </div>
           )}

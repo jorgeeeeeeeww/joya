@@ -31,6 +31,7 @@ const Equipo = lazy(() => import('@/pages/Equipo'))
 const Ajustes = lazy(() => import('@/pages/Ajustes'))
 const Diseno = lazy(() => import('@/pages/Diseno'))
 const Desarrollador = lazy(() => import('@/pages/Desarrollador'))
+const Ayuda = lazy(() => import('@/pages/Ayuda'))
 
 function PageFallback() {
   return (
@@ -185,6 +186,7 @@ export default function App() {
                 <Route path="equipo" element={<Guard section="equipo"><Equipo /></Guard>} />
                 <Route path="ajustes" element={<Guard section="ajustes"><Ajustes /></Guard>} />
                 <Route path="desarrollador" element={<Guard section="finanzas"><Desarrollador /></Guard>} />
+                <Route path="ayuda" element={<Suspense fallback={<PageFallback />}><Ayuda /></Suspense>} />
                 <Route path="diseno" element={<Suspense fallback={<PageFallback />}><Diseno /></Suspense>} />
                 <Route path="*" element={<Navigate to={home} replace />} />
               </Route>

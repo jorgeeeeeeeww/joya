@@ -210,8 +210,12 @@ export default function Dashboard() {
   const nextEv = upcoming.find((e) => e.date >= T && (e.status === 'apartado' || e.status === 'confirmado'))
   const briefing: string[] = []
   {
-    const ins = arrivals.map((r) => `${data.units[r.unitId]?.name ?? 'una casa'}${r.arrivalTime ? ` (${r.arrivalTime})` : ''}`)
-    briefing.push(arrivals.length ? `Hoy ${arrivals.length === 1 ? 'llega 1 reserva' : `llegan ${arrivals.length} reservas`}: ${ins.join(' y ')}.` : 'Hoy no llega ningún huésped.')
+    // Igual que en Hospedaje: primero lo que falta por llegar y aparte quién ya llegó
+    const toCome = arrivals.filter((r) => r.status === 'confirmada' || r.status === 'pendiente')
+    const came = arrivals.filter((r) => r.status === 'en-casa')
+    const ins = toCome.map((r) => `${data.units[r.unitId]?.name ?? 'una casa'}${r.arrivalTime ? ` (${r.arrivalTime})` : ''}`)
+    briefing.push(toCome.length ? `Hoy ${toCome.length === 1 ? 'falta que llegue 1 reserva' : `faltan por llegar ${toCome.length} reservas`}: ${ins.join(' y ')}.` : came.length ? 'Ya llegaron todos los huéspedes de hoy.' : 'Hoy no llega ningún huésped.')
+    if (toCome.length && came.length) briefing.push(`${came.length === 1 ? 'Ya llegó 1' : `Ya llegaron ${came.length}`}: ${came.map((r) => data.units[r.unitId]?.name ?? '').join(' y ')}.`)
     const notReady = alerts.filter((a) => / aún no está lista$/.test(a.title)).map((a) => a.title.replace(/ aún no está lista$/, ''))
     if (notReady.length) briefing.push(`${notReady.join(' y ')} ${notReady.length === 1 ? 'todavía no está lista' : 'todavía no están listas'}.`)
     if (departures.length) briefing.push(`${departures.length === 1 ? 'Sale 1 reserva' : `Salen ${departures.length} reservas`}; su limpieza ya está asignada.`)
@@ -249,7 +253,7 @@ export default function Dashboard() {
 
   const teamNode = (
     <Card className="h-full">
-      <CardHeader eyebrow="Equipo" title="En este momento" subtitle={`${team.filter((t) => t.doing).length} personas trabajando`} action={<Link to="/equipo" className="pressable inline-flex h-10 items-center gap-1 rounded-full px-3 text-sm text-ink-soft hover:bg-wash hover:text-ink">Ver equipo <ArrowRight size={15} strokeWidth={1.6} /></Link>} />
+      <CardHeader eyebrow="Equipo" title="En este momento" subtitle={((n) => (n === 0 ? 'Nadie con una tarea en curso' : n === 1 ? '1 persona trabajando' : `${n} personas trabajando`))(team.filter((t) => t.doing).length)} action={<Link to="/equipo" className="pressable inline-flex h-10 items-center gap-1 rounded-full px-3 text-sm text-ink-soft hover:bg-wash hover:text-ink">Ver equipo <ArrowRight size={15} strokeWidth={1.6} /></Link>} />
       <ul className="flex flex-col gap-1 p-3 md:p-4">
         {team.map(({ e, doing, next, doneToday, mins, open }) => (
           <li key={e.id} className="flex items-center gap-3 rounded-[14px] px-2 py-2.5">
@@ -259,7 +263,7 @@ export default function Dashboard() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[15px] font-medium">{e.name}</span>
-              <span className="block truncate text-[13px] text-ink-soft">{doing ? `${doing.title} · ${mins} min` : next ? `Sigue: ${next.title}` : 'Sin pendientes'}</span>
+              <span className="block truncate text-[13px] text-ink-soft">{doing ? `${doing.title} · lleva ${mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}` : next ? `Sigue: ${next.title}` : 'Sin pendientes'}</span>
             </span>
             <span className="text-right">
               <span className="block text-xl font-semibold tabular">{doneToday}</span>
@@ -401,7 +405,7 @@ export default function Dashboard() {
           <div className="mt-7 grid max-w-[720px] grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
             {[
               { label: 'Ocupación', value: `${occupied}/${units.length}`, to: '/hospedaje' },
-              { label: 'Llegadas', value: String(arrivals.length), to: '/hospedaje' },
+              { label: 'Por llegar hoy', value: String(arrivals.filter((r) => r.status === 'confirmada' || r.status === 'pendiente').length), to: '/hospedaje' },
               { label: 'Salidas', value: String(departures.length), to: '/hospedaje' },
               { label: 'Eventos hoy', value: String(eventsToday.length), to: '/eventos' },
             ].map((k) => (

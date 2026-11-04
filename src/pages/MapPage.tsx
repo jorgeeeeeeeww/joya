@@ -249,7 +249,7 @@ export default function MapPage() {
   return (
     <div className="relative h-full w-full overflow-hidden bg-paper">
       {/* Lienzo */}
-      <div className={cx('absolute inset-x-0', isMobile ? 'top-[calc(env(safe-area-inset-top)+112px)] bottom-[calc(150px+env(safe-area-inset-bottom))]' : 'top-[76px] bottom-[64px]')}>{canvas}</div>
+      <div className={cx('absolute inset-x-0', isMobile ? 'top-[calc(env(safe-area-inset-top)+112px)] bottom-[calc(150px+env(safe-area-inset-bottom))]' : 'top-[120px] bottom-[64px]')}>{canvas}</div>
 
       {/* ── Celular ─────────────────────────────────────── */}
       {isMobile && (
@@ -312,7 +312,8 @@ export default function MapPage() {
       {!isMobile && (
         <>
           {/* Barra superior: título, vista y lista; ya no tapa el mapa */}
-          <div className="absolute top-4 left-5 z-20 flex flex-wrap items-center gap-2">
+          {/* Debajo de la barra superior de la app (buscador, avisos), que en el mapa va encima */}
+          <div className="absolute top-[64px] left-5 z-20 flex flex-wrap items-center gap-2">
             <div className="glass flex items-center gap-3 rounded-full py-1 pr-1 pl-4 shadow-[var(--shadow-1)] ring-1 ring-line">
               <span className="heading text-[1.15rem] leading-none">Mapa del rancho</span>
               {toggle}
@@ -328,7 +329,7 @@ export default function MapPage() {
           {/* Lista translúcida que se abre y se cierra */}
           <AnimatePresence>
             {listOpen && (
-              <motion.aside initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0, transition: { duration: 0.36, ease: ease.calma } }} exit={{ opacity: 0, x: -12, transition: { duration: 0.18 } }} className="absolute top-[76px] left-5 z-10 flex max-h-[calc(100%-150px)] w-[272px] flex-col rounded-[var(--r-lg)] bg-[color-mix(in_oklab,var(--surface)_78%,transparent)] shadow-[var(--shadow-2)] ring-1 ring-line backdrop-blur-md">
+              <motion.aside initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0, transition: { duration: 0.36, ease: ease.calma } }} exit={{ opacity: 0, x: -12, transition: { duration: 0.18 } }} className="absolute top-[124px] left-5 z-10 flex max-h-[calc(100%-200px)] w-[272px] flex-col rounded-[var(--r-lg)] bg-[color-mix(in_oklab,var(--surface)_78%,transparent)] shadow-[var(--shadow-2)] ring-1 ring-line backdrop-blur-md">
                 <div className="scroll-area min-h-0 overflow-y-auto p-2">
                   <ListGroup title="Hospedaje">
                     {unitList.map(({ f, u }) => (
@@ -353,7 +354,7 @@ export default function MapPage() {
           {/* Detalle */}
           <AnimatePresence>
             {selectedFeature && (
-              <motion.aside key={selectedFeature.id} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 24, transition: { duration: 0.2, ease: ease.salida } }} transition={spring.suave} className="absolute top-4 right-5 z-20 flex max-h-[calc(100%-88px)] w-[min(400px,calc(100%-40px))] flex-col rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow-3)] ring-1 ring-line">
+              <motion.aside key={selectedFeature.id} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 24, transition: { duration: 0.2, ease: ease.salida } }} transition={spring.suave} className="absolute top-[64px] right-5 z-20 flex max-h-[calc(100%-136px)] w-[min(400px,calc(100%-40px))] flex-col rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow-3)] ring-1 ring-line">
                 <div className="flex justify-end px-3 pt-3">
                   <Button
                     variant="ghost"

@@ -132,7 +132,7 @@ export default function Invitados() {
 
       {/* Resumen del evento */}
       <motion.div variants={fadeRise} className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
-        <Card className="relative overflow-hidden p-6 md:p-7">
+        <Card className="relative overflow-hidden p-5 sm:p-6 md:p-7">
           <div className="flex items-start gap-4">
             <EventOrb type={ev.type} size="lg" />
             <div className="min-w-0 flex-1">
@@ -145,18 +145,19 @@ export default function Invitados() {
               </p>
             </div>
           </div>
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            <div className="rounded-[var(--r-md)] bg-sunken p-4">
+          <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="rounded-[var(--r-md)] bg-sunken p-3 sm:p-4">
               <div className="text-xs text-ink-soft">Lugares en el plano</div>
               <div className="display-num mt-1.5 text-[1.9rem]">{seats}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-sunken p-4">
+            <div className="rounded-[var(--r-md)] bg-sunken p-3 sm:p-4">
               <div className="text-xs text-ink-soft">Personas confirmadas</div>
               <div className="display-num mt-1.5 text-[1.9rem]">{stats.conf}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-sunken p-4">
-              <div className="text-xs text-ink-soft">{stats.conf + stats.pend > seats ? 'Faltan lugares' : 'Lugares libres'}</div>
+            <div className="rounded-[var(--r-md)] bg-sunken p-3 sm:p-4">
+              <div className="text-xs text-ink-soft">{stats.conf + stats.pend > seats ? 'Faltan lugares' : 'Sobran lugares'}</div>
               <div className={cx('display-num mt-1.5 text-[1.9rem]', stats.conf + stats.pend > seats && 'text-danger')}>{Math.abs(seats - stats.conf - stats.pend)}</div>
+              <div className="mt-0.5 text-[11px] leading-tight text-ink-3">contando a {stats.pend} por confirmar</div>
             </div>
           </div>
           {stats.conf + stats.pend > seats && seats > 0 && <p className="mt-3 text-sm text-danger">Si todos los pendientes confirman no alcanzan los lugares: agrega mesas en el plano del evento.</p>}

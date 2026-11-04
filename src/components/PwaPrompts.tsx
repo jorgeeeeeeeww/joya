@@ -141,7 +141,7 @@ function InstallCard() {
 function BadgeSync() {
   const me = useMe()
   const all = useCollection('notifications')
-  const unread = useMemo(() => all.filter((n) => me && !n.read && n.roles.includes(me.role)).length, [all, me])
+  const unread = useMemo(() => all.filter((n) => me && !n.read && n.roles.includes(me.role) && (!n.userId || n.userId === me.id)).length, [all, me])
   useAppBadge(unread)
   return null
 }

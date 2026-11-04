@@ -151,8 +151,9 @@ export function GuestListView({ ev, onChange, onEdit, onWhatsApp }: { ev: RanchE
                     return (
                       <motion.li key={g.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.24, ease: ease.calma }} className="border-b border-line last:border-0">
                         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 lg:min-h-[64px] lg:grid-cols-[minmax(0,2.4fr)_70px_minmax(0,1fr)_96px_132px_120px] lg:px-5">
+                          {/* En celular el nombre mismo abre la ficha: el lápiz y la foto se quedan en pantallas anchas para dejarle espacio al nombre */}
                           <button onClick={() => onEdit(g)} className="flex min-w-0 items-center gap-3 text-left">
-                            <Avatar name={g.name.replace(/^Familia\s+/i, '')} tone={r === 'confirmado' ? 'sage' : r === 'pendiente' ? 'butter' : 'rose'} size={40} />
+                            <Avatar name={g.name.replace(/^Familia\s+/i, '')} tone={r === 'confirmado' ? 'sage' : r === 'pendiente' ? 'butter' : 'rose'} size={40} className="max-sm:hidden" />
                             <span className="min-w-0">
                               <span className="flex items-center gap-1.5">
                                 {g.vip && <Crown size={14} strokeWidth={1.6} className="shrink-0 text-chispa" aria-label="VIP" />}
@@ -185,7 +186,7 @@ export function GuestListView({ ev, onChange, onEdit, onWhatsApp }: { ev: RanchE
                                   {g.invitedAt ? <MessageCircle size={17} strokeWidth={1.6} /> : <Send size={16} strokeWidth={1.6} />}
                                 </button>
                               )}
-                              <button onClick={() => onEdit(g)} className="pressable flex h-10 w-10 items-center justify-center rounded-full text-ink-soft hover:bg-wash hover:text-ink" aria-label={`Editar a ${g.name}`}>
+                              <button onClick={() => onEdit(g)} className="pressable flex h-10 w-10 items-center justify-center rounded-full text-ink-soft hover:bg-wash hover:text-ink max-lg:hidden" aria-label={`Editar a ${g.name}`}>
                                 <Pencil size={16} strokeWidth={1.6} />
                               </button>
                             </span>

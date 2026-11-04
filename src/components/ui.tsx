@@ -109,8 +109,9 @@ export function Card({ className, children, onClick, as = 'div' }: { className?:
 
 export function CardHeader({ title, subtitle, action, icon, eyebrow }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode; icon?: ReactNode; eyebrow?: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-3 px-4 pt-4 md:px-5 md:pt-5">
-      <div className="flex min-w-0 items-center gap-2.5">
+    // Si la acción no cabe junto al título baja a su propio renglón, en vez de aplastar el título
+    <div className="flex flex-wrap items-start justify-between gap-3 px-4 pt-4 md:px-5 md:pt-5">
+      <div className="flex min-w-0 flex-1 basis-48 items-center gap-2.5">
         {icon}
         <div className="min-w-0">
           {eyebrow && <div className="kicker mb-0.5">{eyebrow}</div>}
@@ -377,8 +378,8 @@ export interface PageAction {
 export function PageHeader({ title, subtitle, actions, eyebrow, primary, menu, fab = true }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; eyebrow?: ReactNode; primary?: PageAction; menu?: MenuItem[]; fab?: boolean }) {
   const hasMenu = !!menu?.some((m) => !m.hidden)
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div className="min-w-0">
+    <div className="relative mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div className={cx('min-w-0', hasMenu && 'max-md:pr-12')}>
         {eyebrow && (
           <div className="eyebrow mb-2 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-chispa-soft shadow-[0_0_10px_var(--luz)]" />
@@ -391,7 +392,8 @@ export function PageHeader({ title, subtitle, actions, eyebrow, primary, menu, f
       {(actions || hasMenu || primary) && (
         <div className="flex flex-wrap items-center gap-2">
           {actions}
-          {hasMenu && <OverflowMenu items={menu!} />}
+          {/* En el celular, "más acciones" va en la esquina, junto al título (no en un renglón solo) */}
+          {hasMenu && <OverflowMenu items={menu!} className="max-md:absolute max-md:-top-1 max-md:right-0" />}
           {primary && (
             <Button data-tour="primary-action" icon={primary.icon} onClick={primary.onClick} className={cx(fab && 'max-md:hidden')}>
               {primary.label}

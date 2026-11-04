@@ -102,6 +102,26 @@ function onReservation(ctx: Ctx<'reservations'>) {
 
 function onTask(ctx: Ctx<'tasks'>) {
   const { before, after, settings } = ctx
+  // Aviso a la persona cuando le asignan una tarea (y no se la asignó ella misma)
+  if (!after.deleted && after.assigneeId && after.assigneeId !== before?.assigneeId) {
+    const api = ctx.api('Tarea asignada → aviso')
+    const state = api.get()
+    const by = state.session.userId
+    const who = state.data.employees[after.assigneeId]
+    if (who && by !== after.assigneeId) {
+      const from = by ? state.data.employees[by]?.name.split(' ')[0] : undefined
+      const place = after.unitId ? state.data.units[after.unitId]?.name : undefined
+      const when = after.due ? (after.due.slice(0, 10) === today() ? `hoy ${after.due.slice(11, 16)}` : after.due.slice(0, 10) === addDaysISO(today(), 1) ? `mañana ${after.due.slice(11, 16)}` : after.due.slice(0, 10)) : undefined
+      api.notify({
+        title: 'Te asignaron una tarea',
+        body: `${from ? `${from}: ` : ''}${after.title}${place ? ` · ${place}` : ''}${when ? ` · ${when}` : ''}`,
+        tone: 'butter',
+        link: `/tareas?t=${after.id}`,
+        roles: [who.role],
+        userId: who.id,
+      })
+    }
+  }
   if (!after.unitId || after.deleted) return
   const statusChanged = before?.status !== after.status
   const api = ctx.api('Limpieza → estado de la unidad')

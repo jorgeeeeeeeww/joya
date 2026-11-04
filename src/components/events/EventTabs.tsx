@@ -147,14 +147,15 @@ export function GuestsTab({ ev }: { ev: RanchEvent }) {
               return (
                 <motion.div key={g.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} className="flex flex-wrap items-center gap-3 px-4 py-3 md:px-5">
                   <RoundCheck done={g.confirmed} onClick={() => update(g.id, { confirmed: !g.confirmed })} label={g.confirmed ? `Quitar confirmación de ${g.name}` : `Confirmar a ${g.name}`} />
-                  <div className="min-w-0 flex-1">
+                  {/* En celular: nombre en su propio renglón; personas, mesa y quitar bajan al siguiente */}
+                  <div className="min-w-0 flex-1 max-md:basis-[calc(100%-3.5rem)]">
                     <input value={g.name} onChange={(e) => update(g.id, { name: e.target.value })} aria-label="Nombre del invitado" className="w-full rounded-[10px] bg-transparent px-1.5 py-0.5 font-medium outline-none hover:bg-wash focus:bg-sunken" />
-                    <div className="flex items-center gap-2 px-1.5 text-xs text-ink-soft">
+                    <div className="flex flex-wrap items-center gap-x-2 px-1.5 text-xs text-ink-soft">
                       {g.side && <span>{g.side}</span>}
                       <span>{g.confirmed ? 'Confirmado' : 'Por confirmar'}</span>
                     </div>
                   </div>
-                  <div className="flex items-center rounded-full bg-sunken p-1" role="group" aria-label="Personas">
+                  <div className="flex items-center rounded-full bg-sunken p-1 max-md:ml-14" role="group" aria-label="Personas">
                     <button onClick={() => update(g.id, { count: Math.max(1, g.count - 1) })} aria-label="Una persona menos" className="pressable h-9 w-9 rounded-full text-ink-soft hover:bg-surface">
                       −
                     </button>
@@ -163,7 +164,7 @@ export function GuestsTab({ ev }: { ev: RanchEvent }) {
                       +
                     </button>
                   </div>
-                  <Select value={g.table ?? ''} onChange={(e) => update(g.id, { table: e.target.value ? Number(e.target.value) : undefined })} className={cx('h-11 w-36', over && 'border-danger text-danger')} aria-label="Mesa">
+                  <Select value={g.table ?? ''} onChange={(e) => update(g.id, { table: e.target.value ? Number(e.target.value) : undefined })} className={cx('h-11 w-36 max-md:w-auto max-md:flex-1', over && 'border-danger text-danger')} aria-label="Mesa">
                     <option value="">Sin mesa</option>
                     {tables.map((t) => (
                       <option key={t.number} value={t.number}>

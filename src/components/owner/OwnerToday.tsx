@@ -39,7 +39,7 @@ export function ActivityToday({ data }: { data: DataState }) {
       if (e.deleted || !isToday(e.createdAt)) continue
       out.push({ id: e.id, at: e.createdAt, who: name(e.coordinatorId ?? e.updatedBy), icon: CalendarHeart, tone: 'text-ink-soft', text: `agendó ${e.title} (${fmtDate(e.date)})`, to: `/eventos/${e.id}` })
     }
-    return out.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 8)
+    return out.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6)
   }, [data])
 
   return (

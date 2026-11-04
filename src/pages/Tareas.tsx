@@ -184,16 +184,33 @@ export function TaskSheet({ taskId, open, onClose, draft }: { taskId?: string; o
             options={(Object.keys(TASK_TYPE) as TaskType[]).map((k) => ({ value: k, label: TASK_TYPE[k].label, tone: TASK_TYPE[k].tone, disabled: !canEditAll }))}
           />
           <Choices label="Prioridad" value={form.priority} onChange={(v) => set({ priority: v })} size="sm" options={(Object.keys(PRIORITY) as Priority[]).map((k) => ({ value: k, label: PRIORITY[k].label, tone: PRIORITY[k].tone, disabled: !canEditAll }))} />
+          {/* ¿Quién la hace?: las personas a la vista, de un toque. Primero quienes suelen hacer ese tipo de tarea */}
+          <div>
+            <span className="mb-2 block text-[13px] font-medium">¿Quién la hace?</span>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Quién la hace">
+              {[...employees]
+                .sort((a, b) => Number(fitsType(b.role, form.type)) - Number(fitsType(a.role, form.type)))
+                .map((e) => {
+                  const on = form.assigneeId === e.id
+                  return (
+                    <button
+                      key={e.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      disabled={!canEditAll}
+                      onClick={() => set({ assigneeId: on ? undefined : e.id })}
+                      className={cx('pressable inline-flex min-h-11 items-center gap-2 rounded-full py-1 pr-3.5 pl-1 text-sm ring-inset', on ? 'bg-ink text-paper' : 'ring-1 ring-line hover:bg-wash', !fitsType(e.role, form.type) && !on && 'opacity-70')}
+                    >
+                      <Avatar name={e.name} tone={e.color} size={30} />
+                      {e.name.split(' ')[0]}
+                    </button>
+                  )
+                })}
+            </div>
+            <p className="mt-1.5 text-xs text-ink-soft">{form.assigneeId ? 'Le llega un aviso y la ve en su panel.' : 'Si no eliges a nadie, queda para quien la tome primero.'}</p>
+          </div>
           <div className="grid gap-3 @xl:grid-cols-2">
-            <Combobox
-              label="Responsable"
-              icon={<User />}
-              value={form.assigneeId ?? ''}
-              onChange={(v) => set({ assigneeId: v || undefined })}
-              clearable
-              disabled={!canEditAll}
-              options={employees.map((e) => ({ value: e.id, label: e.name, hint: e.role === 'limpieza' ? 'Limpieza' : e.role === 'mantenimiento' ? 'Mantenimiento' : e.role === 'eventos' ? 'Wedding planner' : e.role === 'recepcion' ? 'Recepción' : 'Administración', icon: <Avatar name={e.name} tone={e.color} size={24} /> }))}
-            />
             <Combobox label="Lugar" icon={<MapPin />} value={form.unitId ?? ''} onChange={(v) => set({ unitId: v || undefined })} clearable disabled={!canEditAll} options={units.map((u) => ({ value: u.id, label: u.name, hint: u.short, tone: u.color }))} />
             <DateField label="Fecha" value={dueDate} onChange={(d) => set({ due: d ? `${d}T${dueTime || '12:00'}` : undefined })} clearable disabled={!canEditAll} />
             <TimeField label="Hora" value={dueTime} onChange={(h) => set({ due: `${dueDate || today()}T${h || '12:00'}` })} presets={['08:00', '10:00', '12:00', '14:00', '16:00', '18:00']} disabled={!canEditAll} />
@@ -306,14 +323,19 @@ function QuickAdd({ onCreated }: { onCreated?: () => void }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), create())}
-          placeholder='Agregar rápido: "foco casa 2 mañana 10am @Chuy"'
+          placeholder="Escribe una tarea nueva"
           aria-label="Agregar tarea rápido"
-          className="h-11 min-w-0 flex-1 bg-transparent px-1 text-base !outline-none placeholder:text-ink-faint pointer-fine:text-[15px]"
+          className="h-11 min-w-0 flex-1 bg-transparent px-1 text-base !shadow-none !outline-none placeholder:text-ink-faint pointer-fine:text-[15px]"
         />
         <Button size="sm" onClick={create} disabled={!parsed?.title} icon={<CornerDownLeft size={15} strokeWidth={1.7} />} className="shrink-0">
           <span className="max-sm:hidden">Crear</span>
         </Button>
       </div>
+      {!parsed && (
+        <p className="px-1 pt-2 text-[12.5px] leading-snug text-ink-soft">
+          Escríbela como la dirías: <span className="text-ink">«foco casa Lavanda mañana 10am @Chuy»</span>. La app entiende el lugar, el día, la hora y a quién se la asignas.
+        </p>
+      )}
       <AnimatePresence initial={false}>
         {parsed && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.24, ease: ease.calma }} className="overflow-hidden">
@@ -361,6 +383,10 @@ function groupByDue(list: Task[]) {
   return groups.filter((g) => g.items.length)
 }
 
+/** ¿Esta persona suele hacer este tipo de tarea? (para sugerirla primero) */
+const fitsType = (role: string, type?: string) =>
+  type === 'limpieza' ? role === 'limpieza' : type === 'mantenimiento' || type === 'jardin' ? role === 'mantenimiento' : type === 'evento' ? role === 'eventos' : type === 'compra' ? role === 'admin' || role === 'recepcion' : true
+
 export default function Tareas() {
   const tasks = useCollection('tasks')
   const employees = useCollection('employees')
@@ -378,7 +404,7 @@ export default function Tareas() {
   const filtered = useMemo(
     () =>
       tasks
-        .filter((t) => (scope === 'mias' ? t.assigneeId === me?.id || !t.assigneeId : true))
+        .filter((t) => (scope === 'mias' ? t.assigneeId === me?.id || (!t.assigneeId && (me?.role === 'admin' || fitsType(me?.role ?? '', t.type))) : true))
         .filter((t) => type === 'todas' || t.type === type)
         .filter((t) => !who || t.assigneeId === who)
         .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || (a.due ?? '9').localeCompare(b.due ?? '9')),

@@ -63,7 +63,7 @@ export function MonthReportButton({ variant = 'tinta' as 'tinta' | 'outline' }) 
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ej. Se pintó el salón; subir tarifa de fin de semana en diciembre." />
           </Field>
           <ul className="rounded-[var(--r-md)] bg-sunken p-4 text-sm text-ink-soft">
-            {['Ingresos por línea y gastos por categoría', 'Utilidad y margen', 'Ocupación, tarifa promedio y RevPAR por unidad', 'Reservas por canal y eventos del mes', 'Incidencias de mantenimiento'].map((t) => (
+            {['Ingresos por línea y gastos por categoría', 'Utilidad y margen', 'Ocupación, tarifa promedio e ingreso por noche de cada casa', 'Reservas por canal y eventos del mes', 'Incidencias de mantenimiento'].map((t) => (
               <li key={t} className="flex items-center gap-2 py-0.5">
                 <Sparkle className="text-[10px] text-chispa-soft" /> {t}
               </li>

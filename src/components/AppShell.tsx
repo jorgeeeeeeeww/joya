@@ -23,8 +23,7 @@ import {
   Store,
   Users,
   UsersRound,
-  Wallet,
-} from 'lucide-react'
+  Wallet, HelpCircle } from 'lucide-react'
 import { useCollection, useMe, useStore } from '@/lib/store'
 import { ROLE, ROLE_MORE, ROLE_SECTIONS, TONE, type Section } from '@/lib/meta'
 import { ago, localDay, today } from '@/lib/format'
@@ -36,6 +35,11 @@ import { PresenceStack, PwaPrompts } from './PwaPrompts'
 import { ThemeToggle } from './ThemeToggle'
 import { trackPage } from '@/lib/sync'
 import { ErrorBoundary } from './ErrorBoundary'
+import { AssistantDock } from './assistant/Asistente'
+
+/** Una tarea sin asignar le toca a quien hace ese tipo de trabajo (para el contador del menú) */
+const fitsRole = (role: string | undefined, type: string) =>
+  type === 'limpieza' ? role === 'limpieza' || role === 'recepcion' : type === 'mantenimiento' || type === 'jardin' ? role === 'mantenimiento' : type === 'evento' ? role === 'eventos' : type === 'compra' ? role === 'recepcion' : true
 
 export const NAV: Record<Section, { label: string; to: string; icon: typeof Home; group: string }> = {
   inicio: { label: 'Inicio', to: '/', icon: Home, group: 'General' },
@@ -145,7 +149,7 @@ function NotificationsButton() {
   const patch = useStore((s) => s.patch)
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const mine = useMemo(() => all.filter((n) => me && n.roles.includes(me.role)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 60), [all, me])
+  const mine = useMemo(() => all.filter((n) => me && n.roles.includes(me.role) && (!n.userId || n.userId === me.id)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 60), [all, me])
   const unread = mine.filter((n) => !n.read).length
   return (
     <>
@@ -218,7 +222,7 @@ function useNavCounts(): Partial<Record<Section, { n: number; urgent?: boolean }
   return useMemo(() => {
     const T = today()
     const open = Object.values(tasks).filter((t) => !t.deleted && (t.status === 'pendiente' || t.status === 'en-progreso'))
-    const mine = me?.role === 'admin' ? open : open.filter((t) => t.assigneeId === me?.id || !t.assigneeId)
+    const mine = me?.role === 'admin' ? open : open.filter((t) => t.assigneeId === me?.id || (!t.assigneeId && fitsRole(me?.role, t.type)))
     const dueToday = mine.filter((t) => !t.due || t.due.slice(0, 10) <= T)
     const cleaning = open.filter((t) => t.type === 'limpieza' && (me?.role !== 'limpieza' || t.assigneeId === me?.id))
     const arrivals = Object.values(reservations).filter((r) => !r.deleted && r.checkIn === T && (r.status === 'confirmada' || r.status === 'pendiente'))
@@ -347,7 +351,7 @@ export default function AppShell() {
       </a>
 
       {/* Barra lateral compacta: rail en tablet, completa en escritorio (medidas estilo Fintrack) */}
-      <aside className="hidden shrink-0 flex-col border-r border-line bg-surface pt-safe md:flex md:w-[72px] xl:w-[240px]">
+      <aside className="hidden shrink-0 flex-col border-r border-line bg-surface pt-safe md:flex md:w-[84px] xl:w-[240px]">
         <div className="flex h-14 items-center justify-center border-b border-line px-4 xl:justify-start">
           <span className="xl:hidden">
             <Brand compact />
@@ -375,12 +379,14 @@ export default function AppShell() {
                     const Icon = item.icon
                     const c = counts[sec]
                     return (
-                      <NavLink key={sec} to={item.to} end={item.to === '/'} title={item.label} className={({ isActive }) => cx('relative mb-px flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[14px] font-medium transition-colors duration-[var(--dur-2)] md:justify-center xl:justify-start', isActive ? 'text-ink' : 'text-ink-soft hover:bg-wash hover:text-ink')}>
+                      <NavLink key={sec} to={item.to} end={item.to === '/'} title={item.label} className={({ isActive }) => cx('relative mb-px flex items-center gap-2.5 rounded-lg px-2.5 text-[14px] font-medium transition-colors duration-[var(--dur-2)] md:min-h-12 md:flex-col md:justify-center md:gap-0.5 md:px-1 md:py-1.5 xl:h-9 xl:min-h-0 xl:flex-row xl:justify-start xl:gap-2.5 xl:px-2.5 xl:py-0', isActive ? 'text-ink' : 'text-ink-soft hover:bg-wash hover:text-ink')}>
                         {({ isActive }) => (
                           <>
                             {isActive && <motion.span layoutId="nav-active" className="absolute inset-0 rounded-lg bg-secondary ring-1 ring-line" transition={spring.suave} />}
                             <Icon size={17} strokeWidth={1.7} className="relative shrink-0" />
                             <span className="relative hidden flex-1 truncate xl:inline">{item.label}</span>
+                            {/* En tablet: el nombre debajo del ícono (en pantalla táctil no hay "pasar el mouse" para saber qué es) */}
+                            <span className="relative text-center text-[10.5px] leading-tight font-medium xl:hidden">{item.label}</span>
                             {c && c.n > 0 && (
                               <span className={cx('relative hidden min-w-5 justify-center text-[11.5px] tabular xl:flex', c.urgent ? 'font-semibold text-chispa' : 'text-ink-3')}>{c.n}</span>
                             )}
@@ -396,6 +402,12 @@ export default function AppShell() {
           })}
         </nav>
         <div className="border-t border-line p-2.5">
+          <NavLink to="/ayuda" title="¿Cómo se hace?" className={({ isActive }) => cx('mb-1.5 flex items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-ink-soft hover:bg-wash hover:text-ink md:min-h-11 md:flex-col md:justify-center md:gap-0.5 md:text-[10.5px] xl:min-h-9 xl:flex-row xl:justify-start xl:gap-2.5 xl:text-[13.5px]', isActive && 'bg-secondary text-ink')}>
+            <HelpCircle size={17} strokeWidth={1.7} />
+            {/* En el riel angosto de tablet el nombre corto cabe en un renglón */}
+            <span className="xl:hidden">Ayuda</span>
+            <span className="max-xl:hidden">¿Cómo se hace?</span>
+          </NavLink>
           <div className="mb-1.5 flex justify-center xl:justify-start xl:px-1">
             <span className="xl:hidden">
               <SyncPill compact />
@@ -411,7 +423,7 @@ export default function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className={cx('z-30 flex shrink-0 items-center gap-1.5 px-4 pt-safe md:px-6', fullBleed ? 'absolute inset-x-0 md:left-[72px] xl:left-[240px]' : 'glass border-b border-line')}>
+        <header className={cx('z-30 flex shrink-0 items-center gap-1.5 px-4 pt-safe md:px-6', fullBleed ? 'absolute inset-x-0 md:left-[84px] xl:left-[240px]' : 'glass border-b border-line')}>
           <div className="flex h-14 min-w-0 flex-1 items-center gap-2.5">
             <span className="md:hidden">
               <Brand compact />
@@ -501,6 +513,13 @@ export default function AppShell() {
             )
           })}
         </div>
+        <NavLink to="/ayuda" onClick={() => setMore(false)} className="card pressable mt-3 flex min-h-14 items-center gap-3 px-4 text-[15px]">
+          <HelpCircle size={20} strokeWidth={1.6} className="text-ink-soft" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">¿Cómo se hace?</span>
+            <span className="block text-xs text-ink-soft">Guías paso a paso de tu trabajo</span>
+          </span>
+        </NavLink>
         <div className="card mt-5">
           <UserCard />
         </div>
@@ -510,6 +529,7 @@ export default function AppShell() {
       </Sheet>
 
       <OfflineBanner />
+      <AssistantDock />
       <PwaPrompts />
       <CommandPalette open={search} onClose={() => setSearch(false)} />
     </div>

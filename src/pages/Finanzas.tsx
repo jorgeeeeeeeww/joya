@@ -232,7 +232,7 @@ export default function Finanzas() {
         <Stat label="Ingresos" value={<CountUp value={income} format={compactMxn} />} sub={`${pays.length} pagos recibidos`} tone="sage" icon={<ArrowUpRight size={16} strokeWidth={1.6} />} />
         <Stat label="Gastos" value={<CountUp value={spent} format={compactMxn} />} sub={`${exps.length} movimientos`} tone="rose" icon={<ArrowDownRight size={16} strokeWidth={1.6} />} />
         <Stat label="Utilidad" value={<CountUp value={profit} format={compactMxn} />} accent sub={income ? `Margen de ${pct(profit / income)}` : 'Sin ingresos aún'} />
-        <Stat label="Tarifa promedio por noche" value={<CountUp value={adr} format={compactMxn} />} sub={`RevPAR ${mxn(revpar)} · ocupación ${pct(occ)}`} tone="butter" icon={<Wallet size={16} strokeWidth={1.6} />} />
+        <Stat label="Tarifa promedio por noche" value={<CountUp value={adr} format={compactMxn} />} sub={`Casas ocupadas el ${pct(occ)} de las noches · cada casa deja ${mxn(revpar)} por noche en promedio`} tone="butter" icon={<Wallet size={16} strokeWidth={1.6} />} />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1.55fr_1fr] lg:gap-6">

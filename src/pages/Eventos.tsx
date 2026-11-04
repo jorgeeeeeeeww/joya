@@ -95,9 +95,9 @@ export default function Eventos() {
           value={view}
           onChange={setView}
           options={[
-            { value: 'calendario', label: <><CalendarDays size={16} strokeWidth={1.6} /> <span className="hidden sm:inline">Calendario</span></> },
-            { value: 'prospectos', label: <><Inbox size={16} strokeWidth={1.6} /> <span className="hidden sm:inline">Prospectos</span></> },
-            { value: 'lista', label: <><List size={16} strokeWidth={1.6} /> <span className="hidden sm:inline">Lista</span></> },
+            { value: 'calendario', label: <><CalendarDays size={16} strokeWidth={1.6} /> <span>Calendario</span></> },
+            { value: 'prospectos', label: <><Inbox size={16} strokeWidth={1.6} /> <span>Prospectos</span></> },
+            { value: 'lista', label: <><List size={16} strokeWidth={1.6} /> <span>Lista</span></> },
           ]}
         />
       </div>
@@ -186,7 +186,7 @@ function CalendarView({ events, onNew, onOpen }: { events: RanchEvent[]; onNew: 
                   if (!list.length && window.matchMedia('(min-width: 768px)').matches && iso >= t) onNew(iso)
                 }}
                 className={cx(
-                  'group relative min-h-[66px] cursor-pointer border-t border-r border-line p-1.5 text-left transition-colors duration-[var(--dur-2)] md:min-h-[118px] md:p-2 [&:nth-child(7n)]:border-r-0',
+                  'group relative min-h-[66px] cursor-pointer border-t border-r border-line p-1.5 text-left transition-colors duration-[var(--dur-2)] md:min-h-[118px] md:p-1 lg:p-2 [&:nth-child(7n)]:border-r-0',
                   !inMonth && 'bg-sunken/50',
                   isSel ? 'bg-[color-mix(in_oklab,var(--luz)_30%,var(--surface))]' : 'hover:bg-wash',
                   drag.over === iso && (drag.blocked ? 'bg-[color-mix(in_oklab,var(--danger)_10%,var(--surface))] shadow-[inset_0_0_0_1.5px_var(--danger)]' : 'drop-glow bg-[color-mix(in_oklab,var(--luz)_18%,var(--surface))]'),
@@ -211,10 +211,10 @@ function CalendarView({ events, onNew, onOpen }: { events: RanchEvent[]; onNew: 
                           if (!drag.justDropped()) onOpen(e.id)
                         }}
                         title="Toca para abrir · arrastra a otro día para cambiar la fecha"
-                        className={cx('pressable no-callout flex cursor-grab items-center gap-1.5 truncate rounded-full px-2 py-1 text-left text-[11px] touch-manipulation', drag.id === e.id && 'opacity-35', TONE[VENUE[e.venue].tone].soft, TONE[VENUE[e.venue].tone].ink, (e.status === 'prospecto' || e.status === 'cotizado') && 'opacity-75 ring-1 ring-current ring-inset [--tw-ring-opacity:.3]')}
+                        className={cx('pressable no-callout flex cursor-grab items-start gap-1 rounded-[8px] px-1 py-1 text-left text-[10.5px] leading-tight touch-manipulation lg:gap-1.5 lg:px-2 lg:text-[11px]', drag.id === e.id && 'opacity-35', TONE[VENUE[e.venue].tone].soft, TONE[VENUE[e.venue].tone].ink, (e.status === 'prospecto' || e.status === 'cotizado') && 'opacity-75 ring-1 ring-current ring-inset [--tw-ring-opacity:.3]')}
                       >
-                        <Icon size={12} strokeWidth={1.6} className="shrink-0" />
-                        <span className="truncate">{e.title}</span>
+                        <Icon size={12} strokeWidth={1.6} className="mt-px shrink-0 max-lg:hidden" />
+                        <span className="min-w-0 hyphens-auto [overflow-wrap:anywhere]">{e.title}</span>
                       </button>
                     )
                   })}
@@ -369,7 +369,7 @@ function EventRow({ e, onOpen, right }: { e: RanchEvent; onOpen: (id: string) =>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1">
         <Badge tone={EVENT_STATUS[e.status].tone}>{EVENT_STATUS[e.status].label}</Badge>
-        <Badge tone={VENUE[e.venue].tone} className="hidden sm:inline-flex">
+        <Badge tone={VENUE[e.venue].tone} className="max-sm:hidden">
           {VENUE[e.venue].label}
         </Badge>
         {right}

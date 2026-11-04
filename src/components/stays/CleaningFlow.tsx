@@ -7,7 +7,7 @@ import { PRIORITY, TASK_STATUS, UNIT_STATUS } from '@/lib/meta'
 import { fmtDate, nowIso, relativeDay, today, waLink } from '@/lib/format'
 import { ease, haptic } from '@/lib/motion'
 import type { ID, Priority, Reservation } from '@/lib/types'
-import { Badge, Button, CheckDraw, Confirm, cx, ProgressRing, Sheet, toast } from '@/components/ui'
+import { Badge, Button, CheckDraw, Confirm, cx, ProgressRing, Sheet, Textarea, toast } from '@/components/ui'
 import { Choices, Combobox, NotesField } from '@/components/fields'
 import { SwipeRow } from '@/components/interact'
 import { BeforeAfter } from '@/components/cleaning/BeforeAfter'
@@ -131,6 +131,8 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
   const [verified, setVerified] = useState(false)
   const [askNoPhoto, setAskNoPhoto] = useState(false)
   const [lostOpen, setLostOpen] = useState(false)
+  const [backOpen, setBackOpen] = useState(false)
+  const [backNote, setBackNote] = useState('')
   const elapsed = useElapsed(task?.startedAt, task?.completedAt)
   const next = unit ? nextArrival(Object.values(reservations).filter((r) => !r.deleted), unit.id) : undefined
   const done = task?.checklist.filter((c) => c.done).length ?? 0
@@ -163,6 +165,17 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
     }, 1700)
   }
   const tryFinish = () => (task.photoIds.length ? finish() : setAskNoPhoto(true))
+  // Regresar la limpieza con una nota: vuelve a "limpiando" y le llega un aviso a quien la hizo
+  const sendBack = () => {
+    const note = backNote.trim() || 'Revisar de nuevo'
+    db.patch('tasks', task.id, { status: 'en-progreso', notes: [task.notes, `Regresada: ${note}`].filter(Boolean).join(' · ') })
+    const who = task.assigneeId ? db.get('employees', task.assigneeId) : undefined
+    if (who) useStore.getState().notify({ title: 'Te regresaron una limpieza', body: `${unit?.name ?? ''}: ${note}`, tone: 'peach', link: '/', roles: [who.role], userId: who.id })
+    toast.info('Limpieza regresada', who ? `Le avisamos a ${who.name.split(' ')[0]}.` : note)
+    setBackOpen(false)
+    setBackNote('')
+    onClose()
+  }
   const verify = () => {
     db.patch('tasks', task.id, { status: 'verificada', verifiedAt: nowIso(), verifiedById: me?.id })
     haptic.success()
@@ -193,9 +206,14 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
               Marcar como lista
             </Button>
           ) : task.status === 'hecha' && supervisor ? (
-            <Button size="lg" className="w-full" icon={<ShieldCheck size={20} strokeWidth={1.6} />} onClick={verify}>
-              Verificar y liberar
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button size="lg" className="w-full" icon={<ShieldCheck size={20} strokeWidth={1.6} />} onClick={verify}>
+                Verificar y liberar
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => setBackOpen(true)}>
+                Falta algo: regresarla
+              </Button>
+            </div>
           ) : (
             <p className="flex items-center justify-center gap-2 py-2 text-center text-sm text-ink-soft">
               {task.status === 'hecha' ? (
@@ -331,6 +349,26 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
             </button>
           </>
         )}
+      </Sheet>
+      <Sheet
+        open={backOpen}
+        onClose={() => setBackOpen(false)}
+        title="¿Qué falta?"
+        subtitle="Se lo decimos a quien la limpió y la casa vuelve a «Limpiando»"
+        footer={
+          <Button size="lg" className="w-full" onClick={sendBack}>
+            Regresar la limpieza
+          </Button>
+        }
+      >
+        <div className="mb-3 flex flex-wrap gap-2">
+          {['Falta tender una cama', 'El baño necesita otra pasada', 'Faltan toallas', 'Hay basura afuera'].map((t) => (
+            <button key={t} type="button" onClick={() => setBackNote(t)} className={cx('pressable min-h-10 rounded-full px-3.5 text-sm ring-1 ring-inset', backNote === t ? 'bg-ink text-paper ring-ink' : 'ring-line hover:bg-wash')}>
+              {t}
+            </button>
+          ))}
+        </div>
+        <Textarea value={backNote} onChange={(e) => setBackNote(e.target.value)} placeholder="O escríbelo con tus palabras" rows={3} />
       </Sheet>
       <Confirm open={askNoPhoto} onClose={() => setAskNoPhoto(false)} title="¿Terminar sin foto?" body="Una foto ayuda a administración a revisar más rápido. ¿Quieres marcarla como lista de todos modos?" confirmLabel="Sí, está lista" onConfirm={finish} />
       <LostItemSheet open={lostOpen} onClose={() => setLostOpen(false)} unitId={task.unitId} reservationId={task.reservationId} />

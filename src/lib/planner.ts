@@ -1,5 +1,6 @@
 // Helpers del espacio del wedding planner: dinero por evento, embudo, seguimientos,
 // disponibilidad de sábados y cobros del plan de pagos.
+import { modulesOf } from './modules'
 import { useMemo } from 'react'
 import { parseISO } from 'date-fns'
 import type { EventStatus, RanchEvent, Venue } from './types'
@@ -84,7 +85,10 @@ export function eventReadiness(ev: RanchEvent, paidRatio: number) {
   const chk = ev.checklist.length ? ev.checklist.filter((c) => c.done).length / ev.checklist.length : 0
   const people = ev.guestList.reduce((n, g) => n + g.count, 0)
   const conf = people ? ev.guestList.filter((g) => g.confirmed).reduce((n, g) => n + g.count, 0) / people : 0
-  return { checklist: chk, payments: Math.min(1, paidRatio), guests: conf, overall: (chk + Math.min(1, paidRatio) + conf) / 3 }
+  // Lo que el evento no usa (módulo apagado) no cuenta en el avance general
+  const m = modulesOf(ev)
+  const parts = [m.checklist ? chk : null, m.pagos || m.cotizacion ? Math.min(1, paidRatio) : null, m.invitados ? conf : null].filter((x): x is number => x !== null)
+  return { checklist: chk, payments: Math.min(1, paidRatio), guests: conf, overall: parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0 }
 }
 
 export function weekRange(t = today()) {

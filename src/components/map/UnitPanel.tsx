@@ -1,6 +1,6 @@
 // Detalle del elemento seleccionado en el mapa (unidad, salón, jardín u otra área) · step1.
 import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Baby, Bath, BedDouble, CalendarClock, CalendarHeart, Car, DoorOpen, Droplets, MessageCircle, Sparkles, TreePalm, Users, Warehouse } from 'lucide-react'
 import { featureById, type MapFeature } from '@/lib/layout'
 import { db, useCollection, useDoc, useMe } from '@/lib/store'
@@ -60,6 +60,7 @@ function Hero({ tone, icon, eyebrow, title, subtitle, badge, hidden }: { tone: P
 const STATUS_FLOW: UnitStatus[] = ['lista', 'ocupada', 'sucia', 'limpiando', 'inspeccion', 'mantenimiento']
 
 function UnitDetail({ unitId, feature, compactHeader }: { unitId: string; feature: MapFeature; compactHeader?: boolean }) {
+  const navigate = useNavigate()
   const unit = useDoc('units', unitId)
   const me = useMe()
   const reservations = useCollection('reservations')
@@ -208,17 +209,13 @@ function UnitDetail({ unitId, feature, compactHeader }: { unitId: string; featur
 
       <div className="grid grid-cols-2 gap-2 pt-1">
         {me?.role === 'admin' && (
-          <Link to={`/hospedaje?u=${unit.id}`}>
-            <Button variant="secondary" className="w-full" icon={<BedDouble size={16} strokeWidth={1.6} />}>
-              Reservar
-            </Button>
-          </Link>
-        )}
-        <Link to="/limpieza" className={me?.role === 'admin' ? '' : 'col-span-2'}>
-          <Button variant="outline" className="w-full" icon={<Sparkles size={16} strokeWidth={1.6} />}>
-            Limpieza
+          <Button variant="secondary" className="w-full" icon={<BedDouble size={16} strokeWidth={1.6} />} onClick={() => navigate(`/hospedaje?u=${unit.id}`)}>
+            Reservar
           </Button>
-        </Link>
+        )}
+        <Button variant="outline" className={cx('w-full', me?.role !== 'admin' && 'col-span-2')} icon={<Sparkles size={16} strokeWidth={1.6} />} onClick={() => navigate('/limpieza')}>
+          Limpieza
+        </Button>
       </div>
     </div>
   )
@@ -237,6 +234,7 @@ function Fact({ icon, label, value }: { icon: React.ReactNode; label: string; va
 }
 
 function VenueDetail({ feature, compactHeader }: { feature: MapFeature; compactHeader?: boolean }) {
+  const navigate = useNavigate()
   const venue = feature.venue!
   const me = useMe()
   const events = useCollection('events')
@@ -284,11 +282,9 @@ function VenueDetail({ feature, compactHeader }: { feature: MapFeature; compactH
         </div>
       </div>
       {canEvents && (
-        <Link to={`/eventos?nuevo=${venue}`}>
-          <Button variant="secondary" className="w-full" iconRight={<ArrowRight size={16} strokeWidth={1.6} />}>
-            Nuevo evento en el {v.label.toLowerCase()}
-          </Button>
-        </Link>
+        <Button variant="secondary" className="w-full" iconRight={<ArrowRight size={16} strokeWidth={1.6} />} onClick={() => navigate(`/eventos?nuevo=${venue}`)}>
+          Nuevo evento en el {v.label.toLowerCase()}
+        </Button>
       )}
     </div>
   )

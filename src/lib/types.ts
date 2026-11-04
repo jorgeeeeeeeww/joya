@@ -387,6 +387,8 @@ export interface AppNotification extends BaseDoc {
   tone: Pastel
   link?: string
   roles: Role[]
+  /** Si es para una sola persona (por ejemplo, "te asignaron una tarea") */
+  userId?: ID
   read: boolean
 }
 
@@ -436,9 +438,15 @@ export interface AutomationSettings {
 
 export type Atmos = 'flor' | 'marea' | 'crepusculo' | 'nocturno'
 export type ThemePref = 'auto' | 'light' | 'dark'
+/** Asistente: siempre a la vista (con avisos y guía dentro del evento), solo con el botón «Ayuda», o apagado */
+export type AssistantMode = 'siempre' | 'boton' | 'apagado'
 export interface UserPrefs {
   atmos?: Atmos
   theme?: ThemePref
+  /** Cómo quiere esta persona su asistente (si no eligió, se usa el del rancho) */
+  assistant?: AssistantMode
+  /** Pantallas cuya explicación ya vio (para no repetir el «¿Primera vez aquí?») */
+  assistantSeen?: string[]
   /** Tarjetas del inicio: orden y cuáles se ocultaron (por pestaña: 'hoy', 'negocio', 'eventos') */
   home?: Record<string, { order?: string[]; hidden?: string[] }>
   /** Ya vio el recorrido guiado de su panel */
@@ -472,4 +480,6 @@ export interface Settings {
   devPinHash?: string
   /** Muestra opciones técnicas (cómo funciona, vitrina de diseño, diagnósticos) */
   techMode?: boolean
+  /** Modo del asistente para quien no ha elegido el suyo (lo decide el dueño) */
+  assistantDefault?: AssistantMode
 }

@@ -447,11 +447,12 @@ export function FlipCard({ front, back, className, flipped: controlled, onFlip, 
     )
   return (
     <div className={cx('relative [perspective:1400px]', className)}>
-      <motion.div className="grid h-full [transform-style:preserve-3d]" initial={false} animate={{ rotateY: flipped ? 180 : 0 }} transition={{ duration: 0.62, ease: ease.calma }}>
+      <motion.div className="relative grid h-full [transform-style:preserve-3d]" initial={false} animate={{ rotateY: flipped ? 180 : 0 }} transition={{ duration: 0.62, ease: ease.calma }}>
         <div className={cx('h-full cursor-pointer [grid-area:1/1] [backface-visibility:hidden]', flipped && 'pointer-events-none')} {...faceProps} aria-hidden={flipped}>
           {front}
         </div>
-        <div className={cx('h-full cursor-pointer [grid-area:1/1] [transform:rotateY(180deg)] [backface-visibility:hidden]', !flipped && 'pointer-events-none')} {...faceProps} aria-hidden={!flipped}>
+        {/* El reverso toma la altura del frente (sin estirar la tarjeta); si no cabe, se desplaza por dentro */}
+        <div className={cx('scroll-area absolute inset-0 cursor-pointer overflow-y-auto rounded-[var(--r-lg)] [transform:rotateY(180deg)] [backface-visibility:hidden]', !flipped && 'pointer-events-none')} {...faceProps} aria-hidden={!flipped}>
           {back}
         </div>
       </motion.div>

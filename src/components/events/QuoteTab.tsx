@@ -85,7 +85,7 @@ export function QuoteTab({ ev }: { ev: RanchEvent }) {
                 onClick={() => setPackage(p.id)}
                 className={cx('card lift pressable relative p-5 text-left', active && 'ring-[1.5px] ring-primary shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_10%,transparent),var(--shadow-1)]')}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                   <span className="heading text-xl">{p.name}</span>
                   {active ? (
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-on-primary">
