@@ -54,6 +54,24 @@ Estado: **pendiente de aprobación**. Todavía no se ha cambiado nada en el cód
 - **Publicación automática con GitHub Actions:** al subir a `main` se aplican las migraciones y las funciones, y se publica la app.
 - **Guía actualizada:** reescribir `docs/PUESTA-EN-MARCHA.md` con los pasos nuevos.
 
+## 5. Monitor central: saber qué falla en cualquier dispositivo
+
+**Lo que ya existe:** el *Panel de desarrollador* (`src/pages/Desarrollador.tsx`) muestra el estado del sync, los últimos 150 errores explicados en palabras y botones para reparar. **El problema:** cada celular guarda sus errores solo para sí mismo (`src/lib/errorLog.ts`). Para saber qué le pasa al celular de alguien de limpieza hay que tenerlo en la mano.
+
+**Lo que haría:**
+
+- **Errores de todos los dispositivos en la nube:** cada celular manda sus errores a una tabla `client_errors` en Supabase. Si no hay internet, se guardan y se mandan después. Solo se envía el error, la pantalla, la versión y el dispositivo, nunca los datos del rancho.
+- **Vista «Dispositivos» en el panel del dueño:** cada celular o computadora con su persona, versión de la app, última sincronización, cambios pendientes de subir y errores recientes, con semáforo verde, amarillo o rojo.
+- **Alertas al dueño** (aviso push) cuando:
+  - un dispositivo lleva mucho tiempo sin sincronizar teniendo cambios pendientes;
+  - un dispositivo sigue en una versión vieja;
+  - el mismo error se repite muchas veces;
+  - la nube rechaza cambios por permisos.
+- **Fallas del backend en el mismo lugar:** funciones de Supabase (push, Airbnb y Booking), tareas programadas y respaldo nocturno, con su último resultado.
+- **Errores agrupados:** el mismo error en varios celulares se muestra una sola vez con cuántos dispositivos lo tienen, desde cuándo y la explicación en palabras.
+- **Limpieza automática:** los errores de más de 90 días se borran solos.
+- **Sin servicios externos:** todo vive en Supabase, sin costo extra. Si más adelante hace falta algo más profundo, se puede conectar Sentry.
+
 ---
 
 ## Decisiones por defecto (si no se indica otra cosa)
@@ -66,6 +84,7 @@ Estado: **pendiente de aprobación**. Todavía no se ha cambiado nada en el cód
 - Compilando la app.
 - Con la nube de prueba simulando dos dispositivos.
 - Sin internet y en vista de celular en el navegador.
+- Provocando errores a propósito en dos dispositivos simulados para ver que lleguen al monitor central y que salgan las alertas.
 
 **Lo que no se puede probar desde aquí:** un iPhone real. La prueba final es instalar, cerrar la app, publicar una versión nueva y volver a abrir. Se entrega una lista de pasos para hacerla.
 
