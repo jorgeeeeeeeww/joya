@@ -10,3 +10,4 @@ dev-dist
 *.gpg
 supabase/.temp
 supabase/.branches
+*.tsbuildinfo
