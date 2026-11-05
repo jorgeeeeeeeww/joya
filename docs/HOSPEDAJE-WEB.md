@@ -437,4 +437,4 @@ La app se llama **La Joya** y se instala con el `.dmg`; los pasos completos est�
 
 **Avisos:** cada solicitud nueva llega como aviso de macOS y suma al número del Dock y de la barra de menú. La app abre sola al prender la Mac (se puede apagar en Ajustes) y sigue en la barra de menú aunque se cierre la ventana. Si la Mac está apagada, la solicitud espera en la nube y el dueño también recibe un correo.
 
-**Actualizaciones:** en Ajustes → «Buscar actualización». Se instalan con un clic.
+**Actualizaciones:** la app revisa sola una vez al día; también en Ajustes → «Buscar actualización». Se instalan con un clic. Las versiones viven en el almacén público `versiones` de Supabase Storage (solo se sube con la llave secreta, desde GitHub Actions) y la app solo instala lo que viene firmado.

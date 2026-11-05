@@ -22,11 +22,34 @@ const Reservaciones = lazy(() => import('./pages/Reservaciones'))
 const Cabanas = lazy(() => import('./pages/Cabanas'))
 const Ajustes = lazy(() => import('./pages/Ajustes'))
 
+// Lo que hacen el menú de arriba y los atajos. Sin sesión (pantalla de Entrar) no hacen nada.
+const conSesion =
+  <A extends unknown[]>(hacer: (...x: A) => void) =>
+  (...x: A) => {
+    if (useApp.getState().sesion) hacer(...x)
+  }
+const a = useApp.getState
+const acciones = {
+  ir: conSesion((v: Vista) => a().ir(v)),
+  nuevaReservacion: conSesion(() => a().crear({ tipo: 'reservacion' })),
+  nuevoCierre: conSesion(() => a().crear({ tipo: 'cierre' })),
+  buscar: conSesion(() => a().setBuscar(true)),
+  irAHoy: conSesion(() => {
+    a().ir('calendario')
+    a().pedirHoy()
+  }),
+  actualizar: conSesion(() => {
+    void a().cargar().then(() => toast.success('Datos al día'))
+  }),
+}
+
 export default function App() {
   const sesion = useApp((s) => s.sesion)
   useEffect(() => {
     void nube.auth.getSession().then(({ data }) => useApp.setState({ sesion: data.session }))
     const { data } = nube.auth.onAuthStateChange((_e, s) => useApp.setState({ sesion: s }))
+    // Desde la pantalla de Entrar, para que el menú de la Mac nunca salga en inglés
+    void ponerMenu(acciones)
     return () => data.subscription.unsubscribe()
   }, [])
   return (
@@ -100,23 +123,8 @@ function Marco() {
     }
   }, [sesion.user.id, sesion.access_token])
 
-  // Menú de arriba de la Mac y atajos de teclado (en el navegador también funcionan con Ctrl)
+  // Atajos de teclado (en el navegador también funcionan con Ctrl)
   useEffect(() => {
-    const a = useApp.getState
-    const acciones = {
-      ir: (v: Vista) => a().ir(v),
-      nuevaReservacion: () => a().crear({ tipo: 'reservacion' }),
-      nuevoCierre: () => a().crear({ tipo: 'cierre' }),
-      buscar: () => a().setBuscar(true),
-      irAHoy: () => {
-        a().ir('calendario')
-        a().pedirHoy()
-      },
-      actualizar: () => {
-        void a().cargar().then(() => toast.success('Datos al día'))
-      },
-    }
-    void ponerMenu(acciones)
     // «Nueva reservación» desde el ícono de la barra de menú
     let vivo = true
     let dejarDeEscuchar: (() => void) | undefined

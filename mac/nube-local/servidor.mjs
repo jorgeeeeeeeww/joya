@@ -14,7 +14,7 @@
 // Cuentas: dueno@lajoya.local (dueño), recepcion@lajoya.local, limpieza@lajoya.local · contraseña: la-joya-local
 import http from 'node:http'
 import crypto from 'node:crypto'
-import { readFile, writeFile, mkdir, rm, unlink } from 'node:fs/promises'
+import { readFile, readdir, writeFile, mkdir, rm, unlink } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname, join, normalize } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -254,6 +254,13 @@ const server = http.createServer(async (req, res) => {
       const meta = JSON.parse(await readFile(archivo + '.meta.json', 'utf8').catch(() => '{}'))
       res.writeHead(200, { 'Content-Type': meta.tipo || 'application/octet-stream', 'Cache-Control': 'public, max-age=31536000, immutable' })
       return res.end(req.method === 'HEAD' ? undefined : await readFile(archivo))
+    }
+    const lista = ruta.match(/^\/storage\/v1\/object\/list\/([a-z0-9_-]+)$/)
+    if (lista && req.method === 'POST') {
+      if (quienLlama(req)?.role !== 'service_role') return enviar(res, 403, { statusCode: '403', error: 'Unauthorized', message: 'Solo con la llave secreta' })
+      const carpeta = join(ARCHIVOS, lista[1], normalize(json()?.prefix || '.'))
+      const dentro = await readdir(carpeta, { withFileTypes: true }).catch(() => [])
+      return enviar(res, 200, dentro.filter((e) => !e.name.endsWith('.meta.json')).map((e) => ({ name: e.name, id: e.isFile() ? e.name : null })))
     }
     const objeto = ruta.match(/^\/storage\/v1\/object\/([a-z0-9_-]+)(?:\/(.+))?$/)
     if (objeto) {

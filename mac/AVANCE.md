@@ -2,7 +2,7 @@
 
 Corte: **5 de noviembre de 2026**. Ya está en GitHub, en la rama `main` (commit `db8d562`).
 
-**En una línea:** la app está lista y probada en el navegador, y Jorge aprobó las capturas. Falta confirmar que el primer flujo de GitHub compile, y nunca se ha abierto en una Mac. Para instalarla, ver [INSTALAR.md](INSTALAR.md).
+**En una línea:** la app ya compila. El `.dmg` universal (5.9 MB) sale de GitHub Actions y abre en una Mac de prueba, pero falta usarla en una Mac con la cuenta real. Jorge aprobó las capturas. Para instalarla, ver [INSTALAR.md](INSTALAR.md).
 
 ## Lo que ya está hecho y probado
 
@@ -97,26 +97,30 @@ Esta computadora no tiene Rust y no se instaló, así que **el código de Rust n
 ## Lo que falta
 
 ### Depende de Jorge
-1. **Elegir dónde se guardan las actualizaciones:** Supabase Storage (la recomendación) o un repositorio público solo para las versiones. El repositorio es privado, así que la app instalada no puede bajarlas de sus Releases. Falta el paso que las publica; lo demás ya está preparado: `tauri.conf.json` deja `endpoints` vacío y la compilación pone la dirección con la variable `ACTUALIZACIONES_URL`. Hasta entonces, «Buscar actualización» dirá que no se pudo revisar y cada versión nueva se instala a mano. La dirección queda dentro de la app al compilarla: una versión instalada antes de configurarla no se actualizará sola, y hay que instalar a mano una vez más.
-2. **Cargar en GitHub lo que no puede hacer Claude:**
+1. **Cargar en GitHub lo que no puede hacer Claude:**
    - Las variables `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`. Sin ellas, la app sale apuntando a la nube local.
-   - El secreto `TAURI_SIGNING_PRIVATE_KEY`, con el contenido de la llave privada. Sin él compila, pero sin archivos de actualización.
-3. **Crear las cuentas** de Supabase y del dueño. Los pasos están en [INSTALAR.md](INSTALAR.md).
+   - Los secretos `TAURI_SIGNING_PRIVATE_KEY` (el comando está en [INSTALAR.md](INSTALAR.md)) y `SB_SECRET_KEY`. Sin ellos compila, pero no publica versiones.
+2. **Crear las cuentas** de Supabase y del dueño. Los pasos están en [INSTALAR.md](INSTALAR.md).
 
-### Después del push (lo hace Claude)
-**Confirmar que los flujos corren bien:** `app-mac.yml` y `publicar.yml`, que ahora prueba 21 casos de hospedaje. Lo que salió en la primera corrida (`db8d562`), ya corregido:
+### Actualizaciones (decidido: Supabase Storage)
+- **Almacén `versiones`:** público para leer; solo se sube con la llave secreta. Está en la migración de hospedaje.
+- **`scripts/publicar-version.mjs`:** sube los archivos y al final `latest.json`, deja una liga fija `La-Joya.dmg` y conserva la versión actual y la anterior. Solo publica si el número de `package.json` subió. Se probó con archivos falsos contra una nube local en memoria: 19 de 19.
+- **Flujo:** el paso `publicar-version` de `app-mac.yml` corre después de compilar, y se salta si falta algo por configurar. La dirección de `latest.json` sale de `SUPABASE_URL`, así que toda app compilada con esa variable ya sabe dónde buscar.
 
-- **Rust:** faltaba declarar `serde_json`, que usa el código de `generate_context!`. Es la primera vez que se compila, así que pueden salir más errores detrás de ese.
-- **`publicar.yml`:** la migración `pulido_nube` fallaba en un Postgres completo (`text = text[]`). Nunca se había aplicado: las pruebas locales solo cargan la de hospedaje. Corregida con `::text[]`; las 4 migraciones y las pruebas de roles (24 de 24) y hospedaje (21 de 21) pasaron en PGlite.
+### Lo que salió en la primera corrida (`db8d562`), ya corregido
+- **Rust:** faltaba declarar `serde_json`, que usa el código de `generate_context!`.
+- **`publicar.yml`:** la migración `pulido_nube` fallaba en un Postgres completo (`text = text[]`). Nunca se había aplicado: las pruebas locales solo cargan la de hospedaje. Corregida con `::text[]`; `publicar.yml` ya pasó en verde con el Supabase real (`d06f45d`).
 - **`Cargo.lock`:** ya está en el repositorio, sacado del artefacto `revision-mac`.
 
-### Lo que no se ha podido comprobar
-Nada de esto se puede ver sin una Mac o sin el primer push:
+### Comprobado en la Mac de GitHub (corrida de `d06f45d`)
+- **Compilación:** el Rust compila en Mac y en Windows. La app es universal (`x86_64 arm64`), con firma ad-hoc válida, y el `.dmg` pasa `hdiutil verify`.
+- **Al abrirla, en macOS real:** sigue viva a los 20 segundos. La captura `captura-mac.png` del artefacto `revision-mac` muestra la pantalla de Entrar con la letra y los colores correctos, el ícono en la barra de menú y el ícono en el Dock.
+- **Lo que esa captura enseñó:** el menú de arriba salía en inglés antes de entrar. Corregido: ahora se pone desde el arranque.
 
-- Que el Rust compile y que se genere el `.dmg` universal y el instalador de Windows.
-- El comportamiento real en la Mac: menú de arriba, ícono y número en la barra de menú, número en el Dock, avisos de macOS, cerrar y volver a abrir, abrir al prender, arrastrar fotos desde Finder de verdad (aquí se simuló soltarlas) y los semáforos sobre la barra lateral.
-- Que la app pinte igual en el motor de Safari: toda la revisión fue con Chrome y Edge.
-- Las actualizaciones de principio a fin.
+### Lo que no se ha podido comprobar
+- **Lo que necesita a alguien usándola en una Mac:** menú de arriba en español, el número en la barra de menú y en el Dock, avisos de macOS, cerrar y volver a abrir, abrir al prender, arrastrar fotos desde Finder de verdad (aquí se simuló soltarlas) y los semáforos sobre la barra lateral. La pantalla de la Mac de GitHub mide 1024 × 768, así que la ventana quedó cortada y no se ven.
+- **El resto de las pantallas en el motor de Safari:** solo Entrar se ha visto en macOS; lo demás se revisó con Chrome y Edge.
+- **Las actualizaciones de principio a fin:** bajar, comprobar la firma e instalar en una Mac. Tampoco se ha subido una versión a un Supabase real; eso espera a que exista el proyecto.
 
 ### Qué cuidar en cada commit
 Nunca `git add -A` ni un `git commit` sin rutas: el PWA de la raíz tiene cambios ajenos y `public/push-sw.js` está borrado en el índice. Se agregan las rutas de este trabajo y se usa `git commit --only -- <rutas>`.

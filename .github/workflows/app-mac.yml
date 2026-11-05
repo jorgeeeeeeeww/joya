@@ -7,13 +7,17 @@
 # Variables del repositorio (Settings → Secrets and variables → Actions → Variables):
 #   SUPABASE_URL             → https://TU-PROYECTO.supabase.co
 #   SUPABASE_PUBLISHABLE_KEY → llave pública nueva (sb_publishable_…)
-#   ACTUALIZACIONES_URL      → dirección del archivo latest.json que la app revisa para actualizarse
-# Sin las dos de Supabase, la app sale apuntando a la nube local: sirve para probar que compila,
-# no para instalarla en el rancho (la corrida lo avisa).
+# Sin ellas, la app sale apuntando a la nube local: sirve para probar que compila, no para instalarla
+# en el rancho (la corrida lo avisa). Con SUPABASE_URL, la app ya sabe dónde buscar sus actualizaciones.
 #
-# Secret del repositorio (misma pantalla → Secrets):
+# Secrets del repositorio (misma pantalla → Secrets):
 #   TAURI_SIGNING_PRIVATE_KEY → el contenido de la llave privada de actualizaciones.
 #                               Sin él se compila igual, solo que sin archivos de actualización.
+#   SB_SECRET_KEY             → llave secreta (sb_secret_…), para subir las versiones a Supabase Storage.
+#
+# Para sacar una versión: sube el número en mac/package.json. Con todo lo anterior configurado, se
+# publica sola en el almacén «versiones» y la app instalada la encuentra. Sin subir el número, se
+# compila pero no se publica nada.
 name: App de la Mac
 
 on:
@@ -87,7 +91,6 @@ jobs:
     env:
       VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
-      ACTUALIZACIONES_URL: ${{ vars.ACTUALIZACIONES_URL }}
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       # La llave se generó sin contraseña; vacía evita que la compilación se quede esperando a que la escriban
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
@@ -112,15 +115,14 @@ jobs:
             || echo "::warning::Faltan las variables SUPABASE_URL o SUPABASE_PUBLISHABLE_KEY: esta app apunta a la nube local y no sirve para el rancho."
           [ -n "$TAURI_SIGNING_PRIVATE_KEY" ] \
             || echo "::notice::Sin el secreto TAURI_SIGNING_PRIVATE_KEY: se compila sin archivos de actualización."
-          [ -n "$ACTUALIZACIONES_URL" ] \
-            || echo "::notice::Sin la variable ACTUALIZACIONES_URL: «Buscar actualización» dirá que no se pudo revisar."
 
       - name: Compilar
         run: |
           node -e "
             const c = {}
             if (process.env.TAURI_SIGNING_PRIVATE_KEY) c.bundle = { createUpdaterArtifacts: true }
-            if (process.env.ACTUALIZACIONES_URL) c.plugins = { updater: { endpoints: [process.env.ACTUALIZACIONES_URL] } }
+            const nube = process.env.VITE_SUPABASE_URL?.replace(/\/$/, '')
+            if (nube) c.plugins = { updater: { endpoints: [nube + '/storage/v1/object/public/versiones/latest.json'] } }
             require('node:fs').writeFileSync(require('node:path').join(process.env.RUNNER_TEMP, 'compilacion.json'), JSON.stringify(c))
           "
           npx tauri build --target "${{ matrix.destino }}" --config "$RUNNER_TEMP/compilacion.json"
@@ -170,3 +172,43 @@ jobs:
             mac/src-tauri/Cargo.lock
           retention-days: 30
           if-no-files-found: ignore
+
+  publicar-version:
+    name: Publicar la versión para la app instalada
+    needs: compilar
+    if: github.ref == 'refs/heads/main' && vars.SUPABASE_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SB_SECRET_KEY: ${{ secrets.SB_SECRET_KEY }}
+      HAY_FIRMA: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+    steps:
+      - name: Revisar que esté todo para publicar
+        id: revisar
+        run: |
+          if [ "$HAY_FIRMA" = "true" ] && [ -n "$SB_SECRET_KEY" ]; then
+            echo "si=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No se publica la versión: faltan los secretos TAURI_SIGNING_PRIVATE_KEY o SB_SECRET_KEY."
+          fi
+      - uses: actions/checkout@v4
+        if: steps.revisar.outputs.si == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.revisar.outputs.si == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mac/package-lock.json
+      - name: Instalar lo necesario
+        if: steps.revisar.outputs.si == 'true'
+        working-directory: mac
+        run: npm ci
+      - uses: actions/download-artifact@v4
+        if: steps.revisar.outputs.si == 'true'
+        with:
+          path: compilacion
+      - name: Publicar en Supabase Storage
+        if: steps.revisar.outputs.si == 'true'
+        working-directory: mac
+        run: node scripts/publicar-version.mjs ../compilacion

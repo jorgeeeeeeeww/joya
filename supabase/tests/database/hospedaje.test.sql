@@ -4,7 +4,7 @@
 -- En la computadora, sin Docker:   cd mac && npm run probar:base
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(21);
+select plan(22);
 
 insert into auth.users (id, email, instance_id, aud, role)
 values
@@ -88,6 +88,9 @@ reset role;
 -- Por renglón, no por instrucción: leer los datos corre un UPDATE que casi nunca toca nada,
 -- y si eso avisara «hubo cambios», la app se quedaría recargando sin parar.
 select is((select count(*)::integer from pg_catalog.pg_trigger where tgname like '%\_cambio' and not tgisinternal and (tgtype & 1) = 0), 0, 'Solo se avisa si de verdad cambió un renglón');
+
+-- ── Actualizaciones de la app ──
+select is((select public from storage.buckets where id = 'versiones'), true, 'La app instalada puede bajar las versiones sin cuenta');
 
 select * from finish();
 rollback;

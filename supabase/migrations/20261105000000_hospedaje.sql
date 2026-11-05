@@ -1783,6 +1783,12 @@ grant execute on function public.hosp_cambiar_estado(uuid, text, text) to authen
 grant execute on function public.hosp_registrar_pago(jsonb) to authenticated;
 grant execute on function public.hosp_borrar_pago(uuid) to authenticated;
 
+-- ── Versiones de la app de la Mac: las baja la app instalada, sin cuenta. Sin políticas de escritura:
+-- solo se sube con la llave secreta, desde GitHub Actions. La app solo instala lo que viene firmado. ──
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('versiones', 'versiones', true, 52428800)
+on conflict (id) do update set public = true, file_size_limit = excluded.file_size_limit;
+
 -- ── Fotos de las cabañas: públicas (las ve la web); solo el dueño sube o borra ──
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('cabanas', 'cabanas', true, 3145728, array['image/webp', 'image/jpeg', 'image/png'])
