@@ -105,17 +105,18 @@ revoke all on public.documents_history from anon;
 revoke all on public.profiles from anon;
 revoke all on public.push_subscriptions from anon;
 
--- Reglas por rol: (select …) hace que Postgres calcule el rol una sola vez por consulta
+-- Reglas por rol: (select …) hace que Postgres calcule el rol una sola vez por consulta.
+-- El ::text[] es necesario: sin él, «any» toma el select como lista de filas y compara texto contra arreglo.
 drop policy if exists "leer por rol" on public.documents;
 create policy "leer por rol" on public.documents for select to authenticated
-  using ((select public.my_role()) = 'admin' or collection = any ((select public.readable_collections())));
+  using ((select public.my_role()) = 'admin' or collection = any ((select public.readable_collections())::text[]));
 drop policy if exists "insertar por rol" on public.documents;
 create policy "insertar por rol" on public.documents for insert to authenticated
-  with check ((select public.my_role()) = 'admin' or collection = any ((select public.writable_collections())));
+  with check ((select public.my_role()) = 'admin' or collection = any ((select public.writable_collections())::text[]));
 drop policy if exists "actualizar por rol" on public.documents;
 create policy "actualizar por rol" on public.documents for update to authenticated
-  using ((select public.my_role()) = 'admin' or collection = any ((select public.writable_collections())))
-  with check ((select public.my_role()) = 'admin' or collection = any ((select public.writable_collections())));
+  using ((select public.my_role()) = 'admin' or collection = any ((select public.writable_collections())::text[]))
+  with check ((select public.my_role()) = 'admin' or collection = any ((select public.writable_collections())::text[]));
 
 drop policy if exists "perfil propio" on public.profiles;
 create policy "perfil propio" on public.profiles for select to authenticated

@@ -1,8 +1,8 @@
 # App de la Mac · dónde se quedó y qué falta
 
-Corte: **5 de noviembre de 2026**. Nada está en commit ni subido a GitHub: todo vive solo en esta computadora, en la rama `main`.
+Corte: **5 de noviembre de 2026**. Ya está en GitHub, en la rama `main` (commit `db8d562`).
 
-**En una línea:** la app está lista y probada en el navegador, pero **nunca se ha compilado ni abierto en una Mac**. Eso solo se puede comprobar cuando Jorge autorice subirla a GitHub. Para instalarla, ver [INSTALAR.md](INSTALAR.md).
+**En una línea:** la app está lista y probada en el navegador, y Jorge aprobó las capturas. Falta confirmar que el primer flujo de GitHub compile, y nunca se ha abierto en una Mac. Para instalarla, ver [INSTALAR.md](INSTALAR.md).
 
 ## Lo que ya está hecho y probado
 
@@ -97,17 +97,18 @@ Esta computadora no tiene Rust y no se instaló, así que **el código de Rust n
 ## Lo que falta
 
 ### Depende de Jorge
-1. **Aprobar las capturas** de las 8 pantallas, que ya se le mandaron, en atmósfera Nocturno, modo claro y oscuro. Hacer los cambios que pida.
-2. **Elegir dónde se guardan las actualizaciones:** Supabase Storage (la recomendación) o un repositorio público solo para las versiones. El repositorio es privado, así que la app instalada no puede bajarlas de sus Releases. Falta el paso que las publica; lo demás ya está preparado: `tauri.conf.json` deja `endpoints` vacío y la compilación pone la dirección con la variable `ACTUALIZACIONES_URL`. Hasta entonces, «Buscar actualización» dirá que no se pudo revisar y cada versión nueva se instala a mano.
-3. **Dar permiso de commit y push a `main`.**
-4. **Cargar en GitHub lo que no puede hacer Claude:**
+1. **Elegir dónde se guardan las actualizaciones:** Supabase Storage (la recomendación) o un repositorio público solo para las versiones. El repositorio es privado, así que la app instalada no puede bajarlas de sus Releases. Falta el paso que las publica; lo demás ya está preparado: `tauri.conf.json` deja `endpoints` vacío y la compilación pone la dirección con la variable `ACTUALIZACIONES_URL`. Hasta entonces, «Buscar actualización» dirá que no se pudo revisar y cada versión nueva se instala a mano. La dirección queda dentro de la app al compilarla: una versión instalada antes de configurarla no se actualizará sola, y hay que instalar a mano una vez más.
+2. **Cargar en GitHub lo que no puede hacer Claude:**
    - Las variables `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`. Sin ellas, la app sale apuntando a la nube local.
    - El secreto `TAURI_SIGNING_PRIVATE_KEY`, con el contenido de la llave privada. Sin él compila, pero sin archivos de actualización.
-5. **Crear las cuentas** de Supabase y del dueño. Los pasos están en [INSTALAR.md](INSTALAR.md).
+3. **Crear las cuentas** de Supabase y del dueño. Los pasos están en [INSTALAR.md](INSTALAR.md).
 
 ### Después del push (lo hace Claude)
-1. **Confirmar que los flujos corren bien:** `app-mac.yml` y `publicar.yml`, que ahora prueba 21 casos de hospedaje. Es la primera vez que se compila el Rust: si falla, corregirlo aquí.
-2. **Guardar `Cargo.lock`:** la primera corrida lo deja en el artefacto `revision-mac`. Hay que subirlo al repositorio para que las compilaciones sean siempre iguales.
+**Confirmar que los flujos corren bien:** `app-mac.yml` y `publicar.yml`, que ahora prueba 21 casos de hospedaje. Lo que salió en la primera corrida (`db8d562`), ya corregido:
+
+- **Rust:** faltaba declarar `serde_json`, que usa el código de `generate_context!`. Es la primera vez que se compila, así que pueden salir más errores detrás de ese.
+- **`publicar.yml`:** la migración `pulido_nube` fallaba en un Postgres completo (`text = text[]`). Nunca se había aplicado: las pruebas locales solo cargan la de hospedaje. Corregida con `::text[]`; las 4 migraciones y las pruebas de roles (24 de 24) y hospedaje (21 de 21) pasaron en PGlite.
+- **`Cargo.lock`:** ya está en el repositorio, sacado del artefacto `revision-mac`.
 
 ### Lo que no se ha podido comprobar
 Nada de esto se puede ver sin una Mac o sin el primer push:
@@ -117,15 +118,10 @@ Nada de esto se puede ver sin una Mac o sin el primer push:
 - Que la app pinte igual en el motor de Safari: toda la revisión fue con Chrome y Edge.
 - Las actualizaciones de principio a fin.
 
-### Qué agregar al hacer el commit
-Nunca `git add -A`, porque el PWA de la raíz tiene cambios ajenos. Rutas de este trabajo:
+### Qué cuidar en cada commit
+Nunca `git add -A` ni un `git commit` sin rutas: el PWA de la raíz tiene cambios ajenos y `public/push-sw.js` está borrado en el índice. Se agregan las rutas de este trabajo y se usa `git commit --only -- <rutas>`.
 
-- `mac/`
-- `.github/workflows/app-mac.yml` y `.github/workflows/publicar.yml`
-- `docs/HOSPEDAJE-WEB.md`
-- Lo nuevo de `supabase/`: `config.toml`, `functions/_shared/admin.ts`, `functions/avisos-hospedaje/`, `functions/reservar/`, `tests/` y las migraciones `20261104000000_pulido_nube.sql` y `20261105000000_hospedaje.sql`. La de hospedaje usa `edge_post` y `record_backend_run`, que vienen en la de pulido: van juntas.
-
-Hay que decidir antes con Jorge: `supabase/functions/ical-export`, `ical-sync`, `push-send` y `.github/workflows/respaldo-nocturno.yml` ya existían en git y tienen cambios sin guardar que parecen de esa misma migración de pulido, no de este trabajo.
+**Sin subir, a propósito:** `supabase/functions/ical-export`, `ical-sync`, `push-send` y `.github/workflows/respaldo-nocturno.yml` ya existían en git y tienen cambios sin guardar que parecen de la migración de pulido, no de este trabajo. Esas tres funciones siguen en su versión anterior hasta que Jorge decida. También sigue sin subir `.claude/launch.json`.
 
 ## Notas para quien siga
 - **Nube local:** si se detiene de golpe pierde lo escrito desde el último guardado de la base. Ya pasó el 5 de noviembre al reiniciarla: se perdieron datos de prueba, nada real.

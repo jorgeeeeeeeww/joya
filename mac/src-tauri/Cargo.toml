@@ -17,6 +17,8 @@ crate-type = ["lib"]
 tauri-build = { version = "~2.7", features = [] }
 
 [dependencies]
+# Lo usa el código que genera tauri::generate_context!
+serde_json = "1"
 tauri = { version = "~2.12", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "~2.7"
 tauri-plugin-notification = "~2.8"
