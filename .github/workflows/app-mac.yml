@@ -69,7 +69,7 @@ jobs:
       matrix:
         include:
           - nombre: Mac
-            so: macos-latest
+            so: macos-15-intel
             destino: universal-apple-darwin
             rust: aarch64-apple-darwin,x86_64-apple-darwin
             instalador: mac/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
