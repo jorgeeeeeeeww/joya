@@ -112,13 +112,15 @@ Esta computadora no tiene Rust y no se instaló, así que **el código de Rust n
 - **`publicar.yml`:** la migración `pulido_nube` fallaba en un Postgres completo (`text = text[]`). Nunca se había aplicado: las pruebas locales solo cargan la de hospedaje. Corregida con `::text[]`; `publicar.yml` ya pasó en verde con el Supabase real (`d06f45d`).
 - **`Cargo.lock`:** ya está en el repositorio, sacado del artefacto `revision-mac`.
 
-### Comprobado en la Mac de GitHub (corrida de `d06f45d`)
+### Comprobado en la Mac de GitHub (última corrida, `a589d78`)
+Los dos flujos salieron en verde; el paso de publicar se salta hasta que exista el proyecto de Supabase.
+
 - **Compilación:** el Rust compila en Mac y en Windows. La app es universal (`x86_64 arm64`), con firma ad-hoc válida, y el `.dmg` pasa `hdiutil verify`.
-- **Al abrirla, en macOS real:** sigue viva a los 20 segundos. La captura `captura-mac.png` del artefacto `revision-mac` muestra la pantalla de Entrar con la letra y los colores correctos, el ícono en la barra de menú y el ícono en el Dock.
-- **Lo que esa captura enseñó:** el menú de arriba salía en inglés antes de entrar. Corregido: ahora se pone desde el arranque.
+- **Al abrirla, en macOS real:** sigue viva a los 20 segundos. La captura `captura-mac.png` del artefacto `revision-mac` muestra la pantalla de Entrar con la letra y los colores correctos, el menú de arriba en español, el ícono en la barra de menú y el ícono en el Dock.
+- **Lo que no llevan estas compilaciones:** no tienen las variables de Supabase, así que apuntan a la nube local. Abren, pero en la iMac no dejan entrar.
 
 ### Lo que no se ha podido comprobar
-- **Lo que necesita a alguien usándola en una Mac:** menú de arriba en español, el número en la barra de menú y en el Dock, avisos de macOS, cerrar y volver a abrir, abrir al prender, arrastrar fotos desde Finder de verdad (aquí se simuló soltarlas) y los semáforos sobre la barra lateral. La pantalla de la Mac de GitHub mide 1024 × 768, así que la ventana quedó cortada y no se ven.
+- **Lo que necesita a alguien usándola en una Mac:** el número en la barra de menú y en el Dock, avisos de macOS, cerrar y volver a abrir, abrir al prender, arrastrar fotos desde Finder de verdad (aquí se simuló soltarlas) y los semáforos sobre la barra lateral. La pantalla de la Mac de GitHub mide 1024 × 768, así que la ventana quedó cortada y no se ven.
 - **El resto de las pantallas en el motor de Safari:** solo Entrar se ha visto en macOS; lo demás se revisó con Chrome y Edge.
 - **Las actualizaciones de principio a fin:** bajar, comprobar la firma e instalar en una Mac. Tampoco se ha subido una versión a un Supabase real; eso espera a que exista el proyecto.
 
