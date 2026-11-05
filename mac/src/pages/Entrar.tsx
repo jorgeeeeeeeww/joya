@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { KeyRound, Mail, ShieldCheck, FlaskConical } from 'lucide-react'
-import { nube, esNubeLocal } from '@/lib/nube'
+import { nube, esNubeLocal, URL_NUBE, LLAVE_PUBLICA } from '@/lib/nube'
 import { fadeRise, heroRise, stagger } from '@/lib/motion'
 import { enMac } from '@/lib/mac'
 import { Button } from '@/components/ui'
@@ -28,10 +28,24 @@ function explicar(m: string) {
   return m
 }
 
+/** Texto técnico corto de por qué no hubo conexión (para que Jorge lo pueda mandar tal cual) */
+async function diagnosticar(e: { name?: string; message: string; status?: number }) {
+  const partes = [`Dirección: ${URL_NUBE.replace(/^https?:\/\//, '')}`, `Error: ${e.name ?? 'Error'}: ${e.message}${e.status ? ` (${e.status})` : ''}`]
+  try {
+    const r = await fetch(`${URL_NUBE}/auth/v1/settings`, { headers: { apikey: LLAVE_PUBLICA } })
+    partes.push(`Prueba directa: respondió ${r.status}`)
+  } catch (x) {
+    partes.push(`Prueba directa: ${x instanceof Error ? `${x.name}: ${x.message}` : String(x)}`)
+  }
+  partes.push(`Internet: ${navigator.onLine ? 'sí' : 'no'} · ${navigator.userAgent.match(/Version\/[\d.]+|Chrome\/[\d.]+|AppleWebKit\/[\d.]+/)?.[0] ?? 'motor desconocido'}`)
+  return partes.join('\n')
+}
+
 export default function Entrar() {
   const [correo, setCorreo] = useState('')
   const [clave, setClave] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [detalle, setDetalle] = useState<string | null>(null)
   const [entrando, setEntrando] = useState(false)
   const correoOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo.trim())
 
@@ -40,8 +54,13 @@ export default function Entrar() {
     setEntrando(true)
     setError(null)
     const { error: e } = await nube.auth.signInWithPassword({ email: correo.trim().toLowerCase(), password: clave })
+    if (e) {
+      setError(explicar(e.message))
+      setDetalle(null)
+      // Si no hubo conexión, se prueba por separado para que quede claro qué falló y dónde
+      if (/fetch|network|load failed|conexi/i.test(e.message)) setDetalle(await diagnosticar(e))
+    }
     setEntrando(false)
-    if (e) setError(explicar(e.message))
   }
 
   return (
@@ -91,6 +110,7 @@ export default function Entrar() {
             <Button type="submit" size="lg" className="mt-6 w-full" loading={entrando}>
               Entrar
             </Button>
+            {detalle && <pre className="mt-3 rounded-[10px] bg-sunken px-3 py-2 text-[11.5px] leading-snug whitespace-pre-wrap break-all text-ink-soft select-text">{detalle}</pre>}
             <p className="mt-4 text-[13px] text-ink-3">La sesión se queda guardada en esta Mac. Si olvidaste la contraseña, Jorge la cambia desde la nube.</p>
           </motion.div>
           {esNubeLocal && (
