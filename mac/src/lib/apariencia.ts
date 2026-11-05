@@ -9,9 +9,9 @@ const CLAVE = 'la-joya-mac:apariencia'
 function leer(): { atmos: Atmos; tema: Tema } {
   try {
     const p = JSON.parse(localStorage.getItem(CLAVE) || '{}')
-    return { atmos: (['flor', 'marea', 'crepusculo', 'nocturno'] as Atmos[]).includes(p.atmos) ? p.atmos : 'flor', tema: p.tema === 'light' || p.tema === 'dark' ? p.tema : 'auto' }
+    return { atmos: (['flor', 'marea', 'crepusculo', 'nocturno'] as Atmos[]).includes(p.atmos) ? p.atmos : 'nocturno', tema: p.tema === 'light' || p.tema === 'dark' ? p.tema : 'auto' }
   } catch {
-    return { atmos: 'flor', tema: 'auto' }
+    return { atmos: 'nocturno', tema: 'auto' }
   }
 }
 
