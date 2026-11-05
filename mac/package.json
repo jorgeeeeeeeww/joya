@@ -1,0 +1,46 @@
+{
+  "name": "la-joya-mac",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "La Joya · Reservaciones: la app del dueño para la Mac (Tauri). Se conecta a la misma nube que la web.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "nube": "node nube-local/servidor.mjs",
+    "nube:ejemplo": "node nube-local/servidor.mjs --ejemplo",
+    "probar": "node nube-local/probar.mjs",
+    "probar:base": "node nube-local/probar-base.mjs",
+    "tauri": "tauri",
+    "icono": "tauri icon src-tauri/icons/icono.svg"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@supabase/supabase-js": "^2.118.0",
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-autostart": "^2.5.0",
+    "@tauri-apps/plugin-notification": "^2.3.0",
+    "@tauri-apps/plugin-opener": "^2.5.0",
+    "@tauri-apps/plugin-process": "^2.3.0",
+    "@tauri-apps/plugin-updater": "^2.9.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.66.0",
+    "motion": "^14.9.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tauri-apps/cli": "^2.9.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}

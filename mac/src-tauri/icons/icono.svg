@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Ícono de La Joya para la Mac: el logo (la luz sobre las colinas) dentro de la forma de ícono de macOS,
+       con una cabaña encendida y una serie de focos. -->
+  <defs>
+    <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5E2C30"/>
+      <stop offset="1" stop-color="#8A4649"/>
+    </linearGradient>
+    <radialGradient id="luz" cx="38%" cy="34%" r="70%">
+      <stop offset="0" stop-color="#FBEBDD"/>
+      <stop offset=".55" stop-color="#F3D8BC"/>
+      <stop offset="1" stop-color="#E4BFA6"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#F3D8BC" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#F3D8BC" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="foco" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#FFE7C2" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#FFE7C2" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="forma">
+      <rect x="100" y="100" width="824" height="824" rx="186"/>
+    </clipPath>
+    <filter id="sombra" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity=".28"/>
+    </filter>
+  </defs>
+  <g filter="url(#sombra)">
+    <g clip-path="url(#forma)">
+      <rect x="100" y="100" width="824" height="824" fill="url(#cielo)"/>
+      <circle cx="512" cy="430" r="250" fill="url(#halo)"/>
+      <circle cx="512" cy="430" r="150" fill="url(#luz)"/>
+      <!-- Focos -->
+      <path d="M100 236 Q512 360 924 236" fill="none" stroke="#F3D8BC" stroke-opacity=".45" stroke-width="5"/>
+      <g fill="#FFE7C2">
+        <circle cx="214" cy="284" r="30" fill="url(#foco)"/><circle cx="214" cy="284" r="9"/>
+        <circle cx="362" cy="318" r="30" fill="url(#foco)"/><circle cx="362" cy="318" r="9"/>
+        <circle cx="662" cy="318" r="30" fill="url(#foco)"/><circle cx="662" cy="318" r="9"/>
+        <circle cx="810" cy="284" r="30" fill="url(#foco)"/><circle cx="810" cy="284" r="9"/>
+      </g>
+      <path d="M100 660c110-60 220-72 336-40s220 28 320-16 110-30 168-16V924H100z" fill="#B66F6A"/>
+      <!-- Cabaña encendida -->
+      <g>
+        <circle cx="690" cy="676" r="120" fill="url(#foco)" opacity=".55"/>
+        <path d="M600 760 L690 600 L780 760Z" fill="#43222A"/>
+        <circle cx="690" cy="680" r="17" fill="#FFE7C2"/>
+        <rect x="672" y="716" width="36" height="44" rx="6" fill="#FFE7C2"/>
+      </g>
+      <path d="M100 740c130-48 260-48 400-10s270 28 424-22V924H100z" fill="#43222A"/>
+      <path d="M760 186l9 21 21 9-21 9-9 21-9-21-21-9 21-9z" fill="#F3D8BC" opacity=".85"/>
+    </g>
+  </g>
+</svg>

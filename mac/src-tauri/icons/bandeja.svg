@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44">
+  <!-- Barra de menú de la Mac: plantilla en negro (macOS la pinta clara u oscura sola). Una cabaña con la luz. -->
+  <circle cx="30" cy="12" r="6" fill="#000"/>
+  <path d="M6 38 L19 14 L32 38 Z M16.5 38 V30 H21.5 V38 Z" fill="#000" fill-rule="evenodd"/>
+  <path d="M4 38 H40" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+</svg>

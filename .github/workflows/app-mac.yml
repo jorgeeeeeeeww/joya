@@ -1,0 +1,172 @@
+# Compila la app de hospedaje (mac/): un .dmg universal para la iMac (Intel y Apple Silicon) y un
+# instalador de Windows para probarla. Corre en las computadoras de GitHub porque aquí se desarrolla
+# en Windows y una app de Mac solo se puede compilar en una Mac.
+#
+# Los instaladores quedan en la pestaña Actions → la corrida → Artifacts (se guardan 30 días).
+#
+# Variables del repositorio (Settings → Secrets and variables → Actions → Variables):
+#   SUPABASE_URL             → https://TU-PROYECTO.supabase.co
+#   SUPABASE_PUBLISHABLE_KEY → llave pública nueva (sb_publishable_…)
+#   ACTUALIZACIONES_URL      → dirección del archivo latest.json que la app revisa para actualizarse
+# Sin las dos de Supabase, la app sale apuntando a la nube local: sirve para probar que compila,
+# no para instalarla en el rancho (la corrida lo avisa).
+#
+# Secret del repositorio (misma pantalla → Secrets):
+#   TAURI_SIGNING_PRIVATE_KEY → el contenido de la llave privada de actualizaciones.
+#                               Sin él se compila igual, solo que sin archivos de actualización.
+name: App de la Mac
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mac/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/app-mac.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: app-mac
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mac
+    steps:
+      - uses: actions/checkout@v4
+      # La misma versión que en la computadora: la nube local carga funciones .ts directamente con Node
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mac/package-lock.json
+      - run: npm ci
+      - name: Revisar tipos
+        run: npm run typecheck
+      - name: Probar las reglas de la base
+        run: npm run probar:base
+      - name: Probar el contrato de punta a punta
+        run: npm run probar
+
+  compilar:
+    needs: pruebas
+    name: Compilar (${{ matrix.nombre }})
+    runs-on: ${{ matrix.so }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nombre: Mac
+            so: macos-latest
+            destino: universal-apple-darwin
+            rust: aarch64-apple-darwin,x86_64-apple-darwin
+            instalador: mac/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            actualizacion: |
+              mac/src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz
+              mac/src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
+          - nombre: Windows
+            so: windows-latest
+            destino: x86_64-pc-windows-msvc
+            rust: x86_64-pc-windows-msvc
+            instalador: mac/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            actualizacion: |
+              mac/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+              mac/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe.sig
+    defaults:
+      run:
+        shell: bash
+        working-directory: mac
+    env:
+      VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      ACTUALIZACIONES_URL: ${{ vars.ACTUALIZACIONES_URL }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      # La llave se generó sin contraseña; vacía evita que la compilación se quede esperando a que la escriban
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mac/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: mac/src-tauri -> target
+      - run: npm ci
+
+      - name: Avisar si falta algo por configurar
+        run: |
+          [ -n "$VITE_SUPABASE_URL" ] && [ -n "$VITE_SUPABASE_PUBLISHABLE_KEY" ] \
+            || echo "::warning::Faltan las variables SUPABASE_URL o SUPABASE_PUBLISHABLE_KEY: esta app apunta a la nube local y no sirve para el rancho."
+          [ -n "$TAURI_SIGNING_PRIVATE_KEY" ] \
+            || echo "::notice::Sin el secreto TAURI_SIGNING_PRIVATE_KEY: se compila sin archivos de actualización."
+          [ -n "$ACTUALIZACIONES_URL" ] \
+            || echo "::notice::Sin la variable ACTUALIZACIONES_URL: «Buscar actualización» dirá que no se pudo revisar."
+
+      - name: Compilar
+        run: |
+          node -e "
+            const c = {}
+            if (process.env.TAURI_SIGNING_PRIVATE_KEY) c.bundle = { createUpdaterArtifacts: true }
+            if (process.env.ACTUALIZACIONES_URL) c.plugins = { updater: { endpoints: [process.env.ACTUALIZACIONES_URL] } }
+            require('node:fs').writeFileSync(require('node:path').join(process.env.RUNNER_TEMP, 'compilacion.json'), JSON.stringify(c))
+          "
+          npx tauri build --target "${{ matrix.destino }}" --config "$RUNNER_TEMP/compilacion.json"
+
+      - name: Revisar el programa (dos arquitecturas, firma y que abra sin tronar)
+        if: runner.os == 'macOS'
+        timeout-minutes: 5
+        run: |
+          app="$(ls -d src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app)"
+          bin="$(find "$app/Contents/MacOS" -type f | head -1)"
+          echo "Arquitecturas: $(lipo -archs "$bin")"
+          lipo -archs "$bin" | grep -q x86_64
+          lipo -archs "$bin" | grep -q arm64
+          codesign --verify --deep --strict --verbose=2 "$app"
+          hdiutil verify src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          open "$app"
+          sleep 20
+          screencapture -x captura-mac.png || true
+          if ! pgrep -f "$(basename "$bin")" > /dev/null; then
+            echo "::error::La app se cerró sola al abrir"
+            ls -t ~/Library/Logs/DiagnosticReports/ 2>/dev/null | head -5
+            cat "$HOME/Library/Logs/DiagnosticReports/$(ls -t ~/Library/Logs/DiagnosticReports/ | head -1)" 2>/dev/null | head -80
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: la-joya-${{ matrix.nombre }}
+          path: ${{ matrix.instalador }}
+          retention-days: 30
+          if-no-files-found: error
+      - name: Guardar lo que usa la actualización automática
+        if: env.TAURI_SIGNING_PRIVATE_KEY != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: actualizacion-${{ matrix.nombre }}
+          path: ${{ matrix.actualizacion }}
+          retention-days: 30
+          if-no-files-found: error
+      - name: Guardar la captura y las versiones exactas de Rust
+        if: always() && runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: revision-mac
+          path: |
+            mac/captura-mac.png
+            mac/src-tauri/Cargo.lock
+          retention-days: 30
+          if-no-files-found: ignore

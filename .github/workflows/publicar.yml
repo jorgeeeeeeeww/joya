@@ -1,0 +1,107 @@
+# Publicación automática: al subir a main se prueban las reglas por rol, se aplican las migraciones,
+# la configuración y las funciones de Supabase, y se publica la app en Cloudflare Workers.
+#
+# Secrets del repositorio (Settings → Secrets and variables → Actions → Secrets):
+#   SUPABASE_ACCESS_TOKEN   → supabase.com → Account → Access Tokens
+#   SUPABASE_DB_PASSWORD    → contraseña de la base de datos del proyecto
+#   SB_SECRET_KEY           → llave secreta nueva (sb_secret_…) del proyecto
+#   CLOUDFLARE_API_TOKEN    → Cloudflare → My Profile → API Tokens (plantilla «Edit Cloudflare Workers»)
+#   CLOUDFLARE_ACCOUNT_ID   → Cloudflare → Workers & Pages → Account ID
+# Variables (misma pantalla → Variables):
+#   SUPABASE_PROJECT_REF    → el id del proyecto (lo que va antes de .supabase.co)
+#   SUPABASE_URL            → https://TU-PROYECTO.supabase.co
+#   SUPABASE_PUBLISHABLE_KEY→ llave pública nueva (sb_publishable_…)
+#   VAPID_PUBLIC_KEY        → llave pública para avisos push
+name: Publicar
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Revisar tipos
+        run: npm run typecheck
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Base de datos de prueba con todas las migraciones
+        run: supabase db start
+      - name: Probar que cada puesto solo ve y edita lo suyo
+        run: supabase test db
+
+  publicar:
+    needs: pruebas
+    # Sin el proyecto de Supabase configurado no hay a dónde publicar: se salta en vez de fallar
+    if: github.ref == 'refs/heads/main' && vars.SUPABASE_PROJECT_REF != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Conectar con el proyecto de Supabase
+        run: supabase link --project-ref "$PROJECT_REF"
+      - name: Aplicar migraciones
+        run: supabase db push
+      - name: Aplicar configuración (supabase/config.toml)
+        run: supabase config push --yes
+      - name: Publicar funciones
+        run: supabase functions deploy --project-ref "$PROJECT_REF"
+
+      - name: Número de versión
+        run: echo "LAJOYA_BUILD_ID=$(date -u +%Y%m%d%H%M)" >> "$GITHUB_ENV"
+      - name: Compilar la app (con la dirección y la llave pública adentro)
+        env:
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          VITE_VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+        run: npm run build
+      - name: Publicar en Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 deploy
+
+      - name: Avisar al monitor central
+        if: always()
+        env:
+          URL: ${{ vars.SUPABASE_URL }}
+          KEY: ${{ secrets.SB_SECRET_KEY }}
+          OK: ${{ job.status == 'success' }}
+        run: |
+          [ -z "$KEY" ] && exit 0
+          curl -fsS -X POST "$URL/rest/v1/rpc/record_backend_run" -H "apikey: $KEY" -H "Content-Type: application/json" \
+            -d "{\"p_job\":\"publicacion\",\"p_label\":\"Publicación de la app\",\"p_ok\":$OK,\"p_detail\":\"Versión ${LAJOYA_BUILD_ID:-?}\"}" || true
+          if [ "$OK" = "true" ]; then
+            curl -fsS -X POST "$URL/rest/v1/app_config" -H "apikey: $KEY" -H "Content-Type: application/json" \
+              -H "Prefer: resolution=merge-duplicates" -d "{\"key\":\"latest_build\",\"value\":\"$LAJOYA_BUILD_ID\"}" || true
+          fi
