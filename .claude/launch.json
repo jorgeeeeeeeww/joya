@@ -84,6 +84,17 @@
         "dev"
       ],
       "port": 5180
+    },
+    {
+      "name": "marcar-mapa",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "web",
+        "run",
+        "marcar"
+      ],
+      "port": 4330
     }
   ]
 }
