@@ -2,16 +2,15 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { AlertTriangle, ArrowRight, BedDouble, FileText, Lock, Package, Repeat, TrendingUp, Wallet, Wrench } from 'lucide-react'
+import { FileText, TrendingUp, Wallet } from 'lucide-react'
 import { useStore } from '@/lib/store'
-import { EVENT_TYPE, TONE, UNIT_STATUS } from '@/lib/meta'
 import { compactMxn, fmt, fmtDate, mxn, pct } from '@/lib/format'
 import { ease } from '@/lib/motion'
 import { BarChart } from '@/components/charts'
-import { Badge, Button, Card, CardHeader, cx, Estela, Field, IconBubble, ProgressBar, Select, Sheet, Textarea } from '@/components/ui'
+import { Button, Card, CardHeader, cx, Estela, Field, IconBubble, ProgressBar, Select, Sheet, Textarea } from '@/components/ui'
 import { CountUp, Sparkle } from '@/components/step1'
 import { printHtml } from '@/components/floorplan/FloorPlanEditor'
-import { cashflow4w, expectedInflows, monthOptions, monthProfit, monthReportHtml, projectionBuckets, quarterEvents, returningGuests, unitProfitability, weeklyProjection } from './ownerMetrics'
+import { cashflow4w, expectedInflows, monthOptions, monthReportHtml, projectionBuckets, quarterEvents, returningGuests, unitProfitability, weeklyProjection } from './ownerMetrics'
 
 /** Botón + hoja para generar el reporte mensual imprimible */
 export function MonthReportButton({ variant = 'tinta' as 'tinta' | 'outline' }) {
@@ -120,7 +119,7 @@ export function ProjectionCard({ className }: { className?: string }) {
                 <li key={i.refId + i.label} className="flex items-center gap-3 border-b border-line py-2.5 text-sm last:border-0">
                   <span className={cx('h-2 w-2 shrink-0 rounded-full', i.kind === 'evento' ? 'bg-rose' : 'bg-sky')} />
                   <span className="w-16 shrink-0 text-xs text-detail tabular">{fmtDate(i.date)}</span>
-                  <Link to={i.kind === 'evento' ? `/eventos/${i.refId}` : `/hospedaje?r=${i.refId}`} className="min-w-0 flex-1 truncate hover:underline">
+                  <Link to={i.kind === 'evento' ? `/eventos/${i.refId}` : `/hospedaje?r=${i.refId}`} className="min-w-0 flex-1 hover:underline">
                     {i.label}
                   </Link>
                   <span className="shrink-0 font-medium tabular">{mxn(i.amount)}</span>
@@ -182,189 +181,89 @@ export function CashflowCard({ className }: { className?: string }) {
   )
 }
 
-export function OwnerOverview() {
+/** Qué casa deja más este mes */
+export function UnitProfitCard({ className }: { className?: string }) {
+  const data = useStore((s) => s.data)
+  const units = useMemo(() => unitProfitability(data), [data])
+  const maxRev = Math.max(1, ...units.map((u) => u.revenue))
+  return (
+    <Card className={className}>
+      <CardHeader eyebrow="Hospedaje" title={`Qué casa deja más · ${fmt(new Date(), 'MMMM')}`} subtitle="Ingreso de las noches del mes y ocupación" />
+      <div className="p-5 pt-4 md:p-6 md:pt-4">
+        <ol className="flex flex-col gap-3.5">
+          {units.map((u) => (
+            <li key={u.unit.id} className="grid grid-cols-[1fr_auto] items-center gap-3">
+              <div className="min-w-0">
+                <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-2 text-sm">
+                  <span className="font-medium">{u.unit.name}</span>
+                  <span className="text-xs text-detail">
+                    {u.nights} {u.nights === 1 ? 'noche' : 'noches'} · {pct(u.occupancy)} · tarifa {compactMxn(u.adr)}
+                  </span>
+                </div>
+                <ProgressBar value={u.revenue / maxRev} />
+              </div>
+              <span className="w-20 text-right font-medium tabular">{compactMxn(u.revenue)}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </Card>
+  )
+}
+
+/** Los eventos del trimestre con más ingreso */
+export function TopEventsCard({ className }: { className?: string }) {
   const data = useStore((s) => s.data)
   const settings = useStore((s) => s.settings)
-  const profit = useMemo(() => monthProfit(data), [data])
-  const units = useMemo(() => unitProfitability(data), [data])
   const top = useMemo(() => quarterEvents(data, settings).slice(0, 5), [data, settings])
-  const regulars = useMemo(() => returningGuests(data).slice(0, 5), [data])
-  const incidents = useMemo(
-    () =>
-      Object.values(data.tasks)
-        .filter((t) => !t.deleted && t.type === 'mantenimiento' && (t.priority === 'urgente' || t.priority === 'alta') && (t.status === 'pendiente' || t.status === 'en-progreso'))
-        .sort((a, b) => (a.priority === 'urgente' ? -1 : 1) - (b.priority === 'urgente' ? -1 : 1)),
-    [data.tasks],
-  )
-  const blocked = useMemo(() => Object.values(data.units).filter((u) => !u.deleted && u.status === 'mantenimiento'), [data.units])
-  const lowStock = useMemo(() => Object.values(data.inventory).filter((i) => !i.deleted && i.stock <= i.min), [data.inventory])
-  const maxRev = Math.max(1, ...units.map((u) => u.revenue))
-  const monthLabel = fmt(new Date(), 'MMMM')
-  const attention = incidents.length + blocked.length + lowStock.length
-
   return (
-    <div className="grid grid-cols-1 gap-5 xl:grid-cols-12 xl:gap-6">
-      {/* Encabezado de la sección */}
-      <div className="flex flex-wrap items-end justify-between gap-3 xl:col-span-12">
-        <div>
-          <div className="eyebrow flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-chispa-soft shadow-[0_0_10px_var(--luz)]" /> Panorama del dueño
+    <Card className={className}>
+      <CardHeader eyebrow={top[0]?.quarter ?? 'Trimestre'} title="Eventos que más dejan" subtitle="Por total cotizado en el trimestre" />
+      <ul className="flex flex-col gap-1 p-3 md:p-4">
+        {top.length === 0 && <li className="px-3 py-6 text-center text-sm text-ink-soft">Aún no hay eventos en este trimestre.</li>}
+        {top.map(({ ev, total, paid, perGuest }) => (
+          <li key={ev.id}>
+            <Link to={`/eventos/${ev.id}`} className="pressable flex min-h-14 items-center gap-3 rounded-[14px] px-3 py-2 hover:bg-wash">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] leading-snug font-medium">{ev.title}</span>
+                <span className="block text-xs text-detail">
+                  {fmtDate(ev.date)} · {ev.guests} invitados · {compactMxn(perGuest)} por persona
+                </span>
+              </span>
+              <span className="text-right">
+                <span className="block font-medium tabular">{compactMxn(total)}</span>
+                <span className="block text-[11px] text-ink-3">{pct(total ? paid / total : 0)} cobrado</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}
+
+/** Huéspedes con más de una estancia (solo si los hay) */
+export function RegularsCard({ className }: { className?: string }) {
+  const data = useStore((s) => s.data)
+  const regulars = useMemo(() => returningGuests(data).slice(0, 5), [data])
+  if (!regulars.length) return null
+  return (
+    <Card className={className}>
+      <CardHeader eyebrow="Lealtad" title="Huéspedes que regresan" subtitle="Personas con más de una estancia: cuídalas con una atención especial" />
+      <div className="grid gap-2 p-4 sm:grid-cols-2 lg:grid-cols-5 md:p-5">
+        {regulars.map((g) => (
+          <div key={g.name + g.last} className="rounded-[18px] bg-sunken p-4">
+            <div className="font-medium">{g.name}</div>
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span className="display-num text-2xl">{g.stays}</span>
+              <span className="text-xs text-detail">estancias</span>
+            </div>
+            <div className="mt-1 text-xs text-detail">
+              {compactMxn(g.spent)} · última {fmtDate(g.last)}
+            </div>
           </div>
-          <h2 className="heading mt-2 text-[clamp(1.7rem,1.4rem+1.2vw,2.3rem)]">Cómo va el negocio</h2>
-        </div>
-        <MonthReportButton />
+        ))}
       </div>
-
-      {/* Utilidad del mes */}
-      <Card className="xl:col-span-4">
-        <CardHeader eyebrow={`Utilidad de ${monthLabel}`} title="Ingresos menos gastos" icon={<IconBubble tone="rose" orb><Wallet size={20} strokeWidth={1.6} /></IconBubble>} />
-        <div className="p-5 pt-4 md:p-6 md:pt-4">
-          <div className={cx('display-num text-[2.8rem]', profit.profit < 0 && 'text-danger')}>
-            <CountUp value={profit.profit} format={(n) => mxn(n)} />
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
-            <Badge tone={profit.margin >= 0.25 ? 'sage' : profit.margin >= 0 ? 'butter' : 'rose'}>Margen {pct(profit.margin)}</Badge>
-            <span>en lo que va del mes</span>
-          </div>
-          <Estela className="my-4" />
-          <dl className="grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-[14px] bg-sunken p-3">
-              <dt className="text-xs text-detail">Entró</dt>
-              <dd className="display-num mt-1 text-xl">{compactMxn(profit.income)}</dd>
-            </div>
-            <div className="rounded-[14px] bg-sunken p-3">
-              <dt className="text-xs text-detail">Salió</dt>
-              <dd className="display-num mt-1 text-xl">{compactMxn(profit.spent)}</dd>
-            </div>
-            <div className="rounded-[14px] bg-sunken p-3">
-              <dt className="text-xs text-detail">Hospedaje</dt>
-              <dd className="display-num mt-1 text-xl">{compactMxn(profit.incomeLodging)}</dd>
-            </div>
-            <div className="rounded-[14px] bg-sunken p-3">
-              <dt className="text-xs text-detail">Eventos</dt>
-              <dd className="display-num mt-1 text-xl">{compactMxn(profit.incomeEvents)}</dd>
-            </div>
-          </dl>
-          <Link to="/finanzas" className="mt-4 inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink">
-            Ver finanzas <ArrowRight size={14} strokeWidth={1.6} />
-          </Link>
-        </div>
-      </Card>
-
-      {/* Proyección */}
-      <ProjectionCard className="xl:col-span-8" />
-
-      {/* Atención del dueño */}
-      <Card className="xl:col-span-4">
-        <CardHeader eyebrow="Atención" title={attention ? `${attention} cosas por resolver` : 'Todo en orden'} subtitle="Incidencias, unidades bloqueadas e insumos" icon={<IconBubble tone="peach"><AlertTriangle size={20} strokeWidth={1.6} /></IconBubble>} />
-        <div className="flex flex-col gap-1 p-3 md:p-4">
-          {attention === 0 && <p className="rounded-[14px] bg-sunken px-4 py-6 text-center text-sm text-ink-soft">Sin incidencias abiertas ni faltantes. ✦</p>}
-          {blocked.map((u) => (
-            <Link key={u.id} to={`/mapa?u=${u.id}`} className="pressable flex min-h-12 items-center gap-3 rounded-[14px] px-3 py-2 hover:bg-wash">
-              <Lock size={16} strokeWidth={1.6} className="shrink-0 text-danger" />
-              <span className="min-w-0 flex-1 truncate text-sm">
-                <span className="font-medium">{u.name}</span> bloqueada por mantenimiento
-              </span>
-              <Badge tone={UNIT_STATUS[u.status].tone}>{UNIT_STATUS[u.status].label}</Badge>
-            </Link>
-          ))}
-          {incidents.slice(0, 4).map((t) => (
-            <Link key={t.id} to={`/tareas?t=${t.id}`} className="pressable flex min-h-12 items-center gap-3 rounded-[14px] px-3 py-2 hover:bg-wash">
-              <Wrench size={16} strokeWidth={1.6} className={cx('shrink-0', t.priority === 'urgente' ? 'text-danger' : 'text-warning')} />
-              <span className="min-w-0 flex-1 truncate text-sm">{t.title}</span>
-              <Badge tone={t.priority === 'urgente' ? 'rose' : 'peach'}>{t.priority === 'urgente' ? 'Urgente' : 'Alta'}</Badge>
-            </Link>
-          ))}
-          {lowStock.length > 0 && (
-            <Link to="/inventario" className="pressable flex min-h-12 items-center gap-3 rounded-[14px] px-3 py-2 hover:bg-wash">
-              <Package size={16} strokeWidth={1.6} className="shrink-0 text-warning" />
-              <span className="min-w-0 flex-1 truncate text-sm">
-                <span className="font-medium">{lowStock.length} insumos</span> bajo el mínimo: {lowStock.slice(0, 3).map((i) => i.name).join(', ')}
-              </span>
-              <ArrowRight size={14} strokeWidth={1.6} className="text-ink-3" />
-            </Link>
-          )}
-        </div>
-      </Card>
-
-      {/* Rentabilidad por unidad */}
-      <Card className="xl:col-span-8">
-        <CardHeader eyebrow="Hospedaje" title={`Rentabilidad por unidad · ${monthLabel}`} subtitle="Ingreso prorrateado por noches del mes y ocupación" icon={<IconBubble tone="sky"><BedDouble size={20} strokeWidth={1.6} /></IconBubble>} />
-        <div className="p-5 pt-4 md:p-6 md:pt-4">
-          <ol className="flex flex-col gap-3.5">
-            {units.map((u, i) => (
-              <li key={u.unit.id} className="grid grid-cols-[28px_1fr_auto] items-center gap-3">
-                <span className={cx('display-num text-lg', i === 0 ? 'text-ink' : 'text-ink-3')}>{i + 1}</span>
-                <div className="min-w-0">
-                  <div className="mb-1.5 flex items-baseline justify-between gap-2 text-sm">
-                    <span className="truncate font-medium">{u.unit.name}</span>
-                    <span className="shrink-0 text-xs text-detail">
-                      {u.nights} noches · {pct(u.occupancy)} · ADR {compactMxn(u.adr)}
-                    </span>
-                  </div>
-                  <ProgressBar value={u.revenue / maxRev} />
-                </div>
-                <span className="w-20 text-right font-medium tabular">{compactMxn(u.revenue)}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </Card>
-
-      {/* Top eventos del trimestre */}
-      <Card className="xl:col-span-6">
-        <CardHeader eyebrow={top[0]?.quarter ?? 'Trimestre'} title="Eventos que más dejan" subtitle="Por total cotizado en el trimestre" />
-        <ul className="flex flex-col gap-1 p-3 md:p-4">
-          {top.length === 0 && <li className="px-3 py-6 text-center text-sm text-ink-soft">Aún no hay eventos en este trimestre.</li>}
-          {top.map(({ ev, total, paid, perGuest }) => {
-            const Icon = EVENT_TYPE[ev.type].icon
-            return (
-              <li key={ev.id}>
-                <Link to={`/eventos/${ev.id}`} className="pressable flex min-h-14 items-center gap-3 rounded-[14px] px-3 py-2 hover:bg-wash">
-                  <span className={cx('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', TONE[EVENT_TYPE[ev.type].tone].soft, TONE[EVENT_TYPE[ev.type].tone].ink)}>
-                    <Icon size={18} strokeWidth={1.6} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-medium">{ev.title}</span>
-                    <span className="block text-xs text-detail">
-                      {fmtDate(ev.date)} · {ev.guests} invitados · {compactMxn(perGuest)} por persona
-                    </span>
-                  </span>
-                  <span className="text-right">
-                    <span className="block font-medium tabular">{compactMxn(total)}</span>
-                    <span className="block text-[11px] text-ink-3">{pct(total ? paid / total : 0)} cobrado</span>
-                  </span>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-      </Card>
-
-      {/* Flujo de caja */}
-      <CashflowCard className="xl:col-span-6" />
-
-      {/* Clientes que regresan */}
-      {regulars.length > 0 && (
-      <Card className="xl:col-span-12">
-        <CardHeader eyebrow="Lealtad" title="Huéspedes que regresan" subtitle="Personas con más de una estancia: cuídalas con una atención especial" icon={<IconBubble tone="lavender"><Repeat size={20} strokeWidth={1.6} /></IconBubble>} />
-        <div className="grid gap-2 p-4 sm:grid-cols-2 lg:grid-cols-5 md:p-5">
-          {regulars.length === 0 && <p className="col-span-full px-3 py-4 text-center text-sm text-ink-soft">Todavía no hay huéspedes recurrentes.</p>}
-          {regulars.map((g) => (
-            <div key={g.name + g.last} className="rounded-[18px] bg-sunken p-4">
-              <div className="truncate font-medium">{g.name}</div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="display-num text-2xl">{g.stays}</span>
-                <span className="text-xs text-detail">estancias</span>
-              </div>
-              <div className="mt-1 text-xs text-detail">
-                {compactMxn(g.spent)} · última {fmtDate(g.last)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-      )}
-    </div>
+    </Card>
   )
 }

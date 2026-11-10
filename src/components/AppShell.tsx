@@ -9,6 +9,7 @@ import {
   ChevronsUpDown,
   CloudOff,
   HelpCircle,
+  Lightbulb,
   Home,
   ListChecks,
   Lock,
@@ -41,6 +42,7 @@ import { PresenceStack, PwaPrompts } from './PwaPrompts'
 import { setThemePref, useThemePref } from './ThemeToggle'
 import { trackPage } from '@/lib/sync'
 import { ErrorBoundary } from './ErrorBoundary'
+import { PullToRefresh } from './PullToRefresh'
 import { AssistantDock, AssistantIntro, useHelp } from './assistant/Asistente'
 
 /** Una tarea sin asignar le toca a quien hace ese tipo de trabajo (para el contador del menú) */
@@ -62,6 +64,7 @@ export const NAV: Record<Section, { label: string; to: string; icon: typeof Home
   mapa: { label: 'Mapa', to: '/mapa', icon: Map, group: 'Hoy' },
   hospedaje: { label: 'Hospedaje', to: '/hospedaje', icon: BedDouble, group: 'Rentas' },
   eventos: { label: 'Eventos', to: '/eventos', icon: PartyPopper, group: 'Rentas' },
+  estudio: { label: 'Estudio', to: '/estudio', icon: Lightbulb, group: 'Rentas' },
   invitados: { label: 'Invitados', to: '/invitados', icon: UsersRound, group: 'Rentas' },
   espacios: { label: 'Salón y jardín', to: '/espacios', icon: Armchair, group: 'Rentas' },
   mensajes: { label: 'Mensajes', to: '/mensajes', icon: Send, group: 'Rentas' },
@@ -489,6 +492,7 @@ export default function AppShell() {
         </header>
         <AccountMenu open={account} onClose={() => setAccount(false)} anchor={accountRef} />
 
+        <PullToRefresh target={mainRef} disabled={fullBleed} />
         <main id="contenido" ref={mainRef} className={cx('scroll-area relative min-h-0 flex-1 overflow-y-auto', !fullBleed && 'pb-[calc(112px+env(safe-area-inset-bottom))] md:pb-16')}>
           <motion.div
             key={location.pathname.split('/')[1] || 'inicio'}

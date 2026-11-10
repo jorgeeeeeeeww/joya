@@ -14,7 +14,7 @@ import { GUIDES, guideKeyFor, type PanelGuide } from '@/lib/guides'
 import { pendingInstallments, useEventMoney } from '@/lib/planner'
 import { daysUntil, fmtDate, mxn, today } from '@/lib/format'
 import { ease, haptic } from '@/lib/motion'
-import { Button, Card, cx, ProgressBar, Segmented, Sheet } from '@/components/ui'
+import { Button, Card, cx, Segmented, Sheet } from '@/components/ui'
 
 // ── Preferencias ─────────────────────────────────────────
 export const ASSISTANT_MODES: { value: AssistantMode; label: string; help: string }[] = [
@@ -571,7 +571,7 @@ export function EventCoachCard({ ev }: { ev: RanchEvent }) {
         <Compass size={20} strokeWidth={1.7} />
       </span>
       <div className="min-w-0 flex-1 basis-56">
-        <p className="eyebrow">{fresh ? '¡Evento creado! Esto sigue' : `Fase ${current.n} de ${coach.phases.length} · ${current.label}`}</p>
+        <p className="eyebrow">{fresh ? '¡Evento creado! Esto sigue' : `Ahora: ${current.label}`}</p>
         {next ? (
           <p className="mt-1 text-[15px] leading-snug">
             <span className={cx('font-semibold', next.state === 'late' && 'text-danger')}>{next.state === 'late' ? 'Atrasado: ' : 'Sigue: '}</span>
@@ -582,7 +582,6 @@ export function EventCoachCard({ ev }: { ev: RanchEvent }) {
           <p className="mt-1 text-[15px] text-success">Todo al corriente en esta fase{coach.after?.from ? `. «${coach.after.label}» empieza el ${fmtDate(coach.after.from)}` : ''}.</p>
         )}
         {coach.alert && <p className="mt-1 text-sm text-danger">{coach.alert}</p>}
-        <ProgressBar value={current.steps.length ? current.steps.filter((s) => s.state === 'done').length / current.steps.length : 1} className="mt-2.5 max-w-xs" />
       </div>
       <div className="flex flex-wrap gap-2">
         {next?.go && (

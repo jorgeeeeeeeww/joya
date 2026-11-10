@@ -229,6 +229,9 @@ function General() {
               />
             </Field>
           ))}
+          <Field label="Hora extra" hint="Lo que se cobra por cada hora adicional del evento">
+            <Input type="number" inputMode="numeric" min={0} placeholder="Sin precio" value={settings.extraHourPrice || ''} onChange={(e) => setSettings({ extraHourPrice: Number(e.target.value) || 0 })} />
+          </Field>
         </div>
       </Section>
       <Section title="Atmósfera del rancho" subtitle="La que ve todo el equipo, salvo quien elija la suya en Tu panel.">

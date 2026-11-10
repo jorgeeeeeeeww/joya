@@ -3,17 +3,16 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { Armchair, Box, CalendarPlus, ChevronRight, Eye, Footprints, LayoutGrid, Maximize2, Minimize2, Plus, Ruler, Sparkles, Trees, Undo2, Users, UtensilsCrossed } from 'lucide-react'
+import { Armchair, Box, CalendarPlus, ChevronRight, Eye, Footprints, LayoutGrid, Maximize2, Minimize2, Plus, Trees, Undo2 } from 'lucide-react'
 import { db, useCollection, useMe } from '@/lib/store'
 import { EVENT_STATUS, EVENT_TYPE, TONE, VENUE } from '@/lib/meta'
-import { ITEM_SPECS, MAIN_SCENE_ID, SCENE_KIND, eventScenes, eventVenues, layoutStats, newScene, sceneForVenue } from '@/lib/floorplan'
+import { ITEM_SPECS, MAIN_SCENE_ID, SCENE_KIND, eventScenes, eventVenues, newScene, sceneForVenue } from '@/lib/floorplan'
 import { VENUE_SPACES } from '@/lib/layout'
-import { upcomingSaturdays } from '@/lib/planner'
-import { daysUntil, fmt, fmtDate, today } from '@/lib/format'
-import { ease, fadeRise, stagger } from '@/lib/motion'
-import type { FloorItem, RanchEvent, SceneKind, Venue } from '@/lib/types'
-import { Badge, Button, Card, CardHeader, cx, Empty, IconBubble, PageHeader, ProgressBar, Segmented, toast, useMedia } from '@/components/ui'
-import { Sparkle } from '@/components/step1'
+import { daysUntil, fmt, today } from '@/lib/format'
+import { ease } from '@/lib/motion'
+import type { RanchEvent, SceneKind, Venue } from '@/lib/types'
+import { Badge, Button, Card, cx, Empty, IconBubble, PageHeader, Segmented, toast, useMedia } from '@/components/ui'
+import { Combobox } from '@/components/fields'
 import { EventOrb, PaletteDots } from '@/components/events/EventOrb'
 import { NewEventSheet } from '@/components/events/NewEventSheet'
 
@@ -23,23 +22,6 @@ const VenueScene3D = lazy(() => import('@/components/venue/VenueScene3D'))
 const VENUE_INFO: Record<Venue, { icon: typeof Armchair; perks: string[] }> = {
   salon: { icon: Armchair, perks: ['Techado', 'Pista', 'Cocina', 'Baños', 'Terraza de entrada'] },
   jardin: { icon: Trees, perks: ['Al aire libre', 'Glorieta con fuente', 'Palmeras', 'Ideal para ceremonias', 'Considerar carpa'] },
-}
-
-/** Mobiliario que pide el plano contra lo que hay en inventario */
-function useFurniture(layout: FloorItem[]) {
-  const inventory = useCollection('inventory')
-  return useMemo(() => {
-    const count = (t: FloorItem['type'][]) => layout.filter((i) => t.includes(i.type)).length
-    const chairs = layout.filter((i) => (ITEM_SPECS[i.type].isTable && i.type !== 'periquera') || i.type === 'sillas-ceremonia').reduce((n, i) => n + (i.seats ?? 0), 0)
-    const stock = (id: string) => inventory.find((i) => i.id === id)?.stock ?? 0
-    return [
-      { label: 'Mesas redondas', need: count(['mesa-redonda', 'mesa-media-luna']), have: stock('inv_redondas') },
-      { label: 'Mesas rectangulares', need: count(['mesa-rectangular', 'mesa-cuadrada', 'mesa-novios', 'mesa-dulces']) + count(['mesa-imperial', 'mesa-principal']) * 3, have: stock('inv_rect') },
-      { label: 'Periqueras', need: count(['periquera']), have: stock('inv_periqueras') },
-      { label: 'Sillas', need: chairs, have: stock('inv_tiffany') + stock('inv_plegables') },
-      { label: 'Manteles', need: count(['mesa-redonda']), have: stock('inv_manteles') },
-    ].filter((f) => f.need > 0)
-  }, [layout, inventory])
 }
 
 export default function Espacios() {
@@ -107,10 +89,6 @@ export default function Espacios() {
     toast.success('Escena agregada', `${sc.name} en el ${VENUE[venue].label.toLowerCase()}, con una plantilla para empezar`)
   }
 
-  const stats = layoutStats(items)
-  const furniture = useFurniture(items)
-  const saturdays = useMemo(() => upcomingSaturdays(events, 8), [events])
-  const space = VENUE_SPACES[venue]
   const selectedItem = items.find((i) => i.id === selected)
   const selectedKey = selectedItem ? (selectedItem.type === 'mesa-principal' && !selectedItem.number ? 0 : selectedItem.number) : undefined
   const guestsAtSelected = isMain && selectedItem && ITEM_SPECS[selectedItem.type].isTable && selectedKey !== undefined ? (ev?.guestList ?? []).filter((g) => g.table === selectedKey && g.rsvp !== 'declinado') : []
@@ -129,115 +107,42 @@ export default function Espacios() {
         }
       />
 
-      {/* Recintos */}
-      <motion.div variants={stagger} initial="hidden" animate="show" className="grid gap-4 md:grid-cols-2">
-        {(['salon', 'jardin'] as Venue[]).map((v) => {
-          const info = VENUE_INFO[v]
-          const Icon = info.icon
-          const next = upcoming.find((e) => eventVenues(e).includes(v))
-          const monthCount = events.filter((e) => eventVenues(e).includes(v) && e.status !== 'cancelado' && e.date.slice(0, 7) === T.slice(0, 7)).length
-          const active = v === venue
-          return (
-            <motion.button
-              key={v}
-              variants={fadeRise}
-              onClick={() => setVenue(v)}
-              aria-pressed={active}
-              className={cx('card lift pressable relative overflow-hidden p-5 text-left md:p-6', active && 'ring-2 ring-primary')}
-            >
-              <div className="flex items-start gap-4">
-                <IconBubble tone={VENUE[v].tone} size="lg" orb={active}>
-                  <Icon size={24} strokeWidth={1.6} />
-                </IconBubble>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h2 className="heading text-[1.6rem]">{VENUE[v].label === 'Salón' ? 'Salón de eventos' : 'Jardín de eventos'}</h2>
-                    {active && <Sparkle className="text-chispa-soft" />}
-                  </div>
-                  <p className="mt-0.5 text-sm text-ink-soft">{VENUE[v].description}</p>
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-soft">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Users size={14} strokeWidth={1.6} /> Hasta {VENUE[v].capacity}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <Ruler size={14} strokeWidth={1.6} /> {VENUE_SPACES[v].w} × {VENUE_SPACES[v].h} m
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <LayoutGrid size={14} strokeWidth={1.6} /> {monthCount} este mes
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {info.perks.map((p) => (
-                  <span key={p} className="rounded-full bg-sunken px-2.5 py-1 text-xs text-detail">
-                    {p}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-4 border-t border-line pt-3 text-sm">
-                {next ? (
-                  <span className="text-ink-soft">
-                    Próximo: <span className="text-ink">{next.title}</span> · {fmtDate(next.date)}
-                  </span>
-                ) : (
-                  <span className="text-ink-soft">Sin eventos próximos</span>
-                )}
-              </div>
-            </motion.button>
-          )
-        })}
-      </motion.div>
-
-      {/* Eventos del recinto */}
-      {venueEvents.length + otherEvents.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {venueEvents.map((e) => {
-            const on = e.id === ev?.id
-            const d = daysUntil(e.date)
-            return (
-              <button
-                key={e.id}
-                onClick={() => setEvent(e.id)}
-                className={cx('pressable flex shrink-0 items-center gap-3 rounded-full py-1.5 pr-4 pl-1.5 text-left transition-colors', on ? 'bg-ink text-paper' : 'bg-surface ring-1 ring-line hover:bg-wash')}
-              >
-                <EventOrb type={e.type} size="sm" orb={on} />
-                <span className="leading-tight">
-                  <span className="block text-sm font-medium">{e.title}</span>
-                  <span className={cx('block text-xs', on ? 'opacity-70' : 'text-ink-soft')}>
-                    {fmt(e.date, 'EEE d MMM')} · {e.guests} inv. · {d === 0 ? 'hoy' : `en ${d} d`}
-                  </span>
-                </span>
-              </button>
-            )
-          })}
-          {otherEvents.length > 0 && (
-            <>
-              <span className="flex shrink-0 items-center px-1.5 text-xs whitespace-nowrap text-ink-3">Aún sin escena aquí</span>
-              {otherEvents.map((e) => {
-                const on = e.id === ev?.id
-                return (
-                  <button
-                    key={e.id}
-                    onClick={() => setEvent(e.id)}
-                    className={cx('pressable flex min-h-11 shrink-0 items-center gap-2 rounded-full py-1.5 pr-4 pl-2 text-left transition-colors', on ? 'bg-ink text-paper' : 'border border-dashed border-line-strong text-ink-soft hover:bg-wash hover:text-ink')}
-                  >
-                    <span className={cx('flex h-8 w-8 items-center justify-center rounded-full', on ? 'bg-[color-mix(in_oklab,var(--paper)_18%,transparent)]' : 'bg-sunken')}>
-                      <Plus size={15} strokeWidth={1.6} />
-                    </span>
-                    <span className="leading-tight">
-                      <span className="block text-sm font-medium">{e.title}</span>
-                      <span className={cx('block text-xs', on ? 'opacity-70' : 'text-ink-3')}>
-                        {fmt(e.date, 'EEE d MMM')} · en {VENUE[e.venue].label.toLowerCase()}
-                      </span>
-                    </span>
-                  </button>
-                )
-              })}
-            </>
+      {/* Una sola barra: qué espacio y qué evento. El plano va justo debajo. */}
+      <Card className="flex flex-col gap-4 p-4 md:p-5 lg:flex-row lg:items-end">
+        <div className="flex min-w-0 flex-col gap-2 lg:w-[340px] lg:shrink-0">
+          <Segmented<Venue>
+            className="flex w-full [&>*]:flex-1"
+            value={venue}
+            onChange={setVenue}
+            options={(['salon', 'jardin'] as Venue[]).map((v) => {
+              const Icon = VENUE_INFO[v].icon
+              return { value: v, label: <><Icon size={16} strokeWidth={1.6} /> {VENUE[v].label}</> }
+            })}
+          />
+          <p className="px-1 text-[13px] leading-snug text-detail">
+            Hasta {VENUE[venue].capacity} personas · {VENUE_SPACES[venue].w} × {VENUE_SPACES[venue].h} m · {VENUE_INFO[venue].perks.join(', ').toLowerCase()}
+          </p>
+        </div>
+        <div className="min-w-0 flex-1">
+          {venueEvents.length + otherEvents.length > 0 ? (
+            <Combobox
+              label="Evento"
+              value={ev?.id ?? ''}
+              onChange={(id) => id && setEvent(id)}
+              searchPlaceholder="Buscar evento…"
+              options={[
+                ...venueEvents.map((e) => {
+                  const d = daysUntil(e.date)
+                  return { value: e.id, label: e.title, hint: `${fmt(e.date, 'EEE d MMM')} · ${e.guests} inv. · ${d === 0 ? 'hoy' : `en ${d} d`}`, tone: EVENT_TYPE[e.type].tone }
+                }),
+                ...otherEvents.map((e) => ({ value: e.id, label: e.title, hint: `Sin escena aquí · ${fmt(e.date, 'EEE d MMM')} · en ${VENUE[e.venue].label.toLowerCase()}`, icon: <Plus size={15} strokeWidth={1.6} /> })),
+              ]}
+            />
+          ) : (
+            <p className="text-sm text-ink-soft">No hay eventos próximos en el {VENUE[venue].label.toLowerCase()}.</p>
           )}
         </div>
-      ) : null}
+      </Card>
 
       {!ev ? (
         <Card>
@@ -251,7 +156,7 @@ export default function Espacios() {
               <EventOrb type={ev.type} size="lg" orb />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="heading truncate text-[1.7rem]">{ev.title}</h2>
+                  <h2 className="heading text-[1.5rem] leading-tight md:text-[1.7rem]">{ev.title}</h2>
                   <Badge tone={EVENT_STATUS[ev.status].tone} dot>
                     {EVENT_STATUS[ev.status].label}
                   </Badge>
@@ -262,6 +167,9 @@ export default function Espacios() {
               </div>
               <PaletteDots colors={ev.palette} className="ml-1 max-sm:hidden" />
             </div>
+            <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} strokeWidth={1.6} />} onClick={() => navigate(`/eventos/${ev.id}`)}>
+              Ver evento
+            </Button>
             {scene && (
               <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                 {can3d && <Segmented
@@ -418,93 +326,6 @@ export default function Espacios() {
             </div>
           )}
 
-          {/* Resumen, mobiliario y disponibilidad */}
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {scene && (
-            <>
-            <Card>
-              <CardHeader eyebrow={`Capacidad · ${scene.name}`} title="Lugares e invitados" icon={<IconBubble tone="rose"><Users size={18} strokeWidth={1.6} /></IconBubble>} />
-              <div className="p-5 pt-4 md:p-6 md:pt-4">
-                <div className="flex items-end justify-between">
-                  <span className="display-num text-[2.6rem]">{stats.seats}</span>
-                  <span className="pb-1 text-sm text-ink-soft">lugares para {ev.guests} invitados</span>
-                </div>
-                <ProgressBar value={ev.guests ? Math.min(1, stats.seats / ev.guests) : 0} tone={stats.seats >= ev.guests ? 'sage' : 'peach'} className="mt-3" />
-                <p className={cx('mt-3 text-sm', stats.seats >= ev.guests ? 'text-success' : 'text-danger')}>
-                  {stats.seats >= ev.guests ? `Alcanza, sobran ${stats.seats - ev.guests} lugares` : `Faltan ${ev.guests - stats.seats} lugares: agrega mesas o usa una plantilla`}
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-[14px] bg-sunken p-3">
-                    <div className="display-num text-2xl">{stats.tables}</div>
-                    <div className="text-ink-soft">mesas</div>
-                  </div>
-                  <div className="rounded-[14px] bg-sunken p-3">
-                    <div className="display-num text-2xl">{space.w * space.h}</div>
-                    <div className="text-ink-soft">m² del recinto</div>
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {/* Botones que navegan (un botón dentro de un enlace recargaba toda la app) */}
-                  <Button variant="secondary" icon={<Users size={17} strokeWidth={1.6} />} onClick={() => navigate(`/invitados?e=${ev.id}`)}>
-                    Invitados y mesas
-                  </Button>
-                  <Button variant="ghost" iconRight={<ChevronRight size={17} strokeWidth={1.6} />} onClick={() => navigate(`/eventos/${ev.id}`)}>
-                    Ver evento
-                  </Button>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <CardHeader eyebrow="Inventario" title="Mobiliario necesario" icon={<IconBubble tone="butter"><UtensilsCrossed size={18} strokeWidth={1.6} /></IconBubble>} />
-              <div className="p-5 pt-4 md:p-6 md:pt-4">
-                {furniture.length === 0 ? (
-                  <p className="text-sm text-ink-soft">Agrega piezas al plano para calcular el mobiliario.</p>
-                ) : (
-                  <ul className="flex flex-col gap-3">
-                    {furniture.map((f) => {
-                      const ok = f.have >= f.need
-                      return (
-                        <li key={f.label}>
-                          <div className="flex items-baseline justify-between text-sm">
-                            <span>{f.label}</span>
-                            <span className={cx('tabular', ok ? 'text-ink-soft' : 'text-danger')}>
-                              {f.need} de {f.have}
-                            </span>
-                          </div>
-                          <ProgressBar value={f.have ? Math.min(1, f.need / f.have) : 1} tone={ok ? 'sage' : 'rose'} className="mt-1.5" />
-                        </li>
-                      )
-                    })}
-                  </ul>
-                )}
-                {furniture.some((f) => f.have < f.need) && <p className="mt-4 text-sm text-danger">Falta mobiliario: considera rentarlo o ajustar el acomodo.</p>}
-              </div>
-            </Card>
-            </>
-            )}
-
-            <Card className="md:col-span-2 xl:col-span-1">
-              <CardHeader eyebrow="Disponibilidad" title={`Sábados del ${VENUE[venue].label.toLowerCase()}`} icon={<IconBubble tone="sky"><Sparkles size={18} strokeWidth={1.6} /></IconBubble>} />
-              <div className="grid grid-cols-4 gap-2 p-5 pt-4 md:grid-cols-8 md:p-6 md:pt-4 xl:grid-cols-4">
-                {saturdays.map((s) => {
-                  const taken = venue === 'salon' ? s.salon : s.jardin
-                  return (
-                    <button
-                      key={s.date}
-                      title={taken ? taken.title : 'Libre'}
-                      onClick={() => (taken ? setEvent(taken.id) : setNewOpen(true))}
-                      className={cx('pressable flex flex-col items-center rounded-[14px] px-1 py-2.5 text-center', taken ? 'bg-sunken text-ink-soft' : 'bg-[color-mix(in_oklab,var(--luz)_45%,var(--surface))] text-night ring-1 ring-[color-mix(in_oklab,var(--luz)_60%,transparent)]')}
-                    >
-                      <span className="text-[10px] uppercase">{fmt(s.date, 'MMM')}</span>
-                      <span className="display-num text-xl">{fmt(s.date, 'd')}</span>
-                      <span className="text-[10px]">{taken ? 'Ocupado' : 'Libre'}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </Card>
-          </div>
         </>
       )}
 

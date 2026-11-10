@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { useStore, type StoreState } from '@/lib/store'
 import { computeAlerts, eventTotal } from '@/lib/automations'
-import { EVENT_STATUS, EVENT_TYPE, TONE, VENUE } from '@/lib/meta'
+import { EVENT_STATUS, EVENT_TYPE, TONE, UNIT_STATUS, VENUE } from '@/lib/meta'
 import { addDaysISO, capitalize, compactMxn, fmt, fmtDate, fmtDateLong, localDay, mxn, relativeDay, today } from '@/lib/format'
 import { useWeather, weatherLabel } from '@/lib/weather'
 import { fadeRise, stagger } from '@/lib/motion'
@@ -27,8 +27,9 @@ import { Sparkline } from '@/components/charts'
 import { Avatar, Button, Card, CardHeader, cx, Dot, ProgressBar, SectionTitle, Stat, StatStrip } from '@/components/ui'
 import { Occupancy7 } from '@/components/owner/OwnerToday'
 import { CountUp, NightSlab } from '@/components/step1'
-import { RanchoScene } from '@/components/scenes'
-import { CleaningSheet } from '@/components/stays/CleaningFlow'
+import { RanchoVivoScene, type UnidadViva } from '@/components/scenes'
+import { arrivalText, CleaningSheet, nextArrival } from '@/components/stays/CleaningFlow'
+import { DeviceMonitorSummary } from '@/components/owner/DeviceMonitor'
 
 
 interface AgendaItem {
@@ -53,6 +54,7 @@ export default function Dashboard() {
   const data = useStore((s) => s.data)
   const settings = useStore((s) => s.settings)
   const navigate = useNavigate()
+  const cloud = useStore((s) => !!s.settings.supabaseUrl)
   const weather = useWeather()
   const T = today()
   const M = addDaysISO(T, 1)
@@ -294,11 +296,36 @@ export default function Dashboard() {
 
   const toCome = arrivals.filter((r) => r.status === 'confirmada' || r.status === 'pendiente').length
 
+  // El rancho de la portada: cada casa con lo que pasa en ella ahora mismo
+  const vivas: UnidadViva[] = useMemo(
+    () =>
+      units.map((u) => {
+        const here = reservations.find((r) => r.unitId === u.id && r.status === 'en-casa' && r.guests > 0)
+        const next = nextArrival(reservations, u.id)
+        const status = UNIT_STATUS[u.status].label
+        const line = here ? `${here.guestName.split(' ').slice(0, 2).join(' ')} · sale ${relativeDay(here.checkOut).toLowerCase()}` : next?.checkIn === T ? `${status} · ${arrivalText(next).toLowerCase()}` : status
+        return { id: u.id, name: u.name, status: u.status, cabana: u.kind === 'cabana', line }
+      }),
+    [units, reservations, T],
+  )
+  const salonHoy = eventsToday.find((e) => e.venue === 'salon') ?? eventsToday[0]
+
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-8">
       {/* ── 1 · El veredicto del día ── */}
       <Section>
-        <NightSlab scene={<RanchoScene />} className="px-5 pt-7 pb-24 sm:px-9 sm:pt-9 md:pb-28 xl:px-11" luzSize="clamp(48px, 8vw, 104px)" luzClassName="absolute top-[7%] right-[5%]">
+        <NightSlab
+          sceneInteractive
+          scene={
+            <div className="relative h-full">
+              <RanchoVivoScene units={vivas} salon={{ lit: !!salonHoy, line: salonHoy ? `Hoy: ${salonHoy.title}` : 'Sin evento hoy' }} onPick={(id) => navigate(id === 'salon' ? '/espacios' : `/mapa?u=${id}`)} />
+              <p className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-[12px] text-on-night-soft">Encendida: con huéspedes · toca una casa</p>
+            </div>
+          }
+          className="px-5 pt-7 pb-[172px] sm:px-9 sm:pt-9 sm:pb-28 md:pb-32 xl:px-11"
+          luzSize="clamp(48px, 8vw, 104px)"
+          luzClassName="absolute top-[7%] right-[5%]"
+        >
           <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] font-medium text-on-night-soft">
             {capitalize(fmtDateLong(T))}
             {weather && (
@@ -318,9 +345,9 @@ export default function Dashboard() {
           </ul>
           <div className="mt-7 grid max-w-[680px] grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
             {[
-              { label: 'Ocupación', value: `${occupied}/${units.length}`, to: '/hospedaje' },
+              { label: 'Ocupadas ahora', value: `${occupied}/${units.length}`, to: '/hospedaje' },
               { label: 'Por llegar hoy', value: String(toCome), to: '/hospedaje' },
-              { label: 'Salidas', value: String(departures.length), to: '/hospedaje' },
+              { label: 'Salidas de hoy', value: String(departures.length), to: '/hospedaje' },
               { label: 'Eventos hoy', value: String(eventsToday.length), to: '/eventos' },
             ].map((k) => (
               <Link key={k.label} to={k.to} className="group rounded-[14px]">
@@ -339,6 +366,13 @@ export default function Dashboard() {
           </div>
         </NightSlab>
       </Section>
+
+      {/* Monitor central: solo aparece si algún dispositivo o tarea de la nube necesita atención */}
+      {cloud && (
+        <Section>
+          <DeviceMonitorSummary onOpen={() => navigate('/desarrollador')} />
+        </Section>
+      )}
 
       {/* ── 2 · Lo que necesita tu decisión, y mañana ── */}
       <Section className="grid gap-5 lg:grid-cols-[1.55fr_1fr]">

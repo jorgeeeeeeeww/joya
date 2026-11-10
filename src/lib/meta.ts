@@ -176,6 +176,7 @@ export type Section =
   | 'hospedaje'
   | 'limpieza'
   | 'eventos'
+  | 'estudio'
   | 'espacios'
   | 'invitados'
   | 'mensajes'
@@ -187,9 +188,9 @@ export type Section =
   | 'ajustes'
 
 export const ROLE_SECTIONS: Record<Role, Section[]> = {
-  admin: ['inicio', 'mapa', 'hospedaje', 'limpieza', 'tareas', 'eventos', 'invitados', 'espacios', 'mensajes', 'proveedores', 'finanzas', 'inventario', 'equipo', 'ajustes'],
+  admin: ['inicio', 'mapa', 'hospedaje', 'limpieza', 'tareas', 'eventos', 'estudio', 'invitados', 'espacios', 'mensajes', 'proveedores', 'finanzas', 'inventario', 'equipo', 'ajustes'],
   // La Wedding planner no ve el mapa del rancho: solo sus espacios (salón y jardín)
-  eventos: ['inicio', 'eventos', 'invitados', 'espacios', 'mensajes', 'tareas', 'proveedores', 'inventario', 'ajustes'],
+  eventos: ['inicio', 'estudio', 'eventos', 'invitados', 'espacios', 'mensajes', 'tareas', 'proveedores', 'inventario', 'ajustes'],
   recepcion: ['inicio', 'hospedaje', 'limpieza', 'mapa', 'tareas', 'ajustes'],
   // Limpieza: solo su día y sus tareas (la sección Limpieza repetía el mismo contenido)
   limpieza: ['inicio', 'tareas', 'ajustes'],
@@ -198,7 +199,7 @@ export const ROLE_SECTIONS: Record<Role, Section[]> = {
 
 /** Secciones de uso ocasional: van juntas en el grupo plegable "Más" para que el menú no abrume */
 export const ROLE_MORE: Record<Role, Section[]> = {
-  admin: ['invitados', 'espacios', 'mensajes', 'proveedores'],
+  admin: ['estudio', 'invitados', 'espacios', 'mensajes', 'proveedores'],
   eventos: ['proveedores', 'inventario'],
   recepcion: [],
   limpieza: [],
@@ -206,6 +207,31 @@ export const ROLE_MORE: Record<Role, Section[]> = {
 }
 
 export const can = (role: Role | undefined, section: Section) => !!role && ROLE_SECTIONS[role].includes(section)
+
+/** Acciones operativas: quién captura y quién supervisa.
+ *  El dueño (admin) ve toda la operación, pero no captura lo que reporta el personal. */
+export type Action =
+  | 'trabajarLimpieza' // checklist, fotos, empezar y terminar una limpieza
+  | 'verificarLimpieza' // revisar y liberar una casa, o regresarla
+  | 'coordinarLimpieza' // crear una limpieza y reasignarla
+  | 'reportarProblema'
+  | 'registrarObjeto' // objeto olvidado
+  | 'seguimientoObjeto' // avisar al huésped, entregado o desechado
+  | 'cambiarEstadoUnidad'
+  | 'reservar'
+
+const ACTIONS: Record<Action, Role[]> = {
+  trabajarLimpieza: ['limpieza'],
+  verificarLimpieza: ['admin', 'recepcion'],
+  coordinarLimpieza: ['admin', 'recepcion'],
+  reportarProblema: ['eventos', 'recepcion', 'limpieza', 'mantenimiento'],
+  registrarObjeto: ['recepcion', 'limpieza', 'mantenimiento'],
+  seguimientoObjeto: ['recepcion'],
+  cambiarEstadoUnidad: ['recepcion', 'mantenimiento'],
+  reservar: ['admin', 'recepcion'],
+}
+
+export const canDo = (role: Role | undefined, action: Action) => !!role && ACTIONS[action].includes(role)
 
 /** ¿Puede este rol ver dinero (totales, pagos, precios)? */
 export const seesMoney = (role: Role | undefined) => role === 'admin' || role === 'eventos' || role === 'recepcion'

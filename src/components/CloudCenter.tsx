@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import QRCode from 'qrcode'
 import { useMe, useStore } from '@/lib/store'
+import { BAKED_KEY, BAKED_URL, hasBakedCloud } from '@/lib/cloudConfig'
 import {
   buildLinkUrl,
   connectCloud,
@@ -84,8 +85,10 @@ function CheckList({ checks, running }: { checks: CheckResult[]; running?: boole
 // ── Asistente de conexión en 3 pasos ─────────────────────
 export function ConnectWizard({ onDone }: { onDone: () => void }) {
   const settings = useStore((s) => s.settings)
-  const link = pendingLink()
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  // La app publicada ya trae la dirección y la llave: solo se pide el correo y la contraseña
+  const baked = hasBakedCloud && (!settings.supabaseUrl || settings.supabaseUrl === BAKED_URL)
+  const link = baked ? { u: BAKED_URL, k: BAKED_KEY } : pendingLink()
+  const [step, setStep] = useState<1 | 2 | 3>(baked ? 3 : 1)
   const [url, setUrl] = useState(link?.u ?? settings.supabaseUrl ?? '')
   const [key, setKey] = useState(link?.k ?? settings.supabaseAnonKey ?? '')
   const [email, setEmail] = useState('')
@@ -97,7 +100,7 @@ export function ConnectWizard({ onDone }: { onDone: () => void }) {
 
   return (
     <div>
-      <ol className="mb-6 flex items-center gap-2" aria-label="Pasos">
+      {!baked && (<ol className="mb-6 flex items-center gap-2" aria-label="Pasos">
         {['Servidor', 'Prueba', 'Cuenta'].map((label, i) => {
           const n = (i + 1) as 1 | 2 | 3
           const done = step > n
@@ -109,7 +112,7 @@ export function ConnectWizard({ onDone }: { onDone: () => void }) {
             </li>
           )
         })}
-      </ol>
+      </ol>)}
       {link && step === 1 && (
         <div className="mb-4 flex items-center gap-2 rounded-[var(--r-md)] bg-[color-mix(in_oklab,var(--luz)_40%,var(--surface))] px-4 py-3 text-sm">
           <Sparkle className="text-chispa-soft" /> Datos del servidor tomados del código QR. Solo falta tu cuenta.
@@ -122,8 +125,8 @@ export function ConnectWizard({ onDone }: { onDone: () => void }) {
               <Field label="URL del proyecto" hint="Supabase → Project Settings → API. En red local: la dirección de la iMac.">
                 <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://tu-proyecto.supabase.co" inputMode="url" autoCapitalize="off" />
               </Field>
-              <Field label="Llave pública (anon key)" hint="Es pública; la seguridad la dan las reglas por rol de la base de datos.">
-                <Input value={key} onChange={(e) => setKey(e.target.value)} placeholder="eyJhbGciOi…" autoCapitalize="off" />
+              <Field label="Llave pública" hint="Supabase → Project Settings → API Keys → Publishable key. Es pública; la seguridad la dan las reglas por rol.">
+                <Input value={key} onChange={(e) => setKey(e.target.value)} placeholder="sb_publishable_…" autoCapitalize="off" />
               </Field>
               <div className="flex justify-end">
                 <Button
@@ -182,10 +185,12 @@ export function ConnectWizard({ onDone }: { onDone: () => void }) {
               <Field label="Contraseña" error={err}>
                 <Input type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} required aria-invalid={!!err} />
               </Field>
-              <div className="flex justify-between">
-                <Button type="button" variant="ghost" onClick={() => setStep(2)}>
-                  Atrás
-                </Button>
+              <div className={cx("flex", baked ? "justify-end" : "justify-between")}>
+                {!baked && (
+                  <Button type="button" variant="ghost" onClick={() => setStep(2)}>
+                    Atrás
+                  </Button>
+                )}
                 <Button type="submit" variant="tinta" loading={busy} icon={<Cloud size={18} strokeWidth={1.6} />}>
                   Vincular este dispositivo
                 </Button>

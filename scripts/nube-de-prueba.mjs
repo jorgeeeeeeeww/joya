@@ -6,15 +6,55 @@
 //   En la app: Ajustes → Nube → URL http://127.0.0.1:54321, llave «prueba», correo admin@lajoya.mx (cualquier contraseña)
 //
 // Correos con rol: admin@, eventos@, recepcion@, limpieza@, mantenimiento@ (cualquier dominio).
+//
+// También simula (igual que la migración 20261104000000_pulido_nube.sql):
+// - Reglas por rol al leer y escribir (un puesto no ve ni guarda colecciones ajenas).
+// - Tiempo real por Broadcast privado: solo avisa «hubo cambios» en el canal «documentos».
+// - Versión mínima (app_config), monitor central (devices, client_errors, device_health,
+//   client_error_groups, backend_runs) y suscripciones push con el rol puesto por el servidor.
+//
+// Controles para provocar fallas a propósito:
+//   POST /__caducar              → vencen todas las sesiones (la app debe renovar sin pedir volver a vincular)
+//   POST /__lento?ms=30000       → cada respuesta tarda ese tiempo (la app debe cortar a los 20 s y reintentar)
+//   POST /__desorden             → la siguiente subida se guarda con hora vieja y aparece 3 s después
+//                                  (como dos subidas que terminan en desorden; la app no debe saltársela)
+//   POST /__version?min=AAAAMMDDHHmm → exige una versión mínima
+//   GET  /__estado               → conteos
 import http from 'node:http'
 import crypto from 'node:crypto'
 
-const PORT = Number(process.env.PORT || 54321)
+const PORT = Number(process.env.NUBE_PORT || process.env.PORT || 54321)
 const docs = new Map() // `${collection}:${id}` → fila
 const files = new Map() // ruta → { type, body }
 const sockets = new Set()
 let seq = 0
-const stats = { upserts: 0, rows: 0, pulls: 0, realtimeSent: 0 }
+const stats = { upserts: 0, rows: 0, pulls: 0, realtimeSent: 0, rechazadas: 0, sesionesVencidas: 0, renovaciones: 0 }
+const control = { expiredBefore: 0, slowMs: 0, disorderNext: false }
+// Tablas sencillas (sin combinación campo por campo)
+const tables = {
+  app_config: new Map([['min_build', { key: 'min_build', value: '000000000000' }]]),
+  devices: new Map(),
+  client_errors: new Map(),
+  backend_runs: new Map(),
+  push_subscriptions: new Map(),
+}
+let errorSeq = 0
+
+// Qué colecciones puede leer / escribir cada rol (copia de readable_collections / writable_collections)
+const READ = {
+  eventos: ['employees', 'units', 'reservations', 'events', 'payments', 'tasks', 'photos', 'inventory', 'notifications', 'audit', 'vendors', 'lostfound'],
+  recepcion: ['employees', 'units', 'reservations', 'payments', 'tasks', 'photos', 'inventory', 'notifications', 'lostfound'],
+  limpieza: ['employees', 'units', 'reservations', 'tasks', 'photos', 'inventory', 'notifications', 'lostfound'],
+  mantenimiento: ['employees', 'units', 'reservations', 'tasks', 'photos', 'inventory', 'notifications', 'lostfound'],
+}
+const WRITE = {
+  eventos: ['events', 'payments', 'tasks', 'photos', 'inventory', 'notifications', 'audit', 'vendors', 'lostfound'],
+  recepcion: ['units', 'reservations', 'payments', 'tasks', 'photos', 'notifications', 'audit', 'lostfound'],
+  limpieza: ['units', 'tasks', 'photos', 'inventory', 'notifications', 'audit', 'lostfound'],
+  mantenimiento: ['units', 'tasks', 'photos', 'inventory', 'notifications', 'audit', 'lostfound'],
+}
+const canRead = (role, col) => role === 'admin' || (READ[role] || []).includes(col)
+const canWrite = (role, col) => role === 'admin' || (WRITE[role] || []).includes(col)
 
 /** Hora del servidor con microsegundos, siempre creciente (como clock_timestamp()) */
 function clock() {
@@ -46,13 +86,12 @@ function lww(oldData, newData) {
   return merged
 }
 
-function upsertRow(row, userId) {
+function upsertRow(row, userId, oldStamp) {
   const key = `${row.collection}:${row.id}`
   const prev = docs.get(key)
   const data = prev ? lww(prev.data, row.data) : row.data
-  const next = { collection: row.collection, id: row.id, data, deleted: !!data.deleted, updated_at: clock(), updated_by: userId }
+  const next = { collection: row.collection, id: row.id, data, deleted: !!data.deleted, updated_at: oldStamp ?? clock(), updated_by: userId }
   docs.set(key, next)
-  broadcastChange(prev ? 'UPDATE' : 'INSERT', next)
   return next
 }
 
@@ -67,17 +106,20 @@ const userOf = (email) => {
 }
 const tokens = new Map() // token → usuario
 function session(user) {
-  // El token lleva el correo: la sesión sigue valiendo aunque la nube de prueba se reinicie (como en Supabase)
-  const access = 'tok_' + Buffer.from(user.email).toString('base64url') + '_' + crypto.randomBytes(6).toString('hex')
+  // El token lleva el correo y la hora: la sesión sigue valiendo aunque la nube de prueba se reinicie (como
+  // en Supabase), y /__caducar puede vencer las anteriores
+  const access = 'tok_' + Buffer.from(user.email).toString('base64url') + '_' + Date.now().toString(16) + crypto.randomBytes(3).toString('hex')
   tokens.set(access, user)
   const { appRole: _r, ...u } = user
   return { access_token: access, token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'ref_' + user.email, user: u }
 }
 const userFromReq = (req) => {
   const tok = (req.headers.authorization || '').replace(/^Bearer /, '')
-  if (tokens.has(tok)) return tokens.get(tok)
-  const m = tok.match(/^tok_([A-Za-z0-9_-]+)_[0-9a-f]+$/)
+  const m = tok.match(/^tok_([A-Za-z0-9_-]+)_([0-9a-f]{11,})[0-9a-f]{6}$/)
   if (!m) return undefined
+  // Sesión vencida a propósito (/__caducar): hay que renovarla
+  if (parseInt(m[2], 16) < control.expiredBefore) return undefined
+  if (tokens.has(tok)) return tokens.get(tok)
   try {
     return userOf(Buffer.from(m[1], 'base64url').toString())
   } catch {
@@ -107,6 +149,30 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`)
   const path = url.pathname
   const body = req.method === 'GET' || req.method === 'HEAD' ? Buffer.alloc(0) : await readBody(req)
+
+  // Controles para provocar fallas
+  if (path === '/__caducar') {
+    control.expiredBefore = Date.now()
+    stats.sesionesVencidas++
+    return send(res, 200, { ok: true, mensaje: 'Sesiones vencidas' })
+  }
+  if (path === '/__lento') {
+    control.slowMs = Number(url.searchParams.get('ms') || 0)
+    return send(res, 200, { ok: true, lentoMs: control.slowMs })
+  }
+  if (path === '/__desorden') {
+    control.disorderNext = true
+    return send(res, 200, { ok: true })
+  }
+  if (path === '/__version') {
+    tables.app_config.set('min_build', { key: 'min_build', value: url.searchParams.get('min') || '000000000000' })
+    return send(res, 200, { ok: true, min: tables.app_config.get('min_build').value })
+  }
+  if (control.slowMs && !path.startsWith('/__')) {
+    await new Promise((r) => setTimeout(r, control.slowMs))
+    // La app ya se cansó de esperar y cortó la conexión
+    if (res.destroyed || res.writableEnded) return
+  }
   const json = () => {
     try {
       return JSON.parse(body.toString() || 'null')
@@ -123,7 +189,10 @@ const server = http.createServer(async (req, res) => {
       if (!b.email || !b.password) return send(res, 400, { error: 'invalid_grant', error_description: 'Invalid login credentials', msg: 'Invalid login credentials' })
       return send(res, 200, session(userOf(b.email)))
     }
-    if (url.searchParams.get('grant_type') === 'refresh_token') return send(res, 200, session(userOf(String(b.refresh_token || '').replace(/^ref_/, '') || 'admin@lajoya.mx')))
+    if (url.searchParams.get('grant_type') === 'refresh_token') {
+      stats.renovaciones++
+      return send(res, 200, session(userOf(String(b.refresh_token || '').replace(/^ref_/, '') || 'admin@lajoya.mx')))
+    }
   }
   if (path === '/auth/v1/user') {
     const u = userFromReq(req)
@@ -145,12 +214,28 @@ const server = http.createServer(async (req, res) => {
     if (!u) return send(res, 401, { message: 'JWT expired' })
     if (req.method === 'POST') {
       const rows = [].concat(json() || [])
+      // Como en Postgres: si una sola fila no se permite, se rechaza toda la subida
+      if (rows.some((r) => !canWrite(u.appRole, r.collection))) {
+        stats.rechazadas++
+        return send(res, 403, { code: '42501', message: 'new row violates row-level security policy for table "documents"' })
+      }
       stats.upserts++
       stats.rows += rows.length
+      if (control.disorderNext) {
+        // Se guarda con la hora de ahora, pero aparece 3 s después (como una transacción lenta)
+        control.disorderNext = false
+        const stamp = clock()
+        setTimeout(() => {
+          for (const r of rows) upsertRow(r, u.id, stamp)
+          broadcastChange()
+        }, 3000)
+        return send(res, 201)
+      }
       const out = rows.map((r) => upsertRow(r, u.id))
+      broadcastChange()
       return (req.headers.prefer || '').includes('return=representation') ? send(res, 201, out) : send(res, 201)
     }
-    let list = [...docs.values()]
+    let list = [...docs.values()].filter((r) => canRead(u.appRole, r.collection))
     const gt = url.searchParams.get('updated_at')
     if (gt?.startsWith('gt.')) list = list.filter((r) => r.updated_at > gt.slice(3))
     list.sort((a, b) => a.updated_at.localeCompare(b.updated_at))
@@ -163,6 +248,90 @@ const server = http.createServer(async (req, res) => {
     const headers = { 'Content-Range': `0-${Math.max(0, rows.length - 1)}/${total}` }
     if (req.method === 'HEAD') return send(res, 200, undefined, headers)
     return send(res, 200, rows, headers)
+  }
+
+  // Tablas del monitor, configuración y avisos push
+  const tm = path.match(/^\/rest\/v1\/(app_config|devices|client_errors|backend_runs|push_subscriptions|device_health|client_error_groups)$/)
+  if (tm) {
+    const u = userFromReq(req)
+    if (!u) return send(res, 401, { message: 'JWT expired' })
+    const name = tm[1]
+    const admin = u.appRole === 'admin'
+    if (req.method === 'POST') {
+      const rows = [].concat(json() || [])
+      if (name === 'app_config' && !admin) return send(res, 403, { code: '42501', message: 'new row violates row-level security policy for table "app_config"' })
+      for (const r of rows) {
+        if (name === 'devices') {
+          const prev = tables.devices.get(r.device_id)
+          if (prev && prev.user_id !== u.id) return send(res, 403, { code: '42501', message: 'new row violates row-level security policy for table "devices"' })
+          const now = new Date().toISOString()
+          tables.devices.set(r.device_id, { ...prev, ...r, user_id: u.id, account_email: u.email, last_seen: now, first_seen: prev?.first_seen ?? now, version_since: prev && prev.app_build === r.app_build ? prev.version_since : now })
+        } else if (name === 'client_errors') {
+          const id = ++errorSeq
+          const fingerprint = crypto.createHash('md5').update(`${r.source}:${String(r.message).toLowerCase().replace(/[0-9a-f]{8,}|[0-9]+/g, '#')}`).digest('hex')
+          tables.client_errors.set(id, { ...r, id, user_id: u.id, fingerprint, created_at: new Date().toISOString() })
+        } else if (name === 'push_subscriptions') {
+          // El rol lo pone el servidor, no el celular
+          tables.push_subscriptions.set(r.endpoint, { ...r, user_id: u.id, role: u.appRole })
+        } else if (name === 'app_config') tables.app_config.set(r.key, { key: r.key, value: r.value })
+      }
+      return send(res, 201)
+    }
+    if (req.method === 'DELETE' && name === 'push_subscriptions') {
+      const ep = (url.searchParams.get('endpoint') || '').replace(/^eq\./, '')
+      tables.push_subscriptions.delete(ep)
+      return send(res, 204)
+    }
+    let rows
+    if (name === 'device_health') {
+      if (!admin) rows = []
+      else {
+        const min = tables.app_config.get('min_build')?.value
+        const errs = [...tables.client_errors.values()]
+        rows = [...tables.devices.values()].map((d) => {
+          const errors_24h = errs.filter((e) => e.device_id === d.device_id && Date.now() - Date.parse(e.created_at) < 86400000).length
+          const stuck = d.pending_count > 0 && Date.now() - Date.parse(d.last_sync_at || d.first_seen) > 2 * 3600000
+          const belowMin = min && d.app_build < min
+          const health = stuck || belowMin || d.rejected_count > 0 || d.sync_status === 'error' ? 'rojo' : errors_24h >= 5 ? 'amarillo' : 'verde'
+          const health_reason = stuck
+            ? `${d.pending_count} ${d.pending_count === 1 ? 'cambio' : 'cambios'} sin subir desde hace más de 2 horas`
+            : belowMin
+              ? 'Versión más vieja de la que pide la nube'
+              : d.rejected_count > 0
+                ? `La nube rechazó ${d.rejected_count} ${d.rejected_count === 1 ? 'cambio' : 'cambios'} por permisos`
+                : d.sync_status === 'error'
+                  ? d.sync_error || 'Error al sincronizar'
+                  : errors_24h >= 5
+                    ? `${errors_24h} errores en las últimas 24 horas`
+                    : null
+          return { ...d, errors_24h, health, health_reason }
+        })
+      }
+    } else if (name === 'client_error_groups') {
+      const groups = new Map()
+      for (const e of admin ? tables.client_errors.values() : []) {
+        const g = groups.get(e.fingerprint) ?? { fingerprint: e.fingerprint, source: e.source, sample_message: e.message, sample_page: e.page, occurrences: 0, devices: new Set(), first_seen: e.happened_at, last_seen: e.happened_at }
+        g.occurrences++
+        g.devices.add(e.device_id)
+        if (e.happened_at < g.first_seen) g.first_seen = e.happened_at
+        if (e.happened_at > g.last_seen) g.last_seen = e.happened_at
+        groups.set(e.fingerprint, g)
+      }
+      rows = [...groups.values()].map((g) => ({ ...g, devices: g.devices.size }))
+    } else if (name === 'devices') rows = [...tables.devices.values()].filter((d) => admin || d.user_id === u.id)
+    else if (name === 'client_errors' || name === 'backend_runs') rows = admin ? [...tables[name].values()] : []
+    else rows = [...tables[name].values()]
+    // Filtros sencillos de PostgREST: col=eq.valor y col=in.(a,b)
+    for (const [k, v] of url.searchParams) {
+      if (['select', 'order', 'limit', 'offset'].includes(k)) continue
+      if (v.startsWith('eq.')) rows = rows.filter((r) => String(r[k]) === v.slice(3))
+      if (v.startsWith('in.(')) {
+        const set = new Set(v.slice(4, -1).split(','))
+        rows = rows.filter((r) => set.has(String(r[k])))
+      }
+    }
+    if ((req.headers.accept || '').includes('vnd.pgrst.object')) return rows.length ? send(res, 200, rows[0]) : send(res, 406, { message: 'no rows', code: 'PGRST116' })
+    return send(res, 200, rows)
   }
 
   // Fotos (Storage)
@@ -178,7 +347,19 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { Key: `${m[1]}/${m[2]}`, Id: crypto.randomUUID() })
   }
 
-  if (path === '/__estado') return send(res, 200, { documentos: docs.size, fotos: files.size, conexionesTiempoReal: sockets.size, ...stats })
+  if (path === '/__estado')
+    return send(res, 200, {
+      documentos: docs.size,
+      fotos: files.size,
+      conexionesTiempoReal: sockets.size,
+      dispositivos: tables.devices.size,
+      errores: tables.client_errors.size,
+      suscripcionesPush: [...tables.push_subscriptions.values()].map((s) => ({ role: s.role })),
+      versionMinima: tables.app_config.get('min_build')?.value,
+      ...stats,
+    })
+  if (path === '/__dispositivos') return send(res, 200, [...tables.devices.values()])
+  if (path === '/__errores') return send(res, 200, [...tables.client_errors.values()])
   send(res, 404, { message: `Ruta no simulada: ${req.method} ${path}` })
 })
 
@@ -192,12 +373,13 @@ function frame(text) {
 function sendMsg(sock, msg) {
   if (!sock.destroyed) sock.write(frame(JSON.stringify(msg)))
 }
-function broadcastChange(type, row) {
+/** Broadcast privado: un aviso por subida, sin datos (cada dispositivo baja lo nuevo con sus permisos) */
+function broadcastChange() {
   for (const s of sockets)
-    for (const [topic, sub] of s.subs)
-      if (sub.changesId) {
+    for (const [topic] of s.subs)
+      if (topic === 'realtime:documentos') {
         stats.realtimeSent++
-        sendMsg(s, [null, null, topic, 'postgres_changes', { ids: [sub.changesId], data: { schema: 'public', table: 'documents', commit_timestamp: row.updated_at, type, record: row, old_record: {}, columns: [], errors: null } }])
+        sendMsg(s, [null, null, topic, 'broadcast', { type: 'broadcast', event: 'cambio', payload: { at: new Date().toISOString() } }])
       }
 }
 function presenceList(topic) {

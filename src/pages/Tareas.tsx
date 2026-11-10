@@ -54,6 +54,7 @@ function TaskCard({ t, onOpen, compact, showAction = true }: { t: Task; onOpen: 
   const due = dueLabel(t.due)
   const next = NEXT[t.status]
   const canVerify = me?.role === 'admin' || me?.role === 'eventos'
+  const ownWork = canWorkTask(me, t)
   const late = due?.late && t.status !== 'verificada' && t.status !== 'hecha'
   const urgent = t.priority === 'urgente' || t.priority === 'alta'
   return (
@@ -65,17 +66,17 @@ function TaskCard({ t, onOpen, compact, showAction = true }: { t: Task; onOpen: 
               <Badge tone={TASK_TYPE[t.type].tone}>{TASK_TYPE[t.type].label}</Badge>
               {urgent && <Badge tone={PRIORITY[t.priority].tone}>{PRIORITY[t.priority].label}</Badge>}
               {t.automated && (
-                <span title={t.automated} className="inline-flex items-center gap-1 text-[11px] text-ink-3">
-                  <Wand2 size={12} strokeWidth={1.6} /> Automática
+                <span title={`Automática: ${t.automated}`} aria-label="Tarea automática" className="inline-flex items-center text-ink-3">
+                  <Wand2 size={13} strokeWidth={1.6} />
                 </span>
               )}
             </div>
             <p className={cx('mt-2 text-[15px] leading-snug font-medium', t.status === 'verificada' && 'text-ink-soft')}>{t.title}</p>
-            {!compact && unit && <p className="mt-0.5 text-[13px] text-detail">{unit.name}</p>}
+            {!compact && unit && !t.title.includes(unit.name) && <p className="mt-0.5 text-[13px] text-detail">{unit.name}</p>}
           </div>
           {emp && <Avatar name={emp.name} tone={emp.color} size={30} />}
         </div>
-        {t.checklist.length > 0 && !compact && (
+        {done > 0 && !compact && (
           <div className="mt-3 flex items-center gap-2.5">
             <ProgressBar value={done / t.checklist.length} tone={done === t.checklist.length ? 'sage' : undefined} className="flex-1" />
             <span className="text-xs text-detail tabular">
@@ -90,7 +91,7 @@ function TaskCard({ t, onOpen, compact, showAction = true }: { t: Task; onOpen: 
           </p>
         )}
       </button>
-      {showAction && next && (next !== 'verificada' || canVerify) && (
+      {showAction && next && (next === 'verificada' ? canVerify : ownWork) && (
         <div className="px-4 pb-4" data-nodrag>
           <Button size="sm" variant={next === 'verificada' ? 'secondary' : 'outline'} className="w-full" onClick={() => advanceTask(t, me?.id)} icon={next === 'verificada' ? <Check size={16} strokeWidth={1.6} /> : undefined}>
             {next === 'en-progreso' ? 'Empezar' : next === 'hecha' ? 'Marcar como hecha' : 'Verificar'}
@@ -364,23 +365,32 @@ function QuickAdd({ onCreated }: { onCreated?: () => void }) {
 }
 
 /** Agrupa la lista por cercanía de la fecha */
+/** Lo que vence después de una semana no estorba: queda a un toque («Más adelante») */
+const isLater = (t: Task) => !!t.due && t.due.slice(0, 10) > addDaysISO(today(), 7)
+const byDue = (a: Task, b: Task) => (a.due ?? '9').localeCompare(b.due ?? '9') || PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+
 function groupByDue(list: Task[]) {
   const t = today()
   const groups: { key: string; label: string; items: Task[] }[] = [
     { key: 'late', label: 'Atrasadas', items: [] },
     { key: 'today', label: 'Hoy', items: [] },
-    { key: 'soon', label: 'Próximas', items: [] },
+    { key: 'soon', label: 'Esta semana', items: [] },
     { key: 'none', label: 'Sin fecha', items: [] },
+    { key: 'later', label: 'Más adelante', items: [] },
   ]
-  for (const task of list) {
+  for (const task of [...list].sort(byDue)) {
     const d = task.due?.slice(0, 10)
     if (!d) groups[3]!.items.push(task)
     else if (d < t && task.status !== 'hecha') groups[0]!.items.push(task)
     else if (d === t) groups[1]!.items.push(task)
+    else if (isLater(task)) groups[4]!.items.push(task)
     else groups[2]!.items.push(task)
   }
   return groups.filter((g) => g.items.length)
 }
+
+/** El dueño supervisa: solo empieza o termina las tareas que tiene asignadas; las demás las verifica */
+const canWorkTask = (me: { id: string; role: string } | undefined, t: Task) => !!me && (me.role !== 'admin' || t.assigneeId === me.id)
 
 /** ¿Esta persona suele hacer este tipo de tarea? (para sugerirla primero) */
 const fitsType = (role: string, type?: string) =>
@@ -393,24 +403,27 @@ export default function Tareas() {
   const [params, setParams] = useSearchParams()
   const isManager = me?.role === 'admin' || me?.role === 'eventos'
   const [view, setView] = useState<'tablero' | 'lista'>(() => (window.innerWidth >= 1024 ? 'tablero' : 'lista'))
-  const [scope, setScope] = useState<'mias' | 'todas'>(isManager ? 'todas' : 'mias')
+  // Solo el dueño abre en «Todo el equipo»; los demás ven primero lo suyo (incluida la planner: sus tareas y las de sus eventos)
+  const [scope, setScope] = useState<'mias' | 'todas'>(me?.role === 'admin' ? 'todas' : 'mias')
   const [type, setType] = useState<TaskType | 'todas'>('todas')
   const [who, setWho] = useState('')
   const [showDone, setShowDone] = useState(false)
+  const [showLater, setShowLater] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
   const openId = params.get('t') ?? undefined
 
   const filtered = useMemo(
     () =>
       tasks
-        .filter((t) => (scope === 'mias' ? t.assigneeId === me?.id || (!t.assigneeId && (me?.role === 'admin' || fitsType(me?.role ?? '', t.type))) : true))
+        .filter((t) => (scope === 'mias' ? t.assigneeId === me?.id || (!t.assigneeId && me?.role !== 'admin' && fitsType(me?.role ?? '', t.type)) : true))
         .filter((t) => type === 'todas' || t.type === type)
         .filter((t) => !who || t.assigneeId === who)
         .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || (a.due ?? '9').localeCompare(b.due ?? '9')),
     [tasks, scope, type, who, me],
   )
   const recent = new Date(Date.now() - 3 * 86400000).toISOString()
-  const boardItems = filtered.filter((t) => t.status !== 'verificada' || (t.verifiedAt ?? t.updatedAt) > recent)
+  const laterOnBoard = filtered.filter((t) => t.status === 'pendiente' && isLater(t))
+  const boardItems = filtered.filter((t) => (t.status !== 'verificada' || (t.verifiedAt ?? t.updatedAt) > recent) && (showLater || t.status !== 'pendiente' || !isLater(t)))
   const open = filtered.filter((t) => t.status === 'pendiente' || t.status === 'en-progreso')
   const toVerify = filtered.filter((t) => t.status === 'hecha')
   const doneRecently = filtered.filter((t) => t.status === 'verificada' && (t.verifiedAt ?? t.updatedAt) > recent)
@@ -421,7 +434,7 @@ export default function Tareas() {
     <motion.div key={t.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, transition: { duration: 0.2, ease: ease.salida } }}>
       <SwipeRow
         hintKey={hint && i === 0 ? 'tareas' : undefined}
-        left={NEXT[t.status] && (NEXT[t.status] !== 'verificada' || canVerify) ? { label: NEXT[t.status] === 'en-progreso' ? 'Empezar' : NEXT[t.status] === 'hecha' ? 'Hecha' : 'Verificar', icon: <Check />, tone: 'success', onTrigger: () => advanceTask(t, me?.id) } : undefined}
+        left={NEXT[t.status] && (NEXT[t.status] === 'verificada' ? canVerify : canWorkTask(me, t)) ? { label: NEXT[t.status] === 'en-progreso' ? 'Empezar' : NEXT[t.status] === 'hecha' ? 'Hecha' : 'Verificar', icon: <Check />, tone: 'success', onTrigger: () => advanceTask(t, me?.id) } : undefined}
         right={isManager || t.createdById === me?.id ? { label: 'Eliminar', icon: <Trash2 />, tone: 'danger', remove: true, onTrigger: () => removeWithUndo('tasks', t.id, `La tarea "${t.title}"`) } : undefined}
       >
         <TaskCard t={t} onOpen={() => openTask(t.id)} />
@@ -486,13 +499,26 @@ export default function Tareas() {
           <p className="mb-3 hidden text-xs text-ink-3 md:block">Arrastra una tarjeta a otra columna para cambiar su estado.</p>
           <p className="mb-3 text-xs text-ink-3 md:hidden">Mantén presionada una tarjeta y muévela a otra columna.</p>
           <DragBoard
-            columns={COLUMNS.map((c) => ({ id: c, title: TASK_STATUS[c].label, tone: TASK_STATUS[c].tone, meta: c === 'verificada' ? '3 días' : undefined }))}
+            stack
+            columns={COLUMNS.map((c) => ({
+              id: c,
+              title: TASK_STATUS[c].label,
+              tone: TASK_STATUS[c].tone,
+              meta: c === 'verificada' ? '3 días' : undefined,
+              footer:
+                c === 'pendiente' && laterOnBoard.length > 0 ? (
+                  <button onClick={() => setShowLater((v) => !v)} className="pressable mt-2 h-11 rounded-[12px] text-[13px] text-ink-soft hover:bg-wash">
+                    {showLater ? 'Ocultar lo de más adelante' : `Más adelante · ${laterOnBoard.length}`}
+                  </button>
+                ) : undefined,
+            }))}
             items={boardItems}
             getId={(t) => t.id}
             getColumn={(t) => t.status}
-            canDrop={(_, to) => to !== 'verificada' || canVerify}
+            canDrop={(t, to) => (to === 'verificada' ? canVerify : canWorkTask(me, t))}
             onMove={(_, to, t) => setTaskStatus(t, to, me?.id)}
             emptyText="Suelta aquí"
+            sort={byDue}
             renderCard={(t) => <TaskCard t={t} onOpen={() => openTask(t.id)} compact={t.status === 'verificada'} showAction={false} />}
           />
         </>
@@ -510,17 +536,23 @@ export default function Tareas() {
               </div>
             </section>
           )}
-          {groupByDue(open).map((g, gi) => (
-            <section key={g.key}>
-              <h2 className={cx('mb-3 flex items-center gap-2 text-sm font-medium', g.key === 'late' && 'text-danger')}>
-                {g.label}
-                <span className="text-ink-3">{g.items.length}</span>
-              </h2>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <AnimatePresence initial={false}>{g.items.map((t, i) => row(t, i, gi === 0))}</AnimatePresence>
-              </div>
-            </section>
-          ))}
+          {groupByDue(open).map((g, gi) =>
+            g.key === 'later' && !showLater ? (
+              <button key={g.key} onClick={() => setShowLater(true)} className="pressable inline-flex h-11 items-center gap-2 self-start rounded-full px-4 text-sm text-ink-soft ring-1 ring-line ring-inset hover:bg-wash">
+                <CalendarClock size={16} strokeWidth={1.6} /> Más adelante · {g.items.length}
+              </button>
+            ) : (
+              <section key={g.key}>
+                <h2 className={cx('mb-3 flex items-center gap-2 text-sm font-medium', g.key === 'late' && 'text-danger')}>
+                  {g.label}
+                  <span className="text-ink-3">{g.items.length}</span>
+                </h2>
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <AnimatePresence initial={false}>{g.items.map((t, i) => row(t, i, gi === 0))}</AnimatePresence>
+                </div>
+              </section>
+            ),
+          )}
           {doneRecently.length > 0 && (
             <button onClick={() => setShowDone((v) => !v)} className="pressable inline-flex h-11 items-center gap-2 self-start rounded-full px-4 text-sm text-ink-soft ring-1 ring-line ring-inset hover:bg-wash">
               <Check size={16} strokeWidth={1.6} /> {showDone ? 'Ocultar' : 'Ver'} {doneRecently.length} verificadas en los últimos 3 días

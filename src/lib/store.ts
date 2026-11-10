@@ -5,23 +5,56 @@
 // - Varias pestañas del mismo equipo se mantienen sincronizadas entre sí (BroadcastChannel).
 import { create } from 'zustand'
 import { useMemo } from 'react'
-import { get as idbGet, set as idbSet, del as idbDel, keys as idbKeys, getMany as idbGetMany } from 'idb-keyval'
+import {
+  createStore,
+  get as rawGet,
+  set as rawSet,
+  del as rawDel,
+  keys as rawKeys,
+  getMany as rawGetMany,
+  setMany as rawSetMany,
+  type UseStore,
+} from 'idb-keyval'
 import type { AppNotification, AuditEntry, BaseDoc, CollectionName, Collections, DataState, Employee, ID, Role, Settings } from './types'
 import { COLLECTIONS } from './types'
-import { nowIso, today, uid } from './format'
+import { addDaysISO, nowIso, today, uid } from './format'
 import { hashPin } from './crypto'
 import { logError } from './errorLog'
 import { runAutomations, type AutomationApi } from './automations'
+import { hasBakedCloud } from './cloudConfig'
 
 const KEY_COL = 'lajoya:v2:col:'
 const KEY_V1_DATA = 'lajoya:v1:data'
 const KEY_SETTINGS = 'lajoya:v1:settings'
 const KEY_SESSION = 'lajoya:v1:session'
 const KEY_DIRTY = 'lajoya:v1:dirty'
+/** Punto de avance de la bajada: se guarda junto con los datos recibidos, en la misma operación */
+const KEY_CURSOR = 'lajoya:v2:cursor'
+const OLD_CURSOR_KEY = 'lajoya:lastPull'
 const SNAP_PREFIX = 'lajoya:snap:'
 const SNAP_KEEP = 14
 const AUDIT_KEEP = 3000
 const META_KEYS = new Set(['id', '_ft', 'createdAt', 'updatedAt', 'updatedBy'])
+/** Campos que solo existen en este dispositivo y nunca viajan a la nube (la foto original se guarda aparte) */
+const LOCAL_ONLY_KEYS = new Set(['dataUrl'])
+
+// ── IndexedDB que se reconecta sola ──────────────────────
+// En iPhone, IndexedDB puede perder la conexión después de estar en segundo plano (falla conocida de WebKit):
+// cada operación que falla se reintenta una vez con una conexión nueva (misma base de datos, mismos datos).
+let rawStore: UseStore = createStore('keyval-store', 'keyval')
+const idb: UseStore = (mode, cb) =>
+  rawStore(mode, cb).catch(() => {
+    rawStore = createStore('keyval-store', 'keyval')
+    return rawStore(mode, cb)
+  })
+const idbGet = <T>(k: IDBValidKey) => rawGet<T>(k, idb)
+const idbSet = (k: IDBValidKey, v: unknown) => rawSet(k, v, idb)
+const idbDel = (k: IDBValidKey) => rawDel(k, idb)
+const idbKeys = () => rawKeys(idb)
+const idbGetMany = <T>(ks: IDBValidKey[]) => rawGetMany<T>(ks, idb)
+const idbSetMany = (entries: [IDBValidKey, unknown][]) => rawSetMany(entries, idb)
+/** Guardado suelto (ajustes, sesión): si falla, se avisa en lugar de ignorarlo */
+const saveLoose = (k: IDBValidKey, v: unknown) => void idbSet(k, v).catch((e) => reportSaveError(e))
 
 export const emptyData = (): DataState => Object.fromEntries(COLLECTIONS.map((c) => [c, {}])) as unknown as DataState
 
@@ -67,6 +100,8 @@ export interface SyncState {
   merged: number
   rejected: string[]
   log: { at: string; level: 'info' | 'warn' | 'error'; msg: string }[]
+  /** No se pudo guardar en el dispositivo (se reintenta solo); se muestra un aviso */
+  saveError?: string
 }
 
 interface Session {
@@ -89,6 +124,8 @@ type DocInput<K extends CollectionName> = Partial<Collections[K]> & { id?: ID }
 
 export interface StoreState {
   ready: boolean
+  /** No se pudieron leer los datos del dispositivo al abrir (la app no inventa datos: pide reintentar) */
+  bootError?: string
   data: DataState
   settings: Settings
   session: Session
@@ -126,9 +163,11 @@ export function mergeDocs<T extends BaseDoc>(local: T, remote: T): { doc: T; rem
   let localWon = false
   const keys = new Set([...Object.keys(local), ...Object.keys(remote)])
   for (const k of keys) {
-    if (META_KEYS.has(k)) continue
+    if (META_KEYS.has(k) || LOCAL_ONLY_KEYS.has(k)) continue
     const inR = k in remote
-    const inL = k in local
+    // Un campo «indefinido» no viaja por JSON: no cuenta como un cambio local pendiente de subir
+    const inL = k in local && (local as any)[k] !== undefined
+    if (!inR && !inL) continue
     if (inR && !inL) {
       out[k] = (remote as any)[k]
       ft[k] = fieldTime(remote, k)
@@ -157,28 +196,82 @@ export function mergeDocs<T extends BaseDoc>(local: T, remote: T): { doc: T; rem
 
 // ── Persistencia por colección ───────────────────────────
 let persistTimer: ReturnType<typeof setTimeout> | undefined
+let retryPersistTimer: ReturnType<typeof setTimeout> | undefined
+let persistFailures = 0
 const dirtyCols = new Set<CollectionName>()
 let dirtyKeyChanged = false
+let pullCursor = ''
+let cursorChanged = false
+let flushing: Promise<void> = Promise.resolve()
 
-function flushPersist() {
+function reportSaveError(e: unknown) {
+  const msg = (e as Error)?.message || String(e)
+  logError('sync', `No se pudo guardar en el dispositivo: ${msg}`)
+  useStore.setState((s) => ({ sync: { ...s.sync, saveError: /quota|exceeded|space/i.test(msg) ? 'El dispositivo se quedó sin espacio' : 'No se pudo guardar en este dispositivo; reintentando' } }))
+}
+
+/**
+ * Escribe en el dispositivo todo lo pendiente en UNA sola operación: colecciones cambiadas, la lista de
+ * cambios por subir y el punto de avance de la bajada. Si iOS cierra la app a la mitad, o se guarda todo
+ * o no se guarda nada (nunca queda el punto de avance adelantado sin sus datos).
+ */
+function flushPersist(): Promise<void> {
   clearTimeout(persistTimer)
   const s = useStore.getState()
-  for (const c of dirtyCols) void idbSet(KEY_COL + c, s.data[c])
+  const cols = [...dirtyCols]
+  const entries: [IDBValidKey, unknown][] = cols.map((c) => [KEY_COL + c, s.data[c]])
   dirtyCols.clear()
-  if (dirtyKeyChanged) {
-    void idbSet(KEY_DIRTY, s.dirty)
-    dirtyKeyChanged = false
-  }
+  const withDirty = dirtyKeyChanged
+  if (withDirty) entries.push([KEY_DIRTY, s.dirty])
+  dirtyKeyChanged = false
+  const withCursor = cursorChanged
+  if (withCursor) entries.push([KEY_CURSOR, pullCursor])
+  cursorChanged = false
+  if (!entries.length) return flushing
+  flushing = flushing.then(() =>
+    idbSetMany(entries).then(
+      () => {
+        if (persistFailures) {
+          persistFailures = 0
+          useStore.setState((st) => ({ sync: { ...st.sync, saveError: undefined } }))
+        }
+      },
+      (e) => {
+        // Se vuelve a marcar todo como pendiente y se reintenta con espera creciente (1 s → 30 s)
+        cols.forEach((c) => dirtyCols.add(c))
+        if (withDirty) dirtyKeyChanged = true
+        if (withCursor) cursorChanged = true
+        persistFailures++
+        reportSaveError(e)
+        clearTimeout(retryPersistTimer)
+        retryPersistTimer = setTimeout(() => void flushPersist(), Math.min(30_000, 1000 * 2 ** persistFailures))
+      },
+    ),
+  )
+  return flushing
 }
 function schedulePersist(col?: CollectionName, dirtyChanged = true) {
   if (col) dirtyCols.add(col)
   if (dirtyChanged) dirtyKeyChanged = true
   clearTimeout(persistTimer)
-  persistTimer = setTimeout(flushPersist, 300)
+  persistTimer = setTimeout(() => void flushPersist(), 300)
 }
+
+/** Guarda ya mismo todo lo pendiente (antes de recargar, al salir de la app o al avanzar la bajada). */
+export const flushNow = (): Promise<void> => flushPersist()
+
+/** Punto de avance de la bajada (hora del servidor del último cambio recibido) */
+export const getPullCursor = () => pullCursor
+/** Mueve el punto de avance. Queda guardado junto con los datos en la siguiente escritura (usa flushNow). */
+export function setPullCursor(cursor: string) {
+  if (cursor === pullCursor) return
+  pullCursor = cursor
+  cursorChanged = true
+}
+
 if (typeof window !== 'undefined') {
-  window.addEventListener('pagehide', flushPersist)
-  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flushPersist())
+  window.addEventListener('pagehide', () => void flushPersist())
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && void flushPersist())
 }
 
 // ── Cambios locales → motor de sincronización ────────────
@@ -248,24 +341,58 @@ export const useStore = create<StoreState>()((set, get) => {
     sync: INITIAL_SYNC,
 
     hydrate: async () => {
-      const cols = await idbGetMany<Record<ID, any> | undefined>(COLLECTIONS.map((c) => KEY_COL + c))
-      const [settings, session, dirty] = await Promise.all([idbGet<Settings>(KEY_SETTINGS), idbGet<Session>(KEY_SESSION), idbGet<Record<string, true>>(KEY_DIRTY)])
+      // Se intenta leer hasta 3 veces. Si no se puede, NO se crean datos nuevos (podrían pisar los reales):
+      // se muestra un aviso para reintentar.
+      let read: [(Record<ID, any> | undefined)[], Settings | undefined, Session | undefined, Record<string, true> | undefined, string | undefined] | undefined
+      for (let i = 0; i < 3 && !read; i++) {
+        try {
+          const cols = await idbGetMany<Record<ID, any> | undefined>(COLLECTIONS.map((c) => KEY_COL + c))
+          const rest = await Promise.all([idbGet<Settings>(KEY_SETTINGS), idbGet<Session>(KEY_SESSION), idbGet<Record<string, true>>(KEY_DIRTY), idbGet<string>(KEY_CURSOR)])
+          read = [cols, ...rest]
+        } catch (e) {
+          if (i === 2) {
+            logError('sync', `No se pudieron leer los datos del dispositivo: ${(e as Error)?.message ?? e}`)
+            set({ bootError: 'No se pudieron abrir los datos guardados en este dispositivo.' })
+            return
+          }
+          rawStore = createStore('keyval-store', 'keyval')
+          await new Promise((r) => setTimeout(r, 400 * (i + 1)))
+        }
+      }
+      const [cols, settings, session, dirty, cursor] = read!
+      // Punto de avance: antes vivía en localStorage (se guardaba aparte de los datos); se migra una vez
+      let oldCursor: string | null = null
+      try {
+        oldCursor = localStorage.getItem(OLD_CURSOR_KEY)
+      } catch {
+        /* sin almacenamiento */
+      }
+      pullCursor = cursor ?? oldCursor ?? ''
+      if (!cursor && oldCursor) cursorChanged = true
       let data = emptyData()
       COLLECTIONS.forEach((c, i) => {
         if (cols[i]) (data as any)[c] = cols[i]
       })
-      // Un dispositivo vinculado a la nube nunca inventa datos de ejemplo: espera a bajar los reales
-      if (!Object.keys(data.employees).length && !settings?.supabaseUrl) {
+      // Un dispositivo vinculado a la nube (o una app publicada con la nube adentro) nunca inventa datos
+      // de ejemplo: espera a bajar los reales
+      if (!Object.keys(data.employees).length && !settings?.supabaseUrl && !hasBakedCloud) {
         // Migración desde el formato v1 (un solo bloque) o datos de demostración
-        const v1 = await idbGet<DataState>(KEY_V1_DATA)
+        const v1 = await idbGet<DataState>(KEY_V1_DATA).catch(() => undefined)
         if (v1 && Object.keys(v1.employees || {}).length) {
           data = { ...emptyData(), ...v1 }
-          await idbDel(KEY_V1_DATA)
+          await idbDel(KEY_V1_DATA).catch(() => {})
         } else {
           const { createSeed } = await import('./seed')
           data = createSeed()
+          await idbSet(KEY_DEMO_DAY, today()).catch(() => {})
         }
-        await Promise.all(COLLECTIONS.map((c) => idbSet(KEY_COL + c, data[c])))
+        await idbSetMany(COLLECTIONS.map((c) => [KEY_COL + c, data[c]] as [IDBValidKey, unknown])).catch((e) => {
+          COLLECTIONS.forEach((c) => dirtyCols.add(c))
+          reportSaveError(e)
+        })
+      } else if (!settings?.supabaseUrl && !hasBakedCloud && isDemoData(data)) {
+        // Demostración: las fechas avanzan con el calendario para que siempre se vea «hoy»
+        data = await keepDemoCurrent(data)
       }
       const mergedSettings = { ...DEFAULT_SETTINGS, ...settings, automations: { ...DEFAULT_SETTINGS.automations, ...settings?.automations } }
       const s = session ?? { locked: false, lastActive: Date.now() }
@@ -317,7 +444,7 @@ export const useStore = create<StoreState>()((set, get) => {
     setSettings: (partial) => {
       const settings = { ...get().settings, ...partial }
       set({ settings })
-      void idbSet(KEY_SETTINGS, settings)
+      saveLoose(KEY_SETTINGS, settings)
       post({ t: 'settings', settings })
     },
 
@@ -330,7 +457,7 @@ export const useStore = create<StoreState>()((set, get) => {
       }
       const session = { userId: emp.id, locked: false, lastActive: Date.now() }
       set({ session })
-      void idbSet(KEY_SESSION, session)
+      saveLoose(KEY_SESSION, session)
       get().log('sesion', 'employees', `${emp.name} inició sesión`, emp.id)
       return true
     },
@@ -338,20 +465,20 @@ export const useStore = create<StoreState>()((set, get) => {
     logout: () => {
       const session = { locked: false, lastActive: Date.now() }
       set({ session })
-      void idbSet(KEY_SESSION, session)
+      saveLoose(KEY_SESSION, session)
       post({ t: 'session', session })
     },
 
     lock: () => {
       const session = { ...get().session, locked: true }
       set({ session })
-      void idbSet(KEY_SESSION, session)
+      saveLoose(KEY_SESSION, session)
     },
 
     touch: () => {
       const session = { ...get().session, lastActive: Date.now() }
       set({ session })
-      void idbSet(KEY_SESSION, session)
+      saveLoose(KEY_SESSION, session)
     },
 
     replaceAll: (data, settings) => {
@@ -359,7 +486,7 @@ export const useStore = create<StoreState>()((set, get) => {
       const dirty: Record<string, true> = {}
       for (const c of COLLECTIONS) for (const id of Object.keys(data[c])) dirty[`${c}:${id}`] = true
       set({ data, dirty, ...(settings ? { settings: { ...get().settings, ...settings } } : {}) })
-      if (settings) void idbSet(KEY_SETTINGS, get().settings)
+      if (settings) saveLoose(KEY_SETTINGS, get().settings)
       COLLECTIONS.forEach((c) => dirtyCols.add(c))
       schedulePersist()
       post({ t: 'replace' })
@@ -445,7 +572,8 @@ peer?.addEventListener('message', (e: MessageEvent<PeerMsg>) => {
   else if (m.t === 'clean') s.clearDirty(m.keys, { fromPeer: true })
   else if (m.t === 'settings') useStore.setState({ settings: m.settings })
   else if (m.t === 'session' && !m.session.userId) useStore.setState({ session: m.session })
-  else if (m.t === 'replace') location.reload()
+  // Otra pestaña reemplazó todo: se espera a que termine de guardarlo antes de recargar
+  else if (m.t === 'replace') setTimeout(() => location.reload(), 900)
 })
 
 // ── Respaldos locales automáticos ────────────────────────
@@ -490,6 +618,42 @@ export async function resetDemo() {
   if (useStore.getState().settings.supabaseUrl) throw new Error('Este dispositivo está conectado a la nube. Desvincúlalo antes de cargar datos de demostración.')
   const { createSeed } = await import('./seed')
   useStore.getState().replaceAll(createSeed())
+  await idbSet(KEY_DEMO_DAY, today()).catch(() => {})
+}
+
+// ── Datos de demostración siempre al día ─────────────────
+// Los datos de ejemplo se calculan alrededor del día en que se crearon. Para que no se queden en el pasado
+// (reservas de hace semanas «por llegar»), cada día se recorren todas sus fechas los días que hayan pasado.
+// Solo aplica a la demostración (perfiles de ejemplo, sin nube): nunca toca datos reales.
+const KEY_DEMO_DAY = 'lajoya:v2:demo-day'
+const DEMO_IDS = ['e_admin', 'e_lupita', 'e_maria', 'e_chuy', 'e_ana']
+const isDemoData = (data: DataState) => DEMO_IDS.every((id) => !!data.employees[id])
+const DATE_RE = /^\d{4}-\d{2}-\d{2}/
+
+function shiftDates<T>(v: T, days: number): T {
+  if (typeof v === 'string') return (DATE_RE.test(v) ? addDaysISO(v.slice(0, 10), days) + v.slice(10) : v) as T
+  if (Array.isArray(v)) return v.map((x) => shiftDates(x, days)) as T
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, shiftDates(x, days)])) as T
+  return v
+}
+
+async function keepDemoCurrent(data: DataState): Promise<DataState> {
+  const T = today()
+  const day = await idbGet<string>(KEY_DEMO_DAY).catch(() => undefined)
+  if (day === T) return data
+  let next: DataState
+  if (!day) {
+    // Demostración de antes de esta marca: no sabemos de qué día es, así que se carga de nuevo con fechas de hoy
+    const { createSeed } = await import('./seed')
+    next = createSeed()
+  } else {
+    const diff = Math.round((Date.parse(T) - Date.parse(day)) / 864e5)
+    if (diff <= 0) return data
+    next = shiftDates(data, diff)
+  }
+  await idbSetMany(COLLECTIONS.map((c) => [KEY_COL + c, next[c]] as [IDBValidKey, unknown])).catch((e) => reportSaveError(e))
+  await idbSet(KEY_DEMO_DAY, T).catch(() => {})
+  return next
 }
 
 // ── Hooks de lectura ─────────────────────────────────────

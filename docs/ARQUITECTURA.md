@@ -47,7 +47,7 @@ flowchart TB
 | **Una tabla `documents`** (colección + id + JSON) | La sincronización es genérica y robusta: cada registro se resuelve por separado y gana el cambio más reciente, también validado en el servidor. |
 | **Seguridad en la base de datos (RLS)** | Aunque alguien manipule la app, Postgres solo deja leer o escribir lo que permite su rol. |
 | **Supabase** | Postgres administrado con Auth, Realtime y Storage, y plan gratuito. Es de código abierto: se puede instalar en la iMac para trabajar en red local. |
-| **Cloudflare Pages** | Hosting gratuito que permite uso comercial, con HTTPS y encabezados de seguridad (`public/_headers`). El plan Hobby de Vercel prohíbe el uso comercial. |
+| **Cloudflare Workers** | Hosting gratuito que permite uso comercial (Cloudflare recomienda Workers en lugar de Pages para proyectos nuevos), con HTTPS y encabezados de seguridad (`public/_headers`). El plan Hobby de Vercel prohíbe el uso comercial. |
 | **Mapa 3D procedural** (three.js) | Una maqueta ligera trazada de la vista satelital, sin modelos pesados, que corre fluida en celulares. Los modelos NVIDIA SimReady se descartaron: son OpenUSD de alto detalle, pensados para Omniverse y no para la web móvil. |
 
 ## Sincronización (detalle)
@@ -68,7 +68,7 @@ flowchart TB
 - **Actualizaciones:** se buscan cada hora y aparece "Hay una versión nueva · Actualizar". El usuario decide cuándo actualizar, así nunca se pierde una pantalla a medias.
 - **Instalación:** la tarjeta aparece desde la segunda visita. En iPhone muestra una guía de tres pasos.
 - **Insignia:** el ícono de la app muestra los avisos sin leer (Badging API).
-- **Push:** el service worker (`public/push-sw.js`) recibe los avisos y la función `push-send` los envía.
+- **Push:** el service worker propio (`src/sw/sw.ts`, que también maneja la app sin internet y las actualizaciones) recibe los avisos, y la función `push-send` los envía cuando la base crea un aviso (trigger `notify_push`).
 - **Pantalla encendida:** se mantiene activa durante la limpieza y el día del evento (Wake Lock).
 - **Almacenamiento persistente:** la app lo solicita para que el navegador no borre los datos locales.
 

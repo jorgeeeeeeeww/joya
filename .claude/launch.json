@@ -4,14 +4,86 @@
     {
       "name": "la-joya",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5173
     },
     {
       "name": "la-joya-produccion",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "preview", "--port", "4173", "--strictPort"],
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--port",
+        "4173",
+        "--strictPort"
+      ],
       "port": 4173
+    },
+    {
+      "name": "nube-de-prueba",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/nube-de-prueba.mjs"
+      ],
+      "port": 54321
+    },
+    {
+      "name": "prueba-completa",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/probar-local.mjs"
+      ],
+      "port": 4173
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "web",
+        "run",
+        "dev"
+      ],
+      "port": 4321
+    },
+    {
+      "name": "web-publicada",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "web",
+        "run",
+        "preview",
+        "--",
+        "--port",
+        "4323"
+      ],
+      "port": 4323
+    },
+    {
+      "name": "mac-nube-local",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "mac",
+        "run",
+        "nube:ejemplo"
+      ],
+      "port": 54331
+    },
+    {
+      "name": "mac-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "mac",
+        "run",
+        "dev"
+      ],
+      "port": 5180
     }
   ]
 }

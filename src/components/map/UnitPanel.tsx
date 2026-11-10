@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Baby, Bath, BedDouble, CalendarClock, CalendarHeart, Car, DoorOpen, Droplets, MessageCircle, Sparkles, TreePalm, Users, Warehouse } from 'lucide-react'
 import { featureById, type MapFeature } from '@/lib/layout'
 import { db, useCollection, useDoc, useMe } from '@/lib/store'
-import { EVENT_STATUS, EVENT_TYPE, RES_SOURCE, TONE, UNIT_STATUS, VENUE, seesMoney } from '@/lib/meta'
+import { canDo, EVENT_STATUS, EVENT_TYPE, RES_SOURCE, TONE, UNIT_STATUS, VENUE, seesMoney } from '@/lib/meta'
 import { mxn, nights, relativeDay, today, waLink, fmt } from '@/lib/format'
 import { haptic } from '@/lib/motion'
 import type { Pastel, UnitStatus } from '@/lib/types'
@@ -66,7 +66,9 @@ function UnitDetail({ unitId, feature, compactHeader }: { unitId: string; featur
   const reservations = useCollection('reservations')
   const tasks = useCollection('tasks')
   const money = seesMoney(me?.role)
-  const canChange = me?.role === 'admin' || me?.role === 'limpieza'
+  // Recepción y mantenimiento mueven el estado; el dueño lo ve en vivo
+  const canChange = canDo(me?.role, 'cambiarEstadoUnidad')
+  const canReserve = canDo(me?.role, 'reservar')
   const t = today()
 
   const { current, next } = useMemo(() => {
@@ -208,12 +210,12 @@ function UnitDetail({ unitId, feature, compactHeader }: { unitId: string; featur
       )}
 
       <div className="grid grid-cols-2 gap-2 pt-1">
-        {me?.role === 'admin' && (
+        {canReserve && (
           <Button variant="secondary" className="w-full" icon={<BedDouble size={16} strokeWidth={1.6} />} onClick={() => navigate(`/hospedaje?u=${unit.id}`)}>
             Reservar
           </Button>
         )}
-        <Button variant="outline" className={cx('w-full', me?.role !== 'admin' && 'col-span-2')} icon={<Sparkles size={16} strokeWidth={1.6} />} onClick={() => navigate('/limpieza')}>
+        <Button variant="outline" className={cx('w-full', !canReserve && 'col-span-2')} icon={<Sparkles size={16} strokeWidth={1.6} />} onClick={() => navigate('/limpieza')}>
           Limpieza
         </Button>
       </div>

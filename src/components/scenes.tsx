@@ -1,8 +1,9 @@
 // Escenas ilustradas de La Joya: reemplazan al horizonte genérico de step1 en cada panel.
 // Todo en vector con los tonos del tema (se adaptan solas a claro/oscuro y a cada atmósfera).
 // Capas: lejos → cerca (perspectiva atmosférica) y las luces cálidas con var(--luz).
-import type { ReactNode } from 'react'
-import type { EventType } from '@/lib/types'
+import { useState, type ReactNode } from 'react'
+import type { EventType, UnitStatus } from '@/lib/types'
+import { TONE, UNIT_STATUS } from '@/lib/meta'
 import { PAPER_TONES } from './step1'
 
 type Tones = readonly [string, string, string, string]
@@ -104,6 +105,129 @@ function House({ x, y, w = 70, h = 40, fill, roof }: { x: number; y: number; w?:
 }
 
 // ── Escenas ─────────────────────────────────────────────
+
+export interface UnidadViva {
+  id: string
+  name: string
+  status: UnitStatus
+  cabana: boolean
+  /** Lo que pasa ahí, en una línea: «Familia Hernández · sale mañana» */
+  line: string
+}
+
+/** Una casa de verdad: se enciende si tiene huéspedes, deja una luz si está limpiando y lleva un punto con su estado */
+function CasaViva({ u, x, y, w, h, near, hover, onHover, onPick }: { u: UnidadViva; x: number; y: number; w: number; h: number; near: string; hover: boolean; onHover: (on: boolean) => void; onPick: () => void }) {
+  const lit = u.status === 'ocupada'
+  const half = u.status === 'limpiando' || u.status === 'inspeccion'
+  const off = 'color-mix(in oklab, var(--night) 68%, var(--sky-2))'
+  const tone = TONE[UNIT_STATUS[u.status].tone].hex
+  const win = 12
+  return (
+    <g
+      role="link"
+      tabIndex={0}
+      aria-label={`${u.name}: ${u.line}`}
+      className="cursor-pointer outline-none"
+      style={{ transform: hover ? 'translateY(-5px)' : undefined, transition: 'transform 280ms var(--ease-calma)' }}
+      onClick={onPick}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onPick())}
+      onPointerEnter={() => onHover(true)}
+      onPointerLeave={() => onHover(false)}
+      onFocus={() => onHover(true)}
+      onBlur={() => onHover(false)}
+    >
+      <rect x={x - 7} y={y - h - 62} width={w + 14} height={h + 96} fill="transparent" />
+      {lit && <circle cx={x + w / 2} cy={y - h / 2} r={w * 1.05} fill="url(#rv-glow)" opacity="0.5" />}
+      <path d={`M${x - 6} ${y - h} L${x + w / 2} ${y - h - 24} L${x + w + 6} ${y - h}Z`} fill={near} />
+      <rect x={x} y={y - h} width={w} height={h} fill={near} />
+      <rect x={x + 8} y={y - h + 9} width={win} height={win + 2} rx="2" fill={lit || half ? LUZ : off} opacity={lit ? 0.95 : half ? 0.8 : 1} />
+      <rect x={x + w - 8 - win} y={y - h + 9} width={win} height={win + 2} rx="2" fill={lit ? LUZ : off} opacity={lit ? 0.85 : 1} />
+      <rect x={x + w / 2 - 6} y={y - 20} width="12" height="20" rx="2" fill={lit ? LUZ : off} opacity={lit ? 0.9 : 1} />
+      {u.status === 'lista' && (
+        <>
+          <circle cx={x + w / 2} cy={y - 25} r="9" fill="url(#rv-glow)" opacity="0.8" />
+          <circle cx={x + w / 2} cy={y - 25} r="2.6" fill={LUZ} />
+        </>
+      )}
+      {!lit && <circle cx={x + w / 2} cy={y - h - 36} r="5.5" fill={tone} stroke="var(--night)" strokeWidth="2" />}
+    </g>
+  )
+}
+
+/** Inicio del dueño: el rancho tal como está ahora. Cada casa es una de verdad y se puede tocar. */
+export function RanchoVivoScene({ units, salon, onPick, tones = SCENE_NIGHT }: { units: UnidadViva[]; salon: { lit: boolean; line: string }; onPick: (id: string) => void; tones?: Tones }) {
+  const [hover, setHover] = useState<string | null>(null)
+  const [, mid, near, front] = tones
+  const y = 266
+  // Lo importante queda al centro: en el celular la escena recorta los lados
+  const place = (list: UnidadViva[], from: number, to: number, maxW: number, h: number) => {
+    const step = (to - from) / Math.max(1, list.length)
+    const w = Math.min(maxW, step - 12)
+    return list.map((u, i) => ({ u, x: from + i * step + (step - w) / 2, w, h }))
+  }
+  const houses = [...place(units.filter((u) => u.cabana), 372, 606, 64, 36), ...place(units.filter((u) => !u.cabana), 834, 1070, 58, 42)]
+  const shown = hover === 'salon' ? { x: 620, w: 200, top: 148, name: 'Salón', line: salon.line } : (() => {
+    const h = houses.find((p) => p.u.id === hover)
+    return h ? { x: h.x, w: h.w, top: y - h.h - 44, name: h.u.name, line: h.u.line } : null
+  })()
+  const tipW = shown ? Math.max(shown.name.length, shown.line.length) * 8.4 + 30 : 0
+  const tipX = shown ? Math.max(12, Math.min(1428 - tipW, shown.x + shown.w / 2 - tipW / 2)) : 0
+  return (
+    <svg viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice" className="block h-full w-full" role="group" aria-label="El rancho ahora">
+      <defs>
+        <radialGradient id="rv-glow">
+          <stop offset="0" stopColor={LUZ} stopOpacity="0.9" />
+          <stop offset="1" stopColor={LUZ} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <g className="pointer-events-none">
+        <Hills t={tones} />
+        <Tree x={110} y={268} s={1.3} fill={front} />
+        <Tree x={1330} y={270} s={1.4} fill={front} />
+        <Cypress x={214} y={266} fill={near} />
+        <Cypress x={1228} y={266} s={1.2} fill={near} />
+        <Palm x={290} y={266} s={0.95} fill={near} />
+        <Palm x={1162} y={266} s={1.05} fill={near} />
+        <StringLights x1={606} x2={372} y={204} sag={12} n={6} line={mid} />
+        <StringLights x1={834} x2={1070} y={204} sag={12} n={6} line={mid} />
+      </g>
+      {/* Salón: encendido si hay evento hoy */}
+      <g
+        role="link"
+        tabIndex={0}
+        aria-label={`Salón: ${salon.line}`}
+        className="cursor-pointer outline-none"
+        onClick={() => onPick('salon')}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onPick('salon'))}
+        onPointerEnter={() => setHover('salon')}
+        onPointerLeave={() => setHover(null)}
+        onFocus={() => setHover('salon')}
+        onBlur={() => setHover(null)}
+      >
+        <path d="M612 200 L720 150 L828 200Z" fill={near} />
+        <rect x="624" y="200" width="192" height="66" fill={near} />
+        {salon.lit && <circle cx="720" cy="232" r="130" fill="url(#rv-glow)" opacity="0.4" />}
+        <Windows x={640} y={214} cols={6} w={14} h={24} gap={12} lit={salon.lit ? LUZ : 'color-mix(in oklab, var(--night) 68%, var(--sky-2))'} />
+        <rect x="708" y="232" width="24" height="34" rx="12" fill={salon.lit ? LUZ : 'color-mix(in oklab, var(--night) 68%, var(--sky-2))'} />
+      </g>
+      {houses.map((p) => (
+        <CasaViva key={p.u.id} u={p.u} x={p.x} y={y} w={p.w} h={p.h} near={near} hover={hover === p.u.id} onHover={(on) => setHover(on ? p.u.id : null)} onPick={() => onPick(p.u.id)} />
+      ))}
+      <path className="pointer-events-none" d="M0 262 C300 256 520 266 720 264 S1180 256 1440 262 V320 H0Z" fill={front} />
+      {shown && (
+        <g className="pointer-events-none" style={{ fontFamily: 'var(--font-sans)' }}>
+          <rect x={tipX} y={Math.max(4, shown.top - 58)} width={tipW} height="52" rx="12" fill="var(--on-night)" />
+          <text x={tipX + 15} y={Math.max(4, shown.top - 58) + 22} fontSize="16" fontWeight="600" fill="var(--night)">
+            {shown.name}
+          </text>
+          <text x={tipX + 15} y={Math.max(4, shown.top - 58) + 41} fontSize="14" fill="color-mix(in oklab, var(--night) 72%, var(--on-night))">
+            {shown.line}
+          </text>
+        </g>
+      )}
+    </svg>
+  )
+}
 
 /** Administración: el rancho al anochecer — salón con luces, jardín y casas encendidas */
 export function RanchoScene({ tones = SCENE_NIGHT }: { tones?: Tones }) {

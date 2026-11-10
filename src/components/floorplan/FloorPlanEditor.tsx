@@ -36,7 +36,7 @@ import {
   ZoomOut,
 } from 'lucide-react'
 import type { FloorItem, FloorItemType, FloorScene, Guest, RanchEvent } from '@/lib/types'
-import { ITEM_SPECS, LAYOUT_STYLES, MAIN_SCENE_ID, SCENE_KIND, autoLayout, eventScenes, itemRect, layoutStats, sceneUpdate, type LayoutStyle } from '@/lib/floorplan'
+import { ITEM_SPECS, LAYOUT_STYLES, MAIN_SCENE_ID, SCENE_KIND, autoLayout, eventScenes, furnitureNeeds, itemRect, layoutStats, sceneUpdate, type LayoutStyle } from '@/lib/floorplan'
 import { VENUE_SPACES } from '@/lib/layout'
 import { db, useCollection } from '@/lib/store'
 import { TONE, VENUE } from '@/lib/meta'
@@ -57,7 +57,6 @@ import {
   isNumbered,
   narrowAisles,
   overlaps,
-  PALETTE_GROUPS,
   rectOf,
   renumberTables,
   snapV,
@@ -713,19 +712,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
   // ── Estadísticas ──
   const stats = layoutStats(items)
   const inventory = useCollection('inventory')
-  const furniture = useMemo(() => {
-    const inv = (id: string) => inventory.find((i) => i.id === id)?.stock ?? 0
-    const count = (t: FloorItemType) => items.filter((i) => i.type === t).length
-    const rectNeeded = count('mesa-rectangular') + count('mesa-cuadrada') + count('mesa-novios') + count('mesa-dulces') + count('mesa-imperial') * 3 + count('mesa-principal') * 3
-    const chairs = items.filter((i) => ITEM_SPECS[i.type].isTable && i.type !== 'periquera').reduce((n, i) => n + (i.seats ?? 0), 0) + items.filter((i) => i.type === 'sillas-ceremonia').reduce((n, i) => n + (i.seats ?? 0), 0)
-    return [
-      { label: 'Mesas redondas', need: count('mesa-redonda') + count('mesa-media-luna'), have: inv('inv_redondas') },
-      { label: 'Mesas rectangulares', need: rectNeeded, have: inv('inv_rect') },
-      { label: 'Periqueras', need: count('periquera'), have: inv('inv_periqueras') },
-      { label: 'Sillas', need: chairs, have: inv('inv_tiffany') + inv('inv_plegables'), hint: `${inv('inv_tiffany')} Tiffany + ${inv('inv_plegables')} plegables` },
-      { label: 'Manteles redondos', need: count('mesa-redonda'), have: inv('inv_manteles') },
-    ].filter((f) => f.need > 0)
-  }, [items, inventory])
+  const furniture = useMemo(() => furnitureNeeds(items, (id) => inventory.find((i) => i.id === id)?.stock ?? 0), [items, inventory])
   const guestsHere = event.guests
   const missingSeats = scene.kind === 'coctel' ? 0 : Math.max(0, guestsHere - stats.seats)
   const areaPer = (W * H) / Math.max(1, Math.max(stats.seats, guestsHere))
@@ -926,7 +913,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
     <div ref={rootRef} className="flex min-w-0 flex-col gap-3">
       {/* ── Escenas ── */}
       <div className="flex min-w-0 items-center gap-2">
-        <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 py-0.5">
+        <div className="flex min-w-0 flex-1 flex-wrap gap-2 py-0.5">
           {scenes.map((sc) => {
             const on = sc.id === scene.id
             return (
@@ -938,7 +925,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
                 <span className={cx('flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-medium', on ? 'bg-[color-mix(in_oklab,var(--paper)_18%,transparent)]' : TONE[SCENE_KIND[sc.kind].tone].soft)}>
                   {sc.time ?? SCENE_KIND[sc.kind].label.slice(0, 1)}
                 </span>
-                <span className="whitespace-nowrap">
+                <span>
                   {sc.name} <span className={on ? 'opacity-70' : 'text-ink-soft'}>· {VENUE[sc.venue].label}</span>
                 </span>
               </button>
@@ -959,7 +946,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
 
       {/* ── Herramientas ── */}
       <div className="relative">
-        <div className="no-scrollbar -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-0.5">
+        <div className="flex flex-wrap items-center gap-1.5 pb-0.5">
           {!readOnly && (
             <>
               <ToolBtn label="Deshacer" onClick={undo} disabled={!past.current.length}>
@@ -976,7 +963,7 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
                 <LayoutTemplate size={18} strokeWidth={1.6} />
               </ToolBtn>
               <Divider />
-              <ToolBtn label="Seleccionar área" active={areaMode} onClick={() => setAreaMode((v) => !v)} showLabel={isWide}>
+              <ToolBtn label="Seleccionar área" active={areaMode} onClick={() => setAreaMode((v) => !v)}>
                 <BoxSelect size={18} strokeWidth={1.6} />
               </ToolBtn>
             </>
@@ -1213,15 +1200,17 @@ export default function FloorPlanEditor({ event, sceneId, onSceneChange, readOnl
 
           {/* Paleta rápida (tablet y escritorio) */}
           {!readOnly && !isPhone && (
-            <div className="no-scrollbar mt-3 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-              {PALETTE_GROUPS.flatMap((g) => g.types)
-                .filter((t) => venue === 'jardin' || t !== 'carpa')
+            <div className="mt-3 flex flex-wrap gap-2 pb-1">
+              {(['mesa-redonda', 'mesa-rectangular', 'mesa-imperial', 'periquera', 'pista', 'barra', 'dj'] as FloorItemType[])
                 .map((t) => (
                   <button key={t} onClick={() => addItem(t)} className="pressable flex h-12 shrink-0 items-center gap-2 rounded-full bg-surface py-1 pr-4 pl-1.5 text-sm shadow-[var(--shadow-1)] ring-1 ring-line hover:shadow-[var(--shadow-2)]" title={`Agregar ${ITEM_SPECS[t].label.toLowerCase()}`}>
                     <PaletteIcon type={t} size={34} />
-                    <span className="whitespace-nowrap">{ITEM_SPECS[t].label}</span>
+                    <span>{ITEM_SPECS[t].label}</span>
                   </button>
                 ))}
+              <button onClick={() => setSheet('palette')} className="pressable flex h-12 items-center gap-2 rounded-full px-4 text-sm text-ink-soft ring-1 ring-line-strong ring-inset hover:bg-wash hover:text-ink">
+                <Plus size={16} strokeWidth={1.6} /> Ver todo
+              </button>
             </div>
           )}
 

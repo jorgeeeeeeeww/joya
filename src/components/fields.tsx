@@ -663,6 +663,48 @@ export function EmailField({ label = 'Correo', value, onChange, icon = <Mail />,
  * Botones grandes de más y menos (mantener presionado acelera). Tocar la cifra deja escribirla.
  * Con `label` se dibuja como un renglón de formulario; sin él, solo el control.
  */
+/** Texto editable que baja de renglón en vez de cortarse (un <input> no puede hacerlo) */
+export function GrowText({ value, onChange, label, placeholder, className }: { value: string; onChange: (v: string) => void; label: string; placeholder?: string; className?: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const fit = () => {
+      el.style.height = 'auto'
+      el.style.height = `${el.scrollHeight}px`
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [value])
+  return <textarea ref={ref} rows={1} aria-label={label} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value.replace(/\n/g, ' '))} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), e.currentTarget.blur())} className={cx('block w-full resize-none overflow-hidden bg-transparent outline-none', className)} />
+}
+
+/** Monto para renglones y tablas: muestra $12,500 y al tocarlo se edita el número */
+export function MoneyInline({ label, value, onChange, className, placeholder }: { label: string; value: number | undefined; onChange: (n: number) => void; className?: string; placeholder?: string }) {
+  const [editing, setEditing] = useState<string | null>(null)
+  return (
+    <input
+      aria-label={label}
+      inputMode="decimal"
+      className={cx('h-11 min-w-0 rounded-[12px] bg-surface px-3 tabular ring-1 ring-line-strong outline-none ring-inset focus:ring-[1.5px] focus:ring-primary pointer-fine:h-10', className)}
+      placeholder={placeholder ?? '$0'}
+      value={editing ?? (value ? `$${nf2.format(value)}` : '')}
+      onFocus={(e) => {
+        const el = e.currentTarget
+        setEditing(value ? String(value) : '')
+        requestAnimationFrame(() => el.select())
+      }}
+      onChange={(e) => {
+        setEditing(e.target.value)
+        onChange(Math.max(0, Number(e.target.value.replace(/[^\d.]/g, '')) || 0))
+      }}
+      onBlur={() => setEditing(null)}
+    />
+  )
+}
+
 export function Stepper({
   value,
   onChange,

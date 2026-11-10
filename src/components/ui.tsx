@@ -305,7 +305,7 @@ export function Chip({ active, onClick, children, count }: { active?: boolean; o
 
 // ── Filtro en menú: un botón con lo elegido y la lista al tocarlo ──
 /** Para filtros de 5 o más opciones: en vez de una fila de chips que no cabe, un botón con su lista */
-export function FilterMenu<T extends string>({ value, onChange, options, allLabel, label, className }: { value: T | ''; onChange: (v: T | '') => void; options: { value: T; label: string; count?: number; icon?: ReactNode }[]; /** Texto cuando no hay filtro */ allLabel: string; /** Nombre del filtro (accesibilidad y título del menú) */ label: string; className?: string }) {
+export function FilterMenu<T extends string>({ value, onChange, options, allLabel, label, className, noAll }: { value: T | ''; onChange: (v: T | '') => void; options: { value: T; label: string; count?: number; icon?: ReactNode }[]; /** Texto cuando no hay filtro */ allLabel: string; /** Nombre del filtro (accesibilidad y título del menú) */ label: string; className?: string; /** Sin la opción «todos»: siempre hay uno elegido */ noAll?: boolean }) {
   const ref = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   const current = options.find((o) => o.value === value)
@@ -335,7 +335,7 @@ export function FilterMenu<T extends string>({ value, onChange, options, allLabe
       </button>
       <Popover open={open} onClose={() => setOpen(false)} anchor={ref} width={248} title={label} label={label}>
         <div role="menu" className="flex flex-col">
-          {item('', allLabel)}
+          {!noAll && item('', allLabel)}
           {options.map((o) => item(o.value, o.label, o.count, o.icon))}
         </div>
       </Popover>

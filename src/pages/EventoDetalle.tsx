@@ -1,19 +1,23 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { ArrowLeft, Ban, SlidersHorizontal, CalendarDays, Check, Clock, ListChecks, MapPin, MessageCircle, Pencil, Phone, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Ban, SlidersHorizontal, CalendarDays, Check, Clock, Lightbulb, ListChecks, MapPin, MessageCircle, Pencil, Phone, Trash2, Users } from 'lucide-react'
 import type { EventStatus, EventType, RanchEvent, Venue } from '@/lib/types'
 import { db, useCollection, useDoc, useMe } from '@/lib/store'
 import { EVENT_STATUS, EVENT_TYPE, PRIORITY, TASK_STATUS, VENUE, seesMoney } from '@/lib/meta'
 import { layoutStats } from '@/lib/floorplan'
 import { byProgramTime, visibleNotes, capitalize, daysUntil, fmt, fmtDate, mxn, waLink } from '@/lib/format'
-import { countdownLabel, eventReadiness, PIPELINE } from '@/lib/planner'
+import { countdownLabel, PIPELINE } from '@/lib/planner'
+import { eventHealth, eventMilestones, healthScore, healthTab, nextStep } from '@/lib/eventHealth'
+import { eventPlanTasks } from '@/lib/automations'
+import { HealthBar, HEALTH_DAY } from '@/components/events/HealthBar'
 import { ease, spring } from '@/lib/motion'
-import { Avatar, Badge, Button, Card, CardHeader, Confirm, Empty, Field, Input, ProgressBar, ProgressRing, Segmented, Select, Sheet, Textarea, cx, toast } from '@/components/ui'
+import { Avatar, Badge, Button, Card, CardHeader, Confirm, Empty, Field, FilterMenu, Input, OverflowMenu, ProgressBar, Segmented, Select, Sheet, Textarea, cx, toast } from '@/components/ui'
 import { NightSlab, Sparkle } from '@/components/step1'
 import { EventScene } from '@/components/scenes'
 import { QuoteTab, useQuote } from '@/components/events/QuoteTab'
-import { ChecklistTab, GuestsTab, TimelineTab } from '@/components/events/EventTabs'
+import { ChecklistTab, QuickProvidersCard, TimelineTab } from '@/components/events/EventTabs'
+import { GuestStation, type GuestView } from '@/pages/Invitados'
 import { BeoTab, BudgetTab, InspirationTab, MiniPlan, PaymentPlanTab, VendorsTab } from '@/components/events/PlannerTabs'
 import { EventOrb, PaletteDots } from '@/components/events/EventOrb'
 import { vt } from '@/lib/transitions'
@@ -64,16 +68,16 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
   const type = EVENT_TYPE[ev.type]
   const d = daysUntil(ev.date)
 
-  // 7 grupos en lugar de 11 pestañas; dentro de cada grupo, un selector pequeño
-  const LABEL: Record<Tab, string> = { resumen: 'Resumen', plano: 'Plano de mesas', invitados: 'Invitados', cotizacion: 'Cotización', pagos: 'Plan de pagos', presupuesto: 'Presupuesto', inspiracion: 'Inspiración', programa: 'Programa', beo: 'Orden de evento', proveedores: 'Proveedores', checklist: 'Checklist' }
+  // Secciones en el orden en que se trabaja un evento; dentro de cada una, un selector pequeño
+  const LABEL: Record<Tab, string> = { resumen: 'Resumen', plano: 'Plano del lugar', invitados: 'Invitados', cotizacion: 'Cotización', pagos: 'Plan de pagos', presupuesto: 'Presupuesto', inspiracion: 'Inspiración', programa: 'Programa', beo: 'Orden de evento y contrato', proveedores: 'Proveedores', checklist: 'Pendientes' }
   type Group = { value: string; label: string; tabs: Tab[] }
   const groups: Group[] = ([
     { value: 'resumen', label: 'Resumen', tabs: ['resumen'] },
-    { value: 'plano', label: 'Plano de mesas', tabs: ['plano'] },
-    { value: 'invitados', label: 'Invitados', tabs: ['invitados'] },
-    ...(showMoney ? [{ value: 'dinero', label: 'Cotización y pagos', tabs: ['cotizacion', 'pagos', 'presupuesto'] as Tab[] }] : []),
-    { value: 'dia', label: 'Día del evento', tabs: ['programa', 'beo', 'checklist'] },
+    { value: 'pendientes', label: 'Pendientes', tabs: ['checklist'] },
+    { value: 'invitados', label: 'Invitados y mesas', tabs: ['invitados', 'plano'] },
+    { value: 'dia', label: 'Programa del día', tabs: ['programa', 'beo'] },
     { value: 'proveedores', label: 'Proveedores', tabs: ['proveedores'] },
+    ...(showMoney ? [{ value: 'dinero', label: 'Cotización y pagos', tabs: ['cotizacion', 'pagos', 'presupuesto'] as Tab[] }] : []),
     { value: 'inspiracion', label: 'Inspiración', tabs: ['inspiracion'] as Tab[] },
   ] as Group[])
     .map((g) => ({ ...g, tabs: g.tabs.filter(visible) }))
@@ -86,6 +90,13 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
     const bar = tabsRef.current
     if (el && bar) bar.scrollTo({ left: el.offsetLeft - bar.clientWidth / 2 + el.clientWidth / 2, behavior: 'smooth' })
   }, [group.value])
+
+  const stepsRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = stepsRef.current?.querySelector<HTMLElement>('[aria-current="step"]')
+    const bar = stepsRef.current
+    if (el && bar) bar.scrollTo({ left: el.offsetLeft - bar.clientWidth / 2 + el.clientWidth / 2, behavior: 'smooth' })
+  }, [ev.status])
 
   const setStatus = (s: EventStatus) => {
     if (s === ev.status) return
@@ -100,6 +111,8 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
         <ArrowLeft size={18} strokeWidth={1.6} /> Eventos
       </Link>
 
+      {tab === 'resumen' ? (
+        <>
       {/* Encabezado: losa noche con la luz */}
       <NightSlab scene={<EventScene type={ev.type} />} className="px-5 pt-6 pb-24 md:px-9 md:pt-9 md:pb-28" luzSize="clamp(40px, 7vw, 88px)" luzClassName="absolute top-[42%] right-[34%] hidden md:block">
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
@@ -147,23 +160,23 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
               <div className="display-num mt-1 text-[2.2rem] leading-none text-on-night md:text-[clamp(2.4rem,2rem+1.6vw,3.6rem)]">{d > 1 ? d : countdownLabel(d)}</div>
               {d > 1 && <div className="text-sm text-on-night-soft">días para el evento</div>}
             </div>
-            <div className="flex gap-1.5">
-              <HeroIcon label="Qué incluye este evento" onClick={() => setModsOpen(true)}>
-                <SlidersHorizontal size={17} strokeWidth={1.6} />
+            <div className="flex flex-wrap gap-1.5 md:justify-end">
+              <HeroIcon label="Su camino" onClick={() => navigate(`/estudio/${ev.id}`)}>
+                <Lightbulb size={15} strokeWidth={1.6} />
               </HeroIcon>
-              <HeroIcon label="Editar evento" onClick={() => setEditOpen(true)}>
-                <Pencil size={17} strokeWidth={1.6} />
+              <HeroIcon label="Editar" onClick={() => setEditOpen(true)}>
+                <Pencil size={15} strokeWidth={1.6} />
               </HeroIcon>
-              {ev.status !== 'cancelado' && (
-                <HeroIcon label="Cancelar evento" onClick={() => setCancelOpen(true)}>
-                  <Ban size={17} strokeWidth={1.6} />
-                </HeroIcon>
-              )}
-              {me?.role === 'admin' && (
-                <HeroIcon label="Eliminar evento" onClick={() => setDelOpen(true)}>
-                  <Trash2 size={17} strokeWidth={1.6} />
-                </HeroIcon>
-              )}
+              {/* Lo que casi no se usa no compite con lo importante */}
+              <OverflowMenu
+                title={ev.title}
+                className="!text-on-night ring-1 ring-[color-mix(in_oklab,var(--on-night)_24%,transparent)] ring-inset hover:!bg-[color-mix(in_oklab,var(--on-night)_10%,transparent)]"
+                items={[
+                  { label: 'Qué incluye', icon: <SlidersHorizontal />, hint: 'Secciones de este evento', onClick: () => setModsOpen(true) },
+                  { label: 'Cancelar evento', icon: <Ban />, hidden: ev.status === 'cancelado', onClick: () => setCancelOpen(true) },
+                  { label: 'Eliminar', icon: <Trash2 />, hidden: me?.role !== 'admin', danger: true, onClick: () => setDelOpen(true) },
+                ]}
+              />
             </div>
           </div>
         </div>
@@ -171,7 +184,7 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
 
       {/* Pasos de estado (flotan sobre el borde de la losa) */}
       <div className="relative z-[3] -mt-14 px-3 md:px-6">
-        <div className="no-scrollbar flex gap-1.5 overflow-x-auto rounded-full bg-surface p-1.5 shadow-[var(--shadow-2)] ring-1 ring-line" role="group" aria-label="Etapa del evento">
+        <div ref={stepsRef} className="no-scrollbar flex gap-1.5 overflow-x-auto rounded-full bg-surface p-1.5 shadow-[var(--shadow-2)] ring-1 ring-line" role="group" aria-label="Etapa del evento">
           {PIPELINE.map((s, i) => {
             const done = stepIdx >= i && ev.status !== 'cancelado'
             const current = ev.status === s
@@ -180,7 +193,7 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
                 key={s}
                 onClick={() => setStatus(s)}
                 aria-current={current ? 'step' : undefined}
-                className={cx('pressable relative flex h-12 min-w-[128px] flex-1 items-center justify-center gap-2 rounded-full px-3 text-sm whitespace-nowrap transition-colors', current ? 'text-on-primary' : done ? 'text-ink' : 'text-ink-3 hover:text-ink-soft')}
+                className={cx('pressable relative flex h-12 min-w-[116px] flex-1 sm:min-w-[128px] items-center justify-center gap-2 rounded-full px-3 text-sm whitespace-nowrap transition-colors', current ? 'text-on-primary' : done ? 'text-ink' : 'text-ink-3 hover:text-ink-soft')}
               >
                 {current && <motion.span layoutId="ev-step" className="absolute inset-0 rounded-full bg-primary" transition={spring.suave} />}
                 <span className={cx('relative flex h-6 w-6 items-center justify-center rounded-full text-[11px]', current ? 'bg-on-primary/20' : done ? 'bg-[color-mix(in_oklab,var(--success)_16%,var(--surface))] text-success' : 'ring-1 ring-line-strong ring-inset')}>{done && !current ? <Check size={13} strokeWidth={2} /> : i + 1}</span>
@@ -194,9 +207,38 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
 
       {/* Asistente: en qué fase va y qué sigue */}
       <EventCoachCard ev={ev} />
+        </>
+      ) : (
+        /* En las demás secciones, una barra compacta: el contenido empieza arriba */
+        <div className="card flex flex-wrap items-center gap-x-4 gap-y-3 p-4 md:p-5">
+          <span style={vt('ev', ev.id)} className="shrink-0 rounded-full">
+            <EventOrb type={ev.type} />
+          </span>
+          <div className="min-w-0 flex-1 basis-52">
+            <h1 className="heading text-[1.4rem] leading-tight md:text-[1.6rem]">{ev.title}</h1>
+            <p className="mt-0.5 text-[13px] text-detail">
+              {capitalize(fmt(ev.date, "EEEE d 'de' MMMM"))} · {ev.startTime}–{ev.endTime} · {VENUE[ev.venue].label} · {ev.guests} invitados
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <Badge tone={EVENT_STATUS[ev.status].tone} dot>
+              {EVENT_STATUS[ev.status].label}
+            </Badge>
+            <span className="text-right">
+              <span className="display-num block text-[1.6rem] leading-none text-key">{d > 1 ? d : countdownLabel(d)}</span>
+              {d > 1 && <span className="text-xs text-detail">días</span>}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* En el celular, un menú: el contenido no queda debajo de siete botones */}
+      <div className="mt-5 mb-4 md:hidden">
+        <FilterMenu noAll label="Sección del evento" allLabel={group.label} value={group.value} onChange={(v) => v && setTab(groups.find((g) => g.value === v)!.tabs[0]!)} options={groups.map((g) => ({ value: g.value, label: g.label }))} className="!h-12 w-full !bg-surface !text-[15px] !text-ink !ring-line-strong" />
+      </div>
 
       {/* Pestañas */}
-      <div ref={tabsRef} className="glass no-scrollbar sticky top-0 z-20 -mx-4 mt-5 mb-5 flex gap-1 overflow-x-auto px-4 py-2 md:mx-0 md:rounded-full md:px-1.5 md:ring-1 md:ring-line" role="tablist" aria-label="Secciones del evento">
+      <div ref={tabsRef} className="mt-5 mb-5 hidden flex-wrap md:glass md:no-scrollbar md:sticky md:top-0 md:z-20 md:flex md:gap-1 md:rounded-[26px] md:px-1.5 md:py-2 md:ring-1 md:ring-line" role="tablist" aria-label="Secciones del evento">
         {groups.map((g) => (
           <button key={g.value} role="tab" aria-selected={group.value === g.value} onClick={() => setTab(g.tabs[0]!)} className={cx('relative h-11 shrink-0 rounded-full px-4 text-[15px] whitespace-nowrap transition-colors duration-[var(--dur-2)] pointer-fine:h-10 pointer-fine:text-sm', group.value === g.value ? 'text-paper' : 'text-ink-soft hover:text-ink')}>
             {group.value === g.value && <motion.span layoutId="ev-tab" className="absolute inset-0 rounded-full bg-ink" transition={spring.suave} />}
@@ -218,28 +260,7 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
               <FloorPlanEditor event={ev} readOnly={ev.status === 'realizado' || ev.status === 'cancelado'} />
             </Suspense>
           )}
-          {tab === 'invitados' && (
-            <div className="flex flex-col gap-5">
-              <Card className="flex flex-wrap items-center gap-4 p-5 md:p-6">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--luz)_55%,var(--surface))] text-night ring-[5px] ring-[color-mix(in_oklab,var(--luz)_22%,transparent)]">
-                  <Users size={20} strokeWidth={1.6} />
-                </span>
-                <div className="min-w-0 flex-1 basis-56">
-                  <p className="heading text-xl">Estación de invitados</p>
-                  <p className="text-sm text-ink-soft">Confirmaciones por WhatsApp, acomodo en mesas arrastrando y recepción en la puerta el día del evento.</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => navigate(`/invitados?e=${ev.id}&v=mesas`)}>
-                    Acomodar mesas
-                  </Button>
-                  <Button variant="tinta" icon={<Users size={17} strokeWidth={1.6} />} onClick={() => navigate(`/invitados?e=${ev.id}`)}>
-                    Abrir estación de invitados
-                  </Button>
-                </div>
-              </Card>
-              <GuestsTab ev={ev} />
-            </div>
-          )}
+          {tab === 'invitados' && <GuestStation ev={ev} view={(params.get('v') as GuestView) || undefined} onView={(v) => (params.set('v', v), setParams(params, { replace: true }))} />}
           {tab === 'cotizacion' && showMoney && (
             <div className="flex flex-col gap-5">
               <LiveQuote ev={ev} />
@@ -251,7 +272,7 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
           {tab === 'inspiracion' && <InspirationTab ev={ev} />}
           {tab === 'programa' && <TimelineTab ev={ev} />}
           {tab === 'beo' && <BeoTab ev={ev} />}
-          {tab === 'proveedores' && <VendorsTab ev={ev} />}
+          {tab === 'proveedores' && <VendorsTab ev={ev} extra={<QuickProvidersCard ev={ev} />} />}
           {tab === 'checklist' && <ChecklistTab ev={ev} />}
         </motion.div>
       </AnimatePresence>
@@ -280,58 +301,52 @@ function Detail({ ev, onDeleted }: { ev: RanchEvent; onDeleted: () => void }) {
 
 function HeroIcon({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) {
   return (
-    <button onClick={onClick} aria-label={label} title={label} className="pressable flex h-11 w-11 items-center justify-center rounded-full text-on-night ring-1 ring-[color-mix(in_oklab,var(--on-night)_24%,transparent)] hover:bg-[color-mix(in_oklab,var(--on-night)_10%,transparent)]">
+    <button onClick={onClick} className="pressable inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] text-on-night ring-1 ring-[color-mix(in_oklab,var(--on-night)_24%,transparent)] ring-inset hover:bg-[color-mix(in_oklab,var(--on-night)_10%,transparent)]">
       {children}
+      {label}
     </button>
   )
 }
 
 function Summary({ ev, showMoney, goTab }: { ev: RanchEvent; showMoney: boolean; goTab: (t: Tab) => void }) {
-  const mods = modulesOf(ev)
   const q = useQuote(ev, ev.lineItems, ev.discount, ev.includeIva)
   const allTasks = useCollection('tasks')
   const employees = useCollection('employees')
   const tasks = useMemo(() => allTasks.filter((t) => t.eventId === ev.id).sort((a, b) => (a.due ?? '').localeCompare(b.due ?? '')), [allTasks, ev.id])
   const stats = layoutStats(ev.layout)
-  const ready = eventReadiness(ev, q.total ? q.paid / q.total : 0)
-  const checklistDone = ev.checklist.filter((c) => c.done).length
-  const people = ev.guestList.reduce((n, g) => n + g.count, 0)
-  const confirmedGuests = ev.guestList.filter((g) => g.confirmed).reduce((n, g) => n + g.count, 0)
+  const health = eventHealth(ev, q.paid, q.total)
+  const sc = healthScore(health)
+  const step = nextStep(eventMilestones(ev, q.paid, q.total))
+  const canPlan = (ev.status === 'apartado' || ev.status === 'confirmado') && tasks.length === 0
+  const planDraft = canPlan ? eventPlanTasks(ev) : []
   const nextTl = [...ev.timeline].filter((t) => !t.done).sort(byProgramTime)[0]
   const coordinator = employees.find((e) => e.id === ev.coordinatorId)
   const tasksDone = tasks.filter((t) => t.status === 'hecha' || t.status === 'verificada').length
 
   return (
     <div className="grid gap-5 lg:grid-cols-3">
-      {/* Preparación general */}
-      <Card className="p-6 lg:col-span-3">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-center">
-          <div className="flex items-center gap-5">
-            <ProgressRing value={ready.overall} size={96} stroke={6} gradient>
-              <span className="display-num text-2xl">{Math.round(ready.overall * 100)}%</span>
-            </ProgressRing>
-            <div>
-              <div className="eyebrow">Preparación del evento</div>
-              <div className="heading mt-1 text-2xl">{ready.overall >= 0.85 ? 'Casi todo listo' : ready.overall >= 0.5 ? 'Va muy bien' : 'Apenas empezamos'}</div>
-              <p className="mt-1 text-sm text-ink-soft">Combina {[mods.checklist && 'pendientes', (mods.pagos || mods.cotizacion) && 'pagos', mods.invitados && 'invitados confirmados'].filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' y $1')}.</p>
-            </div>
+      {/* Preparación: la misma medida que en el panel, «X de N listos», y qué le falta */}
+      <Card className="p-5 md:p-6 lg:col-span-3">
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+          <div>
+            <div className="eyebrow">Preparación del evento</div>
+            <div className="heading mt-1 text-2xl">{sc.total ? sc.label : 'Sin pendientes que medir'}</div>
           </div>
-          <div className="grid min-w-0 flex-1 grid-cols-3 gap-2 sm:gap-4">
-            {[
-              mods.checklist && { label: 'Checklist', v: ready.checklist, sub: `${checklistDone}/${ev.checklist.length}`, tab: 'checklist' as Tab },
-              (mods.pagos || mods.cotizacion) && { label: 'Pagos', v: ready.payments, sub: showMoney ? mxn(q.paid) : `${Math.round(ready.payments * 100)}%`, tab: (showMoney ? 'pagos' : 'resumen') as Tab },
-              mods.invitados && { label: 'Confirmados', v: ready.guests, sub: `${confirmedGuests} de ${people || ev.guests}`, tab: 'invitados' as Tab },
-            ]
-              .filter((x): x is { label: string; v: number; sub: string; tab: Tab } => !!x)
-              .map((x) => (
-              <button key={x.label} onClick={() => goTab(x.tab)} className="pressable w-full min-w-0 rounded-[18px] p-3 text-left hover:bg-wash">
-                <div className="text-xs text-detail">{x.label}</div>
-                <div className="display-num mt-1 text-[1.7rem]">{Math.round(x.v * 100)}%</div>
-                <ProgressBar value={x.v} className="mt-2" />
-                <div className="mt-1.5 text-xs text-ink-3 tabular">{x.sub}</div>
+          <p className={cx('text-sm leading-snug', step.tone === 'bad' ? 'text-key' : 'text-detail')}>{step.text}</p>
+        </div>
+        <HealthBar health={health} className="mt-3" />
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {health
+            .filter((h) => h.state !== 'na')
+            .map((h) => (
+              <button key={h.key} onClick={() => goTab(healthTab(h.key) as Tab)} className="pressable flex min-h-14 items-start gap-3 rounded-[16px] p-3 text-left ring-1 ring-line ring-inset hover:bg-wash">
+                <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: HEALTH_DAY[h.state] }} />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">{h.label}</span>
+                  <span className={cx('block text-sm', h.state === 'ok' ? 'text-detail' : 'text-key')}>{h.note}</span>
+                </span>
               </button>
             ))}
-          </div>
         </div>
       </Card>
 
@@ -366,11 +381,34 @@ function Summary({ ev, showMoney, goTab }: { ev: RanchEvent; showMoney: boolean;
       </Card>
 
       <Card className="lg:col-span-2">
-        <CardHeader title="Plan de trabajo del equipo" subtitle={tasks.length ? `${tasksDone} de ${tasks.length} terminadas` : 'Se genera solo al confirmar el evento'} icon={<span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary"><ListChecks size={19} strokeWidth={1.6} /></span>} />
+        <CardHeader title="Plan de trabajo del equipo" subtitle={tasks.length ? `${tasksDone} de ${tasks.length} terminadas` : ev.status === 'confirmado' || ev.status === 'apartado' ? 'Las tareas del equipo para este evento' : 'Se genera solo al confirmar el evento'} icon={<span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary"><ListChecks size={19} strokeWidth={1.6} /></span>} />
         <div className="flex flex-col gap-2 p-4 md:p-5">
-          {tasks.length === 0 && (
+          {tasks.length === 0 && !canPlan && (
             <div className="rounded-[18px] p-5 text-sm text-ink-soft ring-1 ring-line ring-inset [border-style:dashed]">
-              Cuando el evento pase a <span className="text-ink">Confirmado</span>, el sistema crea las tareas de menú (30 días antes), invitados (7 días antes), montaje (un día antes) y desmontaje (un día después).
+              Cuando el evento pase a <span className="text-ink">Confirmado</span>, se crean solas las tareas de menú (30 días antes), número final (7 días antes), montaje (un día antes) y desmontaje (un día después).
+            </div>
+          )}
+          {canPlan && (
+            <div className="flex flex-col gap-3 rounded-[18px] p-5 text-sm text-ink-soft ring-1 ring-line ring-inset [border-style:dashed]">
+              {planDraft.length ? (
+                <>
+                  <p>Este evento todavía no tiene plan de trabajo. Se crearán {planDraft.length} tareas para el equipo: {planDraft.map((t) => (t.title ?? '').replace(` · ${ev.title}`, '').toLowerCase()).join(', ')}.</p>
+                  <Button
+                    size="sm"
+                    variant="tinta"
+                    className="self-start"
+                    icon={<ListChecks size={16} strokeWidth={1.6} />}
+                    onClick={() => {
+                      planDraft.forEach((t) => db.upsert('tasks', t))
+                      toast.success('Plan de trabajo creado', `${planDraft.length} tareas para el equipo`)
+                    }}
+                  >
+                    Crear plan de trabajo
+                  </Button>
+                </>
+              ) : (
+                <p>Ya pasaron las fechas del plan de trabajo automático. Si falta algo, créalo en Tareas.</p>
+              )}
             </div>
           )}
           {tasks.map((t) => {

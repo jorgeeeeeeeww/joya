@@ -7,12 +7,11 @@ import type { LineItem, RanchEvent } from '@/lib/types'
 import { db, useStore } from '@/lib/store'
 import { VENUE } from '@/lib/meta'
 import { mxn, uid } from '@/lib/format'
+import { priceOf } from '@/lib/packages'
 import { ease } from '@/lib/motion'
 import { withUndo } from '@/lib/undo'
 import { Button, Card, CardHeader, cx } from '@/components/ui'
 import { Slider } from '@/components/fields'
-
-const EXTRA_HOUR = 3500
 
 function Num({ value, money }: { value: number; money?: boolean }) {
   const [shown, setShown] = useState(value)
@@ -25,25 +24,28 @@ function Num({ value, money }: { value: number; money?: boolean }) {
 }
 
 export function LiveQuote({ ev }: { ev: RanchEvent }) {
-  const { ivaPercent, depositPercent } = useStore((s) => s.settings)
+  const { ivaPercent, depositPercent, packagePrices, extraHourPrice } = useStore((s) => s.settings)
   const pkgLine = ev.lineItems.find((l) => l.category === 'Paquete')
   const extraLine = ev.lineItems.find((l) => l.category === 'Horas extra')
   const others = ev.lineItems.filter((l) => l !== pkgLine && l !== extraLine).reduce((n, l) => n + l.qty * l.price, 0)
-  const init = () => ({ guests: ev.guests, perPerson: pkgLine?.price ?? 450, hours: extraLine?.qty ?? 0, discountPct: 0 })
+  // Los precios son los del rancho: los de la cotización o los de Ajustes, nunca uno inventado
+  const hourPrice = extraLine?.price ?? extraHourPrice ?? 0
+  const quoted = ev.lineItems.reduce((n, l) => n + l.qty * l.price, 0)
+  const init = () => ({ guests: ev.guests, perPerson: pkgLine?.price ?? priceOf(packagePrices ?? {}, ev.packageId) ?? 0, hours: extraLine?.qty ?? 0, discountPct: quoted ? (ev.discount / quoted) * 100 : 0 })
   const [v, setV] = useState(init)
   useEffect(() => setV(init()), [ev.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const set = (p: Partial<typeof v>) => setV((x) => ({ ...x, ...p }))
 
   const calc = useMemo(() => {
     const pkg = v.guests * v.perPerson
-    const extras = v.hours * EXTRA_HOUR
+    const extras = v.hours * hourPrice
     const subtotal = pkg + extras + others
     const discount = Math.round((subtotal * v.discountPct) / 100)
     const base = subtotal - discount
     const iva = ev.includeIva ? base * (ivaPercent / 100) : 0
     const total = base + iva
     return { pkg, extras, subtotal, discount, total, deposit: total * (depositPercent / 100), tables: Math.ceil(v.guests / 10), chairs: v.guests, waiters: Math.ceil(v.guests / 15) }
-  }, [v, others, ev.includeIva, ivaPercent, depositPercent])
+  }, [v, others, hourPrice, ev.includeIva, ivaPercent, depositPercent])
   const changed = JSON.stringify(v) !== JSON.stringify(init())
   const overCapacity = v.guests > VENUE[ev.venue].capacity
 
@@ -51,7 +53,7 @@ export function LiveQuote({ ev }: { ev: RanchEvent }) {
     const prev = { guests: ev.guests, lineItems: ev.lineItems, discount: ev.discount }
     let lines: LineItem[] = ev.lineItems.map((l) => (l === pkgLine ? { ...l, qty: v.guests, price: v.perPerson } : l === extraLine ? { ...l, qty: v.hours } : l))
     if (!pkgLine) lines = [{ id: uid('li_'), concept: 'Paquete por persona', category: 'Paquete', qty: v.guests, price: v.perPerson }, ...lines]
-    if (!extraLine && v.hours > 0) lines = [...lines, { id: uid('li_'), concept: 'Hora extra', category: 'Horas extra', qty: v.hours, price: EXTRA_HOUR }]
+    if (!extraLine && v.hours > 0) lines = [...lines, { id: uid('li_'), concept: 'Hora extra', category: 'Horas extra', qty: v.hours, price: hourPrice }]
     lines = lines.filter((l) => !(l.category === 'Horas extra' && l.qty === 0))
     db.patch('events', ev.id, { guests: v.guests, lineItems: lines, discount: calc.discount })
     withUndo('Cotización actualizada', () => db.patch('events', ev.id, prev), `Total ${mxn(calc.total)}`)
@@ -63,9 +65,9 @@ export function LiveQuote({ ev }: { ev: RanchEvent }) {
       <div className="grid gap-6 p-5 md:p-6 lg:grid-cols-[1fr_280px]">
         <div className="flex flex-col gap-5">
           <Slider label="Invitados" value={v.guests} onChange={(n) => set({ guests: n })} min={20} max={450} step={5} format={(n) => `${n} personas`} hint={overCapacity ? <span className="text-warning">Pasa la capacidad recomendada del {VENUE[ev.venue].label.toLowerCase()} ({VENUE[ev.venue].capacity}).</span> : undefined} />
-          <Slider label="Precio por persona" value={v.perPerson} onChange={(n) => set({ perPerson: n })} min={150} max={1500} step={10} format={(n) => mxn(n)} />
-          <Slider label="Horas extra" value={v.hours} onChange={(n) => set({ hours: n })} min={0} max={6} step={1} format={(n) => (n ? `${n} h · ${mxn(n * EXTRA_HOUR)}` : 'Ninguna')} />
-          <Slider label="Descuento" value={v.discountPct} onChange={(n) => set({ discountPct: n })} min={0} max={25} step={1} format={(n) => (n ? `${n}% · -${mxn(calc.discount)}` : 'Sin descuento')} />
+          <Slider label="Precio por persona" value={v.perPerson} onChange={(n) => set({ perPerson: n })} min={0} max={Math.max(1500, v.perPerson)} step={10} format={(n) => (n ? mxn(n) : 'Sin precio')} hint={v.perPerson ? undefined : 'Ponlo aquí o en Ajustes, en Paquetes y precios.'} />
+          <Slider label="Horas extra" value={v.hours} onChange={(n) => set({ hours: n })} min={0} max={6} step={1} format={(n) => (n ? (hourPrice ? `${n} h · ${mxn(n * hourPrice)}` : `${n} h`) : 'Ninguna')} hint={hourPrice ? undefined : 'El precio de la hora extra se pone en Ajustes.'} />
+          <Slider label="Descuento" value={v.discountPct} onChange={(n) => set({ discountPct: n })} min={0} max={Math.max(25, Math.ceil(v.discountPct))} step={1} format={(n) => (n ? `${Math.round(n)}% · -${mxn(calc.discount)}` : 'Sin descuento')} />
           <div className="grid grid-cols-3 gap-2">
             {[
               { icon: <Table2 size={16} strokeWidth={1.6} />, label: 'Mesas de 10', value: calc.tables },

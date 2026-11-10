@@ -1,9 +1,9 @@
 // GET /functions/v1/ical-export?unit=<unitId>&token=<icalExportToken>
 // Feed .ics que se pega en Airbnb / Booking ("Importar calendario") para bloquear
 // las fechas vendidas por otros canales. Protegido con un token por unidad.
-// Desplegar con:  supabase functions deploy ical-export --no-verify-jwt
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+// Configurada en supabase/config.toml (sin verificación de JWT: la protege el token de cada unidad).
 import { buildICS } from '../_shared/ical.ts'
+import { adminClient } from '../_shared/admin.ts'
 
 Deno.serve(async (req) => {
   const url = new URL(req.url)
@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   const token = url.searchParams.get('token')
   if (!unitId || !token) return new Response('Faltan parámetros', { status: 400 })
 
-  const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  const sb = adminClient()
   const { data: unitRow } = await sb.from('documents').select('data').eq('collection', 'units').eq('id', unitId).single()
   const unit = unitRow?.data
   // Comparación en tiempo constante para no filtrar el token

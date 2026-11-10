@@ -1,21 +1,22 @@
 // POST /functions/v1/ical-sync  (opcional: { "unitId": "u_c1" })
 // Descarga el calendario iCal de Airbnb/Booking de cada unidad y crea/actualiza las reservas.
-// La llama la app ("Sincronizar ahora") o pg_cron cada 30 minutos.
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+// La llama la app ("Sincronizar ahora", solo administración) o la tarea programada cada 30 minutos
+// (con el secreto de Vault). Configurada en supabase/config.toml (valida el acceso aquí).
 import { parseICS } from '../_shared/ical.ts'
+import { adminClient, fromCron, recordRun } from '../_shared/admin.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
-  const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  const sb = adminClient()
 
-  // Solo administración (o pg_cron con la llave de servicio) puede sincronizar
+  // Solo administración (o la tarea programada con el secreto de Vault) puede sincronizar
   const auth = req.headers.get('Authorization')?.replace('Bearer ', '') ?? ''
-  if (auth !== Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+  if (!fromCron(req)) {
     const { data: user } = await sb.auth.getUser(auth)
     const { data: profile } = user?.user ? await sb.from('profiles').select('role').eq('id', user.user.id).single() : { data: null }
     if (profile?.role !== 'admin') return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: cors })
@@ -78,5 +79,7 @@ Deno.serve(async (req) => {
     }
   }
 
+  const failed = Object.entries(summary).filter(([, s]) => s.error)
+  await recordRun(sb, 'ical', 'Calendarios de Airbnb y Booking', failed.length === 0, failed.length ? failed.map(([name, s]) => `${name}: ${s.error}`).join(' · ') : `${Object.keys(summary).length} calendarios al día`)
   return new Response(JSON.stringify({ ok: true, summary }), { headers: { ...cors, 'Content-Type': 'application/json' } })
 })

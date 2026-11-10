@@ -336,7 +336,8 @@ export function useOutbox() {
           urgency: 1,
           eventId: ev.id,
           to: { name: ev.clientName, phone: ev.phone },
-          message: fill(tpl.conteo, { ...v, confirmados: people || ev.guests, pendientes: pend }),
+          // Sin lista de invitados no hay «confirmados» que reportar: se pregunta sobre lo contratado
+          message: ev.guestList.length ? fill(tpl.conteo, { ...v, confirmados: people, pendientes: pend }) : fill('Hola {cliente}, ¡ya casi es {evento}! Tenemos contratadas {confirmados} personas. ¿Me confirmas el número final para cerrar banquete y montaje? ✦', { ...v, confirmados: ev.guests }),
           markSent: () => {
             markSentOnEvent(ev, key, 'Número final de invitados')
             log('conteo', ev.clientName, ev.title, ev.id)

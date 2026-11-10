@@ -1,6 +1,6 @@
 // Pestañas avanzadas del wedding planner: Inspiración, Presupuesto, Plan de pagos,
 // Orden de evento (BEO) con firma digital y Proveedores asignados.
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { CalendarClock, Check, FileSignature, AtSign, MessageCircle, Phone, Plus, Printer, Search, Sparkles, Star, Trash2, Wand2, X } from 'lucide-react'
 import type { FloorItem, PaymentPlanItem, RanchEvent, Signature, VendorCategory } from '@/lib/types'
@@ -11,6 +11,7 @@ import { VENUE_SPACES } from '@/lib/layout'
 import { addDaysISO, byProgramTime, visibleNotes, capitalize, daysUntil, fmt, fmtDate, fmtDateFull, mxn, nowIso, today, uid, waLink } from '@/lib/format'
 import { pendingInstallments } from '@/lib/planner'
 import { Badge, Button, Card, CardHeader, Chip, Empty, Estela, Field, Input, ProgressBar, Segmented, Sheet, Textarea, cx, toast } from '@/components/ui'
+import { MoneyInline } from '@/components/fields'
 import { Donut, Legend } from '@/components/charts'
 import { Sparkle } from '@/components/step1'
 import { useEventDraft } from './useDraft'
@@ -38,11 +39,11 @@ export function InspirationTab({ ev }: { ev: RanchEvent }) {
   return (
     <div className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
       {/* Tablero: pétalos translúcidos superpuestos (eco del florero) */}
-      <Card className="relative overflow-hidden">
-        <div className="bg-cielo-soft relative isolate min-h-[340px] p-6 md:p-8">
+      <Card className="relative self-start overflow-hidden">
+        <div className="bg-cielo-soft relative isolate min-h-[400px] p-6 md:p-8">
           <div className="eyebrow">Tablero de inspiración</div>
           <h3 className="heading mt-2 max-w-[16ch] text-[clamp(1.8rem,1.4rem+1.6vw,2.6rem)]">{theme || 'Escribe la temática del evento'}</h3>
-          <p className="mt-3 max-w-[46ch] text-[15px] leading-relaxed text-ink-soft">{mood || 'Describe flores, texturas, luces y el ambiente que sueña la clienta.'}</p>
+          <p className="mt-3 max-w-[30ch] text-[15px] leading-relaxed text-ink-soft">{mood || 'Describe flores, texturas, luces y el ambiente que sueña la clienta.'}</p>
           <div aria-hidden className="pointer-events-none absolute right-[-30px] bottom-[-40px] h-[260px] w-[300px]">
             {colors.slice(0, 6).map((c, i) => {
               const a = (i / Math.max(colors.length, 1)) * Math.PI * 2
@@ -286,7 +287,7 @@ export function PaymentPlanTab({ ev }: { ev: RanchEvent }) {
                     <div className="grid gap-2 sm:grid-cols-[1fr_150px_140px]">
                       <input value={p.label} onChange={(e) => update(p.id, { label: e.target.value })} className="rounded-[10px] bg-transparent px-1 py-1 font-medium outline-none focus:bg-surface" aria-label="Concepto" />
                       <Input type="date" value={p.due} onChange={(e) => update(p.id, { due: e.target.value })} className="h-10" aria-label="Fecha límite" />
-                      <Input type="number" inputMode="decimal" value={p.amount} onChange={(e) => update(p.id, { amount: Math.max(0, Number(e.target.value)) })} className="h-10 text-right tabular" aria-label="Monto" />
+                      <MoneyInline label="Monto" value={p.amount} onChange={(n) => update(p.id, { amount: n })} className="text-right" />
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       {paid ? <Badge tone="sage" sparkle>Pagado</Badge> : late ? <Badge tone="rose">Vencido · {fmtDate(p.due)}</Badge> : <Badge tone="sky">{capitalize(fmt(p.due, "EEEE d 'de' MMM"))}</Badge>}
@@ -574,19 +575,21 @@ function SignSheet({ open, onClose, ev }: { open: boolean; onClose: () => void; 
 }
 
 // ── Proveedores asignados ────────────────────────────────
-export function VendorsTab({ ev }: { ev: RanchEvent }) {
+export function VendorsTab({ ev, extra }: { ev: RanchEvent; extra?: ReactNode }) {
   const vendors = useCollection('vendors')
   const [open, setOpen] = useState(false)
   const assigned = vendors.filter((v) => ev.vendorIds?.includes(v.id))
   const remove = (id: string) => db.patch('events', ev.id, { vendorIds: (ev.vendorIds ?? []).filter((x) => x !== id) })
-  const missing = (['banquete', 'musica', 'flores', 'foto'] as VendorCategory[]).filter((c) => !assigned.some((v) => v.category === c))
+  // Lo que falta cuenta también a quienes están fuera del directorio (por el servicio que dan)
+  const QUICK: Partial<Record<VendorCategory, RegExp>> = { banquete: /banquete|comida|catering|taquiza/i, musica: /m[uú]sica|audio|dj|banda|mariachi|grupo/i, flores: /flor|decoraci/i, foto: /foto|video/i }
+  const missing = (['banquete', 'musica', 'flores', 'foto'] as VendorCategory[]).filter((c) => !assigned.some((v) => v.category === c) && !ev.providers.some((p) => QUICK[c]?.test(`${p.name} ${p.service}`)))
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="heading text-2xl">Proveedores del evento</h3>
-          <p className="mt-1 text-sm text-ink-soft">{assigned.length ? `${assigned.length} asignados desde el directorio` : 'Elige del directorio a quienes participan'}</p>
+          <p className="mt-1 text-sm text-ink-soft">{assigned.length ? `${assigned.length} del directorio${ev.providers.length ? ` y ${ev.providers.length} fuera de él` : ''}` : ev.providers.length ? `${ev.providers.length} fuera del directorio` : 'Elige del directorio a quienes participan'}</p>
         </div>
         <Button icon={<Plus size={18} strokeWidth={1.6} />} onClick={() => setOpen(true)}>
           Asignar proveedor
@@ -604,7 +607,7 @@ export function VendorsTab({ ev }: { ev: RanchEvent }) {
         </div>
       )}
       {assigned.length === 0 ? (
-        <Card>
+        ev.providers.length > 0 ? null : <Card>
           <Empty kind="proveedores" title="Sin proveedores asignados" body="Banquete, música, flores y foto son los más comunes." action={<Button onClick={() => setOpen(true)}>Ver directorio</Button>} />
         </Card>
       ) : (
@@ -614,7 +617,7 @@ export function VendorsTab({ ev }: { ev: RanchEvent }) {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <Badge tone={VENDOR_CATEGORY[v.category].tone}>{VENDOR_CATEGORY[v.category].label}</Badge>
-                  <div className="heading mt-2 truncate text-lg">{v.name}</div>
+                  <div className="heading mt-2 text-lg leading-snug">{v.name}</div>
                   <Rating value={v.rating} />
                 </div>
                 <Button size="icon-sm" variant="ghost" aria-label="Quitar del evento" onClick={() => remove(v.id)}>
@@ -626,6 +629,7 @@ export function VendorsTab({ ev }: { ev: RanchEvent }) {
           ))}
         </div>
       )}
+      {extra}
       <AssignVendorSheet open={open} onClose={() => setOpen(false)} ev={ev} />
     </div>
   )

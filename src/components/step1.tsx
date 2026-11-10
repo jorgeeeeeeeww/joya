@@ -118,7 +118,7 @@ export function LightDots({ className = '' }: { className?: string }) {
 }
 
 // ── Losa noche: hero de los paneles (luz + estrellas + horizonte) ──
-export function NightSlab({ children, className = '', stars = true, luz = true, horizon = true, scene, luzSize = 'clamp(48px, 11vw, 150px)', luzClassName = 'absolute top-[3%] right-[5%] md:top-[12%] md:right-[7%]' }: { children: ReactNode; className?: string; stars?: boolean; luz?: boolean; horizon?: boolean; /** Escena ilustrada del panel (en lugar del horizonte genérico) */ scene?: ReactNode; luzSize?: string; luzClassName?: string }) {
+export function NightSlab({ children, className = '', stars = true, luz = true, horizon = true, scene, sceneInteractive, luzSize = 'clamp(48px, 11vw, 150px)', luzClassName = 'absolute top-[3%] right-[5%] md:top-[12%] md:right-[7%]' }: { children: ReactNode; className?: string; stars?: boolean; luz?: boolean; horizon?: boolean; /** Escena ilustrada del panel (en lugar del horizonte genérico) */ scene?: ReactNode; /** La escena se puede tocar y se lee en voz alta */ sceneInteractive?: boolean; luzSize?: string; luzClassName?: string }) {
   return (
     <section
       className={`losa--noche grain relative isolate overflow-hidden rounded-[var(--r-slab)] ${className}`}
@@ -126,7 +126,7 @@ export function NightSlab({ children, className = '', stars = true, luz = true, 
     >
       {stars && <Stars />}
       {luz && <Luz size={luzSize} className={luzClassName} />}
-      {horizon && (scene ? <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(30%,150px)] opacity-95 sm:h-[min(40%,210px)] lg:h-[46%]">{scene}</div> : <Horizon tonos={NIGHT_TONES} className="absolute inset-x-0 bottom-0 h-[38%] opacity-90" />)}
+      {horizon && (scene ? <div aria-hidden={sceneInteractive ? undefined : true} className={`absolute inset-x-0 bottom-0 opacity-95 sm:h-[min(40%,210px)] lg:h-[46%] ${sceneInteractive ? 'h-[160px]' : 'pointer-events-none h-[min(30%,150px)]'}`}>{scene}</div> : <Horizon tonos={NIGHT_TONES} className="absolute inset-x-0 bottom-0 h-[38%] opacity-90" />)}
       <div className="relative z-[2]">{children}</div>
     </section>
   )

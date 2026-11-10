@@ -190,7 +190,7 @@ export interface BoardColumn<C extends string> {
  * En el celular las columnas se deslizan de lado; en escritorio se ven todas.
  * Dentro de la tarjeta, marca con `data-nodrag` los controles que no deben iniciar el arrastre.
  */
-export function DragBoard<T, C extends string>({ columns, items, getId, getColumn, renderCard, onMove, canDrop, className, emptyText = 'Suelta aquí', sort }: { columns: BoardColumn<C>[]; items: T[]; getId: (item: T) => string; getColumn: (item: T) => C; renderCard: (item: T, state: { dragging: boolean; ghost?: boolean }) => ReactNode; onMove: (id: string, to: C, item: T) => void; canDrop?: (item: T, to: C) => boolean; className?: string; emptyText?: ReactNode; sort?: (a: T, b: T) => number }) {
+export function DragBoard<T, C extends string>({ columns, items, getId, getColumn, renderCard, onMove, canDrop, className, emptyText = 'Suelta aquí', sort, stack }: { columns: BoardColumn<C>[]; items: T[]; getId: (item: T) => string; getColumn: (item: T) => C; renderCard: (item: T, state: { dragging: boolean; ghost?: boolean }) => ReactNode; onMove: (id: string, to: C, item: T) => void; canDrop?: (item: T, to: C) => boolean; className?: string; emptyText?: ReactNode; sort?: (a: T, b: T) => number; /** Sin desplazamiento lateral: en el celular una columna bajo otra y en tableta de dos en dos */ stack?: boolean }) {
   const [drag, setDrag] = useState<{ id: string; item: T; from: C; w: number; offX: number; offY: number } | null>(null)
   const [over, setOver] = useState<C | null>(null)
   const dragRef = useRef(drag)
@@ -348,13 +348,13 @@ export function DragBoard<T, C extends string>({ columns, items, getId, getColum
 
   return (
     <>
-      <div ref={scrollerRef} className={cx('no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6', layout, className)}>
+      <div ref={scrollerRef} className={cx(stack ? 'grid grid-cols-1 gap-3 pb-2 md:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0' : cx('no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6', layout), className)}>
         {columns.map((c) => {
           const list = grouped.get(c.id) ?? []
           const droppable = !!drag && drag.from !== c.id && (canDrop?.(drag.item, c.id) ?? true)
           const blocked = !!drag && drag.from !== c.id && !droppable
           return (
-            <section key={c.id} data-col={c.id} aria-label={typeof c.title === 'string' ? c.title : undefined} className={cx('flex w-[82vw] max-w-[340px] shrink-0 snap-center flex-col rounded-[var(--r-lg)] bg-[color-mix(in_oklab,var(--sunken)_70%,transparent)] p-2 ring-1 ring-line ring-inset transition-[box-shadow,opacity,background-color] duration-[var(--dur-2)]', colWidth, over === c.id && droppable && 'drop-glow bg-[color-mix(in_oklab,var(--luz)_14%,var(--sunken))]', blocked && 'opacity-50')}>
+            <section key={c.id} data-col={c.id} aria-label={typeof c.title === 'string' ? c.title : undefined} className={cx('flex flex-col rounded-[var(--r-lg)] bg-[color-mix(in_oklab,var(--sunken)_70%,transparent)] p-2 ring-1 ring-line ring-inset transition-[box-shadow,opacity,background-color] duration-[var(--dur-2)]', !stack && 'w-[82vw] max-w-[340px] shrink-0 snap-center', !stack && colWidth, over === c.id && droppable && 'drop-glow bg-[color-mix(in_oklab,var(--luz)_14%,var(--sunken))]', blocked && 'opacity-50')}>
               <header className="mb-2 flex items-center justify-between gap-2 px-1.5 pt-1">
                 <span className="flex min-w-0 items-center gap-2 text-[13px] font-semibold">
                   {c.tone && <span className={cx('h-2 w-2 shrink-0 rounded-full', TONE[c.tone].solid)} />}

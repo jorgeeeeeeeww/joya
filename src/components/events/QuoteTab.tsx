@@ -8,6 +8,7 @@ import { EVENT_PACKAGES, EXTRAS_CATALOG } from '@/lib/templates'
 import { priceOf, usePackagePrices } from '@/lib/packages'
 import { fmtDate, fmtDateFull, mxn, today, uid, waLink } from '@/lib/format'
 import { Badge, Button, Card, CardHeader, Estela, Field, Input, ProgressBar, Select, Sheet, Toggle, cx, toast } from '@/components/ui'
+import { MoneyField, MoneyInline } from '@/components/fields'
 import { CountUp, Sparkle } from '@/components/step1'
 import { useEventDraft } from './useDraft'
 import { printHtml } from '@/components/floorplan/FloorPlanEditor'
@@ -105,7 +106,7 @@ export function QuoteTab({ ev }: { ev: RanchEvent }) {
                     <span className="text-sm text-ink-soft">Sin precio · se pone en Ajustes</span>
                   )}
                 </div>
-                <ul className="mt-3 space-y-1.5 text-[13px] text-ink-soft">
+                <ul className={cx('mt-3 space-y-1.5 text-[13px] text-ink-soft', !active && 'max-sm:hidden')}>
                   {p.includes.map((i) => (
                     <li key={i} className="flex gap-2">
                       <Check size={14} strokeWidth={1.6} className="mt-0.5 shrink-0 text-success" />
@@ -148,7 +149,7 @@ export function QuoteTab({ ev }: { ev: RanchEvent }) {
                   <span className="px-1.5 text-xs text-detail">{l.category}</span>
                 </div>
                 <Input type="number" inputMode="numeric" aria-label="Cantidad" value={l.qty} onChange={(e) => updateLine(l.id, { qty: Math.max(0, Number(e.target.value)) })} className="h-10 text-right tabular" />
-                <Input type="number" inputMode="decimal" aria-label="Precio" value={l.price} onChange={(e) => updateLine(l.id, { price: Math.max(0, Number(e.target.value)) })} className="h-10 text-right tabular" />
+                <MoneyInline label="Precio" value={l.price} onChange={(n) => updateLine(l.id, { price: n })} className="text-right" />
                 <span className="text-right tabular">{mxn(l.qty * l.price)}</span>
                 <Button size="icon-sm" variant="ghost" aria-label={`Quitar ${l.concept}`} onClick={() => setLines(lineItems.filter((x) => x.id !== l.id))} className="justify-self-end hover:!text-danger">
                   <Trash2 size={16} strokeWidth={1.6} />
@@ -192,7 +193,7 @@ export function QuoteTab({ ev }: { ev: RanchEvent }) {
             <Row label="Subtotal" value={mxn(q.subtotal)} />
             <div className="flex items-center justify-between py-2">
               <span className="text-ink-soft">Descuento</span>
-              <Input type="number" inputMode="decimal" value={discount || ''} placeholder="0" aria-label="Descuento" onChange={(e) => setDiscount(Math.max(0, Number(e.target.value)))} className="h-10 w-32 text-right tabular" />
+              <MoneyInline label="Descuento" value={discount} onChange={setDiscount} className="w-32 text-right" />
             </div>
             <div className="py-2.5">
               <Toggle checked={includeIva} onChange={setIva} label={`IVA ${q.ivaPercent}%`} description="Para clientes que requieren factura" />
@@ -296,9 +297,7 @@ function PaymentSheet({ open, onClose, ev, suggested }: { open: boolean; onClose
   return (
     <Sheet open={open} onClose={onClose} title="Registrar pago" subtitle={ev.title} side="center">
       <div className="flex flex-col gap-4">
-        <Field label="Monto" hint={`Sugerido: ${mxn(suggested)}`}>
-          <Input type="number" inputMode="decimal" value={amount} placeholder={String(suggested)} onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))} className="display-num h-16 text-[2rem]" />
-        </Field>
+        <MoneyField label="Monto" value={amount === '' ? undefined : amount} onChange={(n) => setAmount(n || '')} decimals hint={`Si lo dejas vacío se registra lo sugerido: ${mxn(suggested)}`} />
         <div className="grid grid-cols-2 gap-3">
           <Field label="Método">
             <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>

@@ -2,10 +2,11 @@
 // Los datos no se pierden (viven en el almacén local); se puede reintentar o volver al inicio.
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { RotateCcw, Home, RefreshCw } from 'lucide-react'
-import { useStore } from '@/lib/store'
+import { logError } from '@/lib/errorLog'
+import { reloadOnce } from '@/lib/pwa'
 import { Vignette } from './scenes'
 
-const isChunkError = (e: Error) => /dynamically imported module|Importing a module script failed|Failed to fetch|ChunkLoadError/i.test(e.message)
+const isChunkError = (e: Error) => /dynamically imported module|Importing a module script failed|error loading dynamically|ChunkLoadError|Unable to preload CSS/i.test(e.message)
 
 export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: string }, { error?: Error; showDetail: boolean }> {
   state: { error?: Error; showDetail: boolean } = { showDetail: false }
@@ -16,11 +17,9 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: s
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('Pantalla con error', error, info.componentStack)
-    try {
-      useStore.getState().syncLog('error', `Pantalla: ${error.message}`.slice(0, 200))
-    } catch {
-      /* sin almacén */
-    }
+    // Falta un archivo de la versión anterior (se publicó una nueva): se recarga sola una vez
+    if (isChunkError(error) && reloadOnce('faltaba una pantalla de la versión anterior')) return
+    logError('pantalla', error.message, `${error.stack ?? ''}\n${info.componentStack ?? ''}`)
   }
 
   componentDidUpdate(prev: { resetKey?: string }) {

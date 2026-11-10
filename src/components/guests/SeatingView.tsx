@@ -106,7 +106,7 @@ export function SeatingView({ ev, onChange }: { ev: RanchEvent; onChange: (next:
       <div className="flex min-w-0 flex-col gap-5">
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-center gap-3 px-5 pt-5 md:px-6">
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-56">
               <div className="eyebrow">Acomodo · {VENUE_SPACES[ev.venue].label}</div>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="display-num text-[2rem]">{seatedPeople}</span>

@@ -3,19 +3,20 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { addDays, addMonths, endOfMonth, format, isSameMonth, parseISO, startOfMonth, startOfWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Inbox, List, PartyPopper, Plus, Users, Wallet } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Inbox, List, Plus } from 'lucide-react'
 import type { EventType, RanchEvent, Venue } from '@/lib/types'
 import { db, useCollection, useMe } from '@/lib/store'
 import { EVENT_STATUS, EVENT_TYPE, TONE, VENUE, seesMoney } from '@/lib/meta'
 import { capitalize, compactMxn, fmtDate, relativeDay, toISODate, today } from '@/lib/format'
-import { useEventMoney } from '@/lib/planner'
+import { isBooked, useEventMoney } from '@/lib/planner'
+import { eventHealth, healthScore, type HealthPart } from '@/lib/eventHealth'
+import { HealthBar } from '@/components/events/HealthBar'
 import { ease, haptic } from '@/lib/motion'
 import { withUndo } from '@/lib/undo'
 import { morphNavigate, vt, vtName } from '@/lib/transitions'
-import { Badge, Button, Card, Chip, Empty, PageHeader, Segmented, Stat, cx, toast, StatStrip } from '@/components/ui'
+import { Badge, Button, Card, Chip, Empty, PageHeader, Segmented, cx, toast } from '@/components/ui'
 import { Combobox, SearchField } from '@/components/fields'
 import Prospectos from './Prospectos'
-import { CountUp } from '@/components/step1'
 import { NewEventSheet } from '@/components/events/NewEventSheet'
 import { EventOrb } from '@/components/events/EventOrb'
 
@@ -83,12 +84,26 @@ export default function Eventos() {
         primary={{ label: 'Nuevo evento', icon: <Plus size={18} strokeWidth={1.6} />, onClick: () => openNew() }}
       />
 
-      {view !== 'prospectos' && <StatStrip className="mb-6">
-        <Stat label="Eventos este mes" value={<CountUp value={kpis.count} />} icon={<PartyPopper size={16} strokeWidth={1.6} />} tone="rose" />
-        <Stat label="Invitados del mes" value={<CountUp value={kpis.guests} format={(n) => Math.round(n).toLocaleString('es-MX')} />} icon={<Users size={16} strokeWidth={1.6} />} tone="sky" />
-        {showMoney && <Stat label="Ingresos comprometidos" value={<CountUp value={kpis.income} format={compactMxn} />} sub="Apartados, confirmados y realizados" icon={<Wallet size={16} strokeWidth={1.6} />} tone="sage" accent />}
-        {showMoney && <Stat label="Por cobrar" value={<CountUp value={kpis.receivable} format={compactMxn} />} sub="De eventos próximos" icon={<Clock size={16} strokeWidth={1.6} />} tone="peach" />}
-      </StatStrip>}
+      {view !== 'prospectos' && (
+        <p className="-mt-2 mb-5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-detail">
+          <span>
+            <b className="font-semibold text-ink">{kpis.count}</b> eventos este mes
+          </span>
+          <span>
+            <b className="font-semibold text-ink">{kpis.guests.toLocaleString('es-MX')}</b> invitados
+          </span>
+          {showMoney && (
+            <span>
+              <b className="font-semibold text-ink">{compactMxn(kpis.income)}</b> comprometidos
+            </span>
+          )}
+          {showMoney && (
+            <span>
+              <b className="font-semibold text-key">{compactMxn(kpis.receivable)}</b> por cobrar
+            </span>
+          )}
+        </p>
+      )}
 
       <div className="mb-5 flex items-center justify-between gap-3">
         <Segmented<View>
@@ -104,7 +119,7 @@ export default function Eventos() {
 
       <AnimatePresence mode="wait">
         <motion.div key={view} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.42, ease: ease.calma } }} exit={{ opacity: 0, transition: { duration: 0.15 } }}>
-          {view === 'calendario' && <CalendarView events={events} onNew={openNew} onOpen={openEvent} />}
+          {view === 'calendario' && <CalendarView events={events} money={money} onNew={openNew} onOpen={openEvent} />}
           {view === 'prospectos' && <Prospectos embedded />}
           {view === 'lista' && <ListView events={events} money={money} showMoney={showMoney} onOpen={openEvent} />}
         </motion.div>
@@ -116,7 +131,7 @@ export default function Eventos() {
 }
 
 // ── Calendario ───────────────────────────────────────────
-function CalendarView({ events, onNew, onOpen }: { events: RanchEvent[]; onNew: (d: string) => void; onOpen: (id: string) => void }) {
+function CalendarView({ events, money, onNew, onOpen }: { events: RanchEvent[]; money: ReturnType<typeof useEventMoney>; onNew: (d: string) => void; onOpen: (id: string) => void }) {
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [selected, setSelected] = useState<string>(today())
   const byDay = useMemo(() => {
@@ -131,6 +146,8 @@ function CalendarView({ events, onNew, onOpen }: { events: RanchEvent[]; onNew: 
   for (let d = start; d <= end || days.length % 7 !== 0; d = addDays(d, 1)) days.push(d)
   const t = today()
   const selectedEvents = byDay.get(selected) ?? []
+  // Lo que viene: los próximos eventos apartados o en negociación, con su preparación
+  const coming = useMemo(() => events.filter((e) => e.status !== 'cancelado' && e.status !== 'realizado' && e.date >= t).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6), [events, t])
   const monthEvents = events.filter((e) => e.date.startsWith(toISODate(month).slice(0, 7)) && e.status !== 'cancelado')
   const freeSaturdays = days.filter((d) => isSameMonth(d, month) && d.getDay() === 6 && toISODate(d) >= t && !(byDay.get(toISODate(d)) ?? []).some((e) => e.venue === 'salon')).length
 
@@ -200,24 +217,21 @@ function CalendarView({ events, onNew, onOpen }: { events: RanchEvent[]; onNew: 
                   </span>
                 </div>
                 <div className="mt-1 hidden flex-col gap-1 md:flex">
-                  {list.slice(0, 3).map((e) => {
-                    const Icon = EVENT_TYPE[e.type].icon
-                    return (
-                      <button
-                        key={e.id}
-                        onPointerDown={(ev) => drag.start(ev, e)}
-                        onClick={(ev) => {
-                          ev.stopPropagation()
-                          if (!drag.justDropped()) onOpen(e.id)
-                        }}
-                        title="Toca para abrir · arrastra a otro día para cambiar la fecha"
-                        className={cx('pressable no-callout flex cursor-grab items-start gap-1 rounded-[8px] px-1 py-1 text-left text-[10.5px] leading-tight touch-manipulation lg:gap-1.5 lg:px-2 lg:text-[11px]', drag.id === e.id && 'opacity-35', TONE[VENUE[e.venue].tone].soft, TONE[VENUE[e.venue].tone].ink, (e.status === 'prospecto' || e.status === 'cotizado') && 'opacity-75 ring-1 ring-current ring-inset [--tw-ring-opacity:.3]')}
-                      >
-                        <Icon size={12} strokeWidth={1.6} className="mt-px shrink-0 max-lg:hidden" />
-                        <span className="min-w-0 hyphens-auto [overflow-wrap:anywhere]">{e.title}</span>
-                      </button>
-                    )
-                  })}
+                  {list.slice(0, 3).map((e) => (
+                    <button
+                      key={e.id}
+                      onPointerDown={(ev) => drag.start(ev, e)}
+                      onClick={(ev) => {
+                        ev.stopPropagation()
+                        if (!drag.justDropped()) onOpen(e.id)
+                      }}
+                      title="Toca para abrir · arrastra a otro día para cambiar la fecha"
+                      className={cx('pressable no-callout block cursor-grab rounded-[8px] px-1.5 py-1 text-left text-[10.5px] leading-tight touch-manipulation lg:px-2 lg:text-[11px]', drag.id === e.id && 'opacity-35', TONE[VENUE[e.venue].tone].soft, TONE[VENUE[e.venue].tone].ink, (e.status === 'prospecto' || e.status === 'cotizado') && 'opacity-75 ring-1 ring-current ring-inset [--tw-ring-opacity:.3]')}
+                    >
+                      {/* El título baja de línea entre palabras; una palabra nunca se parte a la mitad */}
+                      <span className="block min-w-0 [hyphens:auto]">{e.title}</span>
+                    </button>
+                  ))}
                   {list.length > 3 && <span className="px-2 text-[11px] text-detail">+{list.length - 3} más</span>}
                 </div>
                 {!list.length && inMonth && iso >= t && <Plus size={14} strokeWidth={1.6} className="absolute right-2 bottom-2 hidden text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 md:block" />}
@@ -240,35 +254,53 @@ function CalendarView({ events, onNew, onOpen }: { events: RanchEvent[]; onNew: 
         </div>
       </Card>
 
-      <Card className="p-5 md:p-6 xl:sticky xl:top-24 xl:self-start">
-        <div className="mb-4 flex items-start justify-between gap-2">
-          <div>
-            <div className="eyebrow">{relativeDay(selected)}</div>
-            <div className="heading mt-1 text-xl">{capitalize(format(parseISO(selected), "EEEE d 'de' MMMM", { locale: es }))}</div>
+      <div className="flex min-w-0 flex-col gap-5 xl:sticky xl:top-24 xl:self-start">
+        <Card className="p-5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="eyebrow">{relativeDay(selected)}</div>
+              <div className="heading mt-1 text-lg">{capitalize(format(parseISO(selected), "EEEE d 'de' MMMM", { locale: es }))}</div>
+            </div>
+            {selected >= t && (
+              <Button variant="secondary" size="sm" icon={<Plus size={16} strokeWidth={1.6} />} onClick={() => onNew(selected)}>
+                Agregar
+              </Button>
+            )}
           </div>
-          {selected >= t && (
-            <Button variant="secondary" size="sm" icon={<Plus size={16} strokeWidth={1.6} />} onClick={() => onNew(selected)}>
-              Agregar
-            </Button>
-          )}
-        </div>
-        {selectedEvents.length === 0 ? (
-          <div className="rounded-[14px] bg-[color-mix(in_oklab,var(--success)_10%,var(--surface))] p-4 text-sm text-success">Salón y jardín libres este día.</div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {selectedEvents.map((e) => (
-              <EventRow key={e.id} e={e} onOpen={onOpen} />
-            ))}
-            {(['salon', 'jardin'] as Venue[])
-              .filter((v) => !selectedEvents.some((e) => e.venue === v))
-              .map((v) => (
-                <div key={v} className="rounded-[14px] p-3 text-sm text-ink-soft ring-1 ring-line ring-inset [border-style:dashed]">
-                  {VENUE[v].label} libre
-                </div>
+          {selectedEvents.length === 0 ? (
+            <p className="mt-3 text-sm text-success">Salón y jardín libres este día.</p>
+          ) : (
+            <div className="mt-3 flex flex-col gap-2">
+              {selectedEvents.map((e) => (
+                <EventRow key={e.id} e={e} onOpen={onOpen} />
               ))}
+              {(['salon', 'jardin'] as Venue[])
+                .filter((v) => !selectedEvents.some((e) => e.venue === v))
+                .map((v) => (
+                  <p key={v} className="text-sm text-ink-soft">
+                    {VENUE[v].label} libre
+                  </p>
+                ))}
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-4 md:p-5">
+          <div className="mb-3 px-1">
+            <div className="eyebrow">Lo que viene</div>
+            <div className="heading mt-1 text-lg">Próximos eventos</div>
           </div>
-        )}
-      </Card>
+          {coming.length === 0 ? (
+            <p className="px-1 text-sm text-ink-soft">Sin eventos próximos.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {coming.map((e) => (
+                <EventRow key={e.id} e={e} onOpen={onOpen} health={isBooked(e) ? eventHealth(e, money.paid(e), money.total(e)) : undefined} />
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   )
 }
@@ -355,17 +387,24 @@ function useEventDrag(events: RanchEvent[]) {
   return { start, over: state?.active ? state.over : undefined, blocked, id: state?.active ? state.ev.id : undefined, ghost, justDropped: () => Date.now() - dropped.current < 250 }
 }
 
-function EventRow({ e, onOpen, right }: { e: RanchEvent; onOpen: (id: string) => void; right?: ReactNode }) {
+function EventRow({ e, onOpen, right, health }: { e: RanchEvent; onOpen: (id: string) => void; right?: ReactNode; health?: HealthPart[] }) {
+  const sc = health ? healthScore(health) : undefined
   return (
     <button onClick={() => onOpen(e.id)} className="card lift pressable flex w-full items-center gap-3 p-3.5 text-left">
       <span style={vt('ev', e.id)} className="shrink-0 rounded-full">
         <EventOrb type={e.type} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{e.title}</span>
+        <span className="block font-medium leading-snug">{e.title}</span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-detail">
           <span>{fmtDate(e.date)}</span>·<span>{e.startTime}</span>·<span>{e.guests} invitados</span>
         </span>
+        {health && sc && sc.total > 0 && (
+          <span className="mt-1.5 flex items-center gap-2">
+            <HealthBar health={health} className="max-w-[140px] flex-1" />
+            <span className="shrink-0 text-xs font-medium text-ink">{sc.label}</span>
+          </span>
+        )}
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1">
         <Badge tone={EVENT_STATUS[e.status].tone}>{EVENT_STATUS[e.status].label}</Badge>
@@ -444,9 +483,10 @@ function ListView({ events, money, showMoney, onOpen }: { events: RanchEvent[]; 
                   key={e.id}
                   e={e}
                   onOpen={onOpen}
+                  health={!past && isBooked(e) ? eventHealth(e, money.paid(e), money.total(e)) : undefined}
                   right={
                     showMoney && e.status !== 'prospecto' && e.status !== 'cancelado' ? (
-                      <span className={cx('text-xs tabular', money.balance(e) <= 0 ? 'text-success' : 'text-ink-soft')}>{money.balance(e) <= 0 ? 'Pagado' : `Debe ${compactMxn(money.balance(e))}`}</span>
+                      <span className={cx('text-xs tabular', money.balance(e) <= 0 ? 'text-success' : 'text-ink-soft')}>{e.status === 'cotizado' ? `Por ${compactMxn(money.total(e))}` : money.balance(e) <= 0 ? 'Pagado' : `Debe ${compactMxn(money.balance(e))}`}</span>
                     ) : undefined
                   }
                 />

@@ -1,4 +1,4 @@
-// Objetos olvidados: se registran durante la limpieza y administración les da seguimiento.
+// Objetos olvidados: los registra el personal, recepción les da seguimiento y administración los ve.
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { MessageCircle, PackageCheck, PackageSearch, Trash2 } from 'lucide-react'
@@ -6,6 +6,7 @@ import { db, useCollection, useMe, useStore } from '@/lib/store'
 import { ago, waLink } from '@/lib/format'
 import { ease } from '@/lib/motion'
 import type { ID, LostItem } from '@/lib/types'
+import { canDo } from '@/lib/meta'
 import { Badge, Button, Card, CardHeader, cx, Field, IconBubble, Input, Select, Sheet, Textarea, toast } from '@/components/ui'
 import { PhotoButton, PhotoThumb } from '@/components/Photos'
 
@@ -51,8 +52,8 @@ export function LostItemSheet({ open, onClose, unitId: initialUnit, reservationI
       notes: notes.trim() || undefined,
     })
     const unit = units.find((u) => u.id === unitId)
-    state.notify({ title: 'Objeto olvidado', body: `${me?.name ?? 'Alguien'} encontró: ${description.trim()}${unit ? ' en ' + unit.name : ''}`, tone: 'butter', link: '/hospedaje', roles: ['admin'] })
-    toast.success('Objeto registrado', 'Administración ya fue avisada')
+    state.notify({ title: 'Objeto olvidado', body: `${me?.name ?? 'Alguien'} encontró: ${description.trim()}${unit ? ' en ' + unit.name : ''}`, tone: 'butter', link: '/hospedaje', roles: ['admin', 'recepcion'] })
+    toast.success('Objeto registrado', 'Recepción ya fue avisada')
     onClose()
   }
 
@@ -94,8 +95,11 @@ export function LostItemSheet({ open, onClose, unitId: initialUnit, reservationI
   )
 }
 
-/** Lista de objetos olvidados para administración (entregar / desechar) */
+/** Lista de objetos olvidados: recepción da seguimiento (avisar, entregar, desechar); los demás solo ven */
 export function LostFoundList({ className }: { className?: string }) {
+  const me = useMe()
+  const canRegister = canDo(me?.role, 'registrarObjeto')
+  const canFollow = canDo(me?.role, 'seguimientoObjeto')
   const items = useCollection('lostfound')
   const units = useStore((s) => s.data.units)
   const reservations = useStore((s) => s.data.reservations)
@@ -124,9 +128,11 @@ export function LostFoundList({ className }: { className?: string }) {
         title="Objetos olvidados"
         subtitle={pending.length ? `${pending.length} por devolver` : 'Nada pendiente por devolver'}
         action={
-          <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
-            Registrar
-          </Button>
+          canRegister ? (
+            <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
+              Registrar
+            </Button>
+          ) : undefined
         }
       />
       <div className="px-3 pt-3 pb-3 md:px-4">
@@ -160,7 +166,7 @@ export function LostFoundList({ className }: { className?: string }) {
                     {res ? ` · huésped: ${res.guestName}` : ''}
                   </p>
                   {i.notes && <p className="mt-1 text-xs text-ink-3">{i.notes}</p>}
-                  {i.status === 'guardado' && (
+                  {i.status === 'guardado' && canFollow && (
                     <div className="mt-2.5 flex flex-wrap gap-2">
                       {res?.phone && (
                         <a href={waLink(res.phone, msg)} target="_blank" rel="noreferrer" className="pressable inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm text-ink ring-1 ring-line-strong ring-inset hover:bg-wash">
@@ -186,7 +192,7 @@ export function LostFoundList({ className }: { className?: string }) {
           </button>
         )}
       </div>
-      <LostItemSheet open={open} onClose={() => setOpen(false)} />
+      {canRegister && <LostItemSheet open={open} onClose={() => setOpen(false)} />}
     </Card>
   )
 }

@@ -8,6 +8,7 @@ import AppShell, { NAV } from '@/components/AppShell'
 import Login, { LockScreen } from '@/pages/Login'
 import { Toaster } from '@/components/ui'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { RouteMemory } from '@/components/RouteMemory'
 import { Luz } from '@/components/step1'
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
@@ -19,6 +20,8 @@ const Hospedaje = lazy(() => import('@/pages/Hospedaje'))
 const Limpieza = lazy(() => import('@/pages/Limpieza'))
 const Eventos = lazy(() => import('@/pages/Eventos'))
 const EventoDetalle = lazy(() => import('@/pages/EventoDetalle'))
+const Estudio = lazy(() => import('@/pages/Estudio'))
+const ModoDia = lazy(() => import('@/pages/ModoDia'))
 const Espacios = lazy(() => import('@/pages/Espacios'))
 const Invitados = lazy(() => import('@/pages/Invitados'))
 const Mensajes = lazy(() => import('@/pages/Mensajes'))
@@ -118,6 +121,7 @@ function useAutoLock() {
 
 export default function App() {
   const ready = useStore((s) => s.ready)
+  const bootError = useStore((s) => s.bootError)
   const hydrate = useStore((s) => s.hydrate)
   const me = useMe()
   const locked = useStore((s) => s.session.locked)
@@ -146,6 +150,18 @@ export default function App() {
     return () => (idle ? window.cancelIdleCallback(id) : clearTimeout(id))
   }, [me])
 
+  if (bootError)
+    return (
+      <div role="alert" className="mx-auto flex h-dvh max-w-sm flex-col items-center justify-center gap-4 px-4 text-center">
+        <Luz size={72} />
+        <h1 className="heading text-[1.7rem]">No se pudieron abrir los datos</h1>
+        <p className="text-[15px] text-ink-soft">Tus datos siguen guardados en este dispositivo. Pasa a veces en iPhone después de estar mucho tiempo en segundo plano; al reintentar se abren.</p>
+        <button onClick={() => location.reload()} className="pressable mt-2 inline-flex h-12 items-center rounded-full bg-primary px-6 font-medium text-on-primary">
+          Reintentar
+        </button>
+      </div>
+    )
+
   if (!ready)
     return (
       <div className="flex h-dvh flex-col items-center justify-center gap-6">
@@ -165,6 +181,7 @@ export default function App() {
           <Login />
         ) : (
           <>
+            <RouteMemory />
             {locked && <LockScreen />}
             <Routes>
               <Route element={<AppShell />}>
@@ -174,6 +191,9 @@ export default function App() {
                 <Route path="limpieza" element={<Guard section="limpieza"><Limpieza /></Guard>} />
                 <Route path="eventos" element={<Guard section="eventos"><Eventos /></Guard>} />
                 <Route path="eventos/:id" element={<Guard section="eventos"><EventoDetalle /></Guard>} />
+                <Route path="estudio" element={<Guard section="estudio"><Estudio /></Guard>} />
+                <Route path="estudio/:id" element={<Guard section="estudio"><Estudio /></Guard>} />
+                <Route path="estudio/:id/dia" element={<Guard section="estudio"><ModoDia /></Guard>} />
                 <Route path="invitados" element={<Guard section="invitados"><Invitados /></Guard>} />
                 <Route path="mensajes" element={<Guard section="mensajes"><Mensajes /></Guard>} />
                 <Route path="espacios" element={<Guard section="espacios"><Espacios /></Guard>} />

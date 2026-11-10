@@ -1,0 +1,16 @@
+// Publicación de la app en Cloudflare Workers (archivos estáticos).
+// Cloudflare recomienda Workers en lugar de Pages para proyectos nuevos. El archivo public/_headers
+// (seguridad y caché) funciona igual.
+//   npm run build && npx wrangler deploy
+{
+  "name": "la-joya",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // Cualquier dirección de la app abre index.html (la app decide qué pantalla mostrar).
+    // Solo aplica a páginas: un archivo .js que ya no existe responde 404 (y la app se recarga sola).
+    "not_found_handling": "single-page-application",
+    "html_handling": "auto-trailing-slash"
+  },
+  "observability": { "enabled": true }
+}

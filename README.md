@@ -51,5 +51,5 @@ Toda la interfaz usa **step1**, el sistema de diseño de Jorge, con la atmósfer
 ## Documentación
 
 - [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md): cómo está hecho, con diagramas.
-- [docs/PUESTA-EN-MARCHA.md](docs/PUESTA-EN-MARCHA.md): publicar en Cloudflare Pages y conectar Supabase, paso a paso.
+- [docs/PUESTA-EN-MARCHA.md](docs/PUESTA-EN-MARCHA.md): publicar en Cloudflare Workers, conectar Supabase y la publicación automática con GitHub Actions, paso a paso.
 - [docs/RED-LOCAL.md](docs/RED-LOCAL.md): pasar el sistema a la iMac de la oficina del rancho más adelante.

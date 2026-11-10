@@ -1,36 +1,28 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App'
-import { initPwa, usePwa } from './lib/pwa'
+import { applyWaitingAtBoot, initPwa, initUpdates } from './lib/pwa'
 import { consumeLinkFromUrl } from './lib/sync'
 import { installErrorLog } from './lib/errorLog'
 
-// Guarda los errores del dispositivo para el panel de desarrollador
+// Guarda los errores del dispositivo para el panel de desarrollador (y los manda al monitor central)
 installErrorLog()
-
-// Service worker: avisa cuando hay versión nueva (el usuario decide cuándo actualizar)
-const updateSW = registerSW({
-  immediate: true,
-  onNeedRefresh: () => usePwa.setState({ needRefresh: true }),
-  onOfflineReady: () => usePwa.setState({ offlineReady: true }),
-  onRegisteredSW: (_url, reg) => {
-    // Busca actualizaciones cada hora mientras la app esté abierta
-    if (reg) setInterval(() => void reg.update(), 60 * 60 * 1000)
-  },
-})
-usePwa.setState({ update: () => updateSW(true) })
-initPwa()
 
 // Enlace de vinculación desde un QR (#vincular=…)
 consumeLinkFromUrl()
 
 // Pide al navegador que no borre los datos locales por falta de espacio
-if (navigator.storage?.persist) void navigator.storage.persist()
+if (navigator.storage?.persist) void navigator.storage.persist().catch(() => {})
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+void (async () => {
+  // Recién abierta: si ya se descargó una versión nueva, se aplica antes de mostrar nada (recarga sola)
+  if (await applyWaitingAtBoot()) return
+  initUpdates()
+  initPwa()
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+})()

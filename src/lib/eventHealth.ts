@@ -74,10 +74,12 @@ export function eventHealth(ev: RanchEvent, paid: number, total: number, t = tod
   else if (p.unseated) out.push({ key: 'mesas', label: 'Mesas', state: days <= 7 ? 'bad' : 'warn', note: `${p.unseated} sin mesa` })
   else out.push({ key: 'mesas', label: 'Mesas', state: 'ok', note: stats.tables ? `${stats.tables} mesas` : `${stats.seats} lugares` })
 
+  // Cuenta los del directorio (asignados al evento) y los rápidos (solo de este evento)
   const unconfirmed = ev.providers.filter((x) => !x.confirmed)
-  if (!ev.providers.length) out.push({ key: 'proveedores', label: 'Proveedores', state: days <= 30 ? 'warn' : 'na', note: 'Sin registrar' })
+  const providerCount = ev.providers.length + (ev.vendorIds?.length ?? 0)
+  if (!providerCount) out.push({ key: 'proveedores', label: 'Proveedores', state: days <= 30 ? 'warn' : 'na', note: 'Sin registrar' })
   else if (unconfirmed.length) out.push({ key: 'proveedores', label: 'Proveedores', state: days <= 7 ? 'bad' : 'warn', note: unconfirmed.length === 1 ? `${unconfirmed[0]!.name} sin confirmar` : `${unconfirmed.length} sin confirmar` })
-  else out.push({ key: 'proveedores', label: 'Proveedores', state: 'ok', note: `${ev.providers.length} confirmados` })
+  else out.push({ key: 'proveedores', label: 'Proveedores', state: 'ok', note: `${providerCount} confirmados` })
 
   const beo = signed(ev, 'beo')
   out.push({ key: 'beo', label: 'Orden de evento', state: beo ? 'ok' : days <= 7 ? 'bad' : days <= 21 ? 'warn' : 'na', note: beo ? 'Firmada' : days <= 21 ? 'Sin firmar' : 'Aún no' })
@@ -87,16 +89,30 @@ export function eventHealth(ev: RanchEvent, paid: number, total: number, t = tod
   return out.map((x) => (off[x.key] ? { ...x, state: 'na' as const, note: 'No aplica' } : x))
 }
 
+/** La única medida de avance de un evento, igual en todas las pantallas: «X de N listos».
+ *  Solo cuenta lo que el evento usa (lo que «no aplica» no suma ni resta). */
+export function healthScore(health: HealthPart[]) {
+  const counted = health.filter((h) => h.state !== 'na')
+  const ok = counted.filter((h) => h.state === 'ok').length
+  return { ok, total: counted.length, missing: counted.filter((h) => h.state !== 'ok'), label: `${ok} de ${counted.length} listos` }
+}
+
+/** Dónde se resuelve cada parte de la salud dentro del evento */
+export function healthTab(key: HealthPart['key']) {
+  return key === 'mesas' ? 'plano' : key === 'contrato' ? 'beo' : key === 'pagos' ? 'pagos' : key
+}
+
 /** Pasos clave de un evento con su fecha límite (días antes del evento) */
 export function eventMilestones(ev: RanchEvent, paid: number, total: number, t = today()): Milestone[] {
   const p = people(ev)
   const lastDue = [...(ev.paymentPlan ?? [])].sort((a, b) => a.due.localeCompare(b.due)).at(-1)?.due
-  const steps: { key: string; label: string; due: ISODate; done: boolean }[] = [
+  const baseSteps: { key: string; label: string; due: ISODate; done: boolean }[] = [
     { key: 'anticipo', label: 'Anticipo', due: addDaysISO(ev.date, -150), done: paid > 0 || checked(ev, 'anticipo') },
     { key: 'contrato', label: 'Contrato', due: addDaysISO(ev.date, -120), done: signed(ev, 'contrato') || checked(ev, 'contrato') },
     { key: 'menu', label: 'Menú', due: addDaysISO(ev.date, -60), done: checked(ev, 'menu') },
     { key: 'invitaciones', label: 'Invitaciones', due: addDaysISO(ev.date, -45), done: ev.guestList.some((g) => g.invitedAt) },
-    { key: 'proveedores', label: 'Proveedores', due: addDaysISO(ev.date, -30), done: (ev.providers.length > 0 && ev.providers.every((x) => x.confirmed)) || checked(ev, 'proveedores') },
+    // Si hay proveedores registrados manda su confirmación real; la casilla del checklist solo cuenta si no hay ninguno
+    { key: 'proveedores', label: 'Proveedores', due: addDaysISO(ev.date, -30), done: ev.providers.length + (ev.vendorIds?.length ?? 0) > 0 ? ev.providers.every((x) => x.confirmed) : checked(ev, 'proveedores') },
     { key: 'confirmaciones', label: 'Confirmaciones', due: addDaysISO(ev.date, -14), done: ev.guestList.length > 0 && p.pend === 0 },
     { key: 'plano', label: 'Plano aprobado', due: addDaysISO(ev.date, -14), done: checked(ev, 'plano') },
     { key: 'liquidacion', label: 'Liquidación', due: lastDue ?? addDaysISO(ev.date, -7), done: (total > 0 && total - paid <= 0.5) || checked(ev, 'liquidacion') },
@@ -104,6 +120,8 @@ export function eventMilestones(ev: RanchEvent, paid: number, total: number, t =
     { key: 'beo', label: 'Orden de evento', due: addDaysISO(ev.date, -5), done: signed(ev, 'beo') },
     { key: 'montaje', label: 'Montaje', due: addDaysISO(ev.date, -1), done: checked(ev, 'montaje') },
   ]
+  // La planner puede mover cualquier hito en el camino del evento: su fecha manda en toda la app
+  const steps = baseSteps.map((s) => ({ ...s, due: ev.milestoneDates?.[s.key] ?? s.due }))
   // Sin lista de invitados (cócteles, eventos pequeños) no aplican invitaciones ni confirmaciones
   const m = modulesOf(ev)
   const skip = new Set<string>([

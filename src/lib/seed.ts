@@ -250,13 +250,18 @@ export function createSeed(): DataState {
     }
   }
 
-  // Próximos eventos
+  // Próximos eventos: caen en fin de semana, como en la vida real (0 = domingo, 5 = viernes, 6 = sábado)
+  const enFinDe = (days: number, dow: number) => {
+    let d = addDaysISO(T, days)
+    while (new Date(`${d}T12:00`).getDay() !== dow) d = addDaysISO(d, 1)
+    return d
+  }
   const boda = addEvent(
     {
       title: 'Boda Fernández & Ruiz',
       type: 'boda',
       venue: 'salon',
-      date: addDaysISO(T, 13),
+      date: enFinDe(12, 6),
       startTime: '17:30',
       endTime: '02:30',
       guests: 180,
@@ -288,7 +293,7 @@ export function createSeed(): DataState {
       title: 'XV años de Valeria',
       type: 'xv',
       venue: 'jardin',
-      date: addDaysISO(T, 6),
+      date: enFinDe(5, 6),
       guests: 150,
       clientName: 'Valeria Ortiz (mamá: Laura)',
       status: 'confirmado',
@@ -305,11 +310,11 @@ export function createSeed(): DataState {
     'banquete',
   )
   xv.guestList = evGuests(48, ['Familia de mamá', 'Familia de papá', 'Amigos de Valeria', 'Escuela'], 14)
-  addEvent({ title: 'Baby shower de Sofía', type: 'baby-shower', venue: 'salon', date: addDaysISO(T, 2), startTime: '13:00', endTime: '18:00', guests: 45, clientName: 'Sofía Castillo', status: 'confirmado', packageId: 'esencial' }, 1, 'coctel')
-  addEvent({ title: 'Bautizo de Mateo', type: 'bautizo', venue: 'salon', date: addDaysISO(T, 20), startTime: '14:00', endTime: '20:00', guests: 80, clientName: 'Paola Jiménez', status: 'apartado', packageId: 'clasico' }, 0.3, 'banquete')
-  addEvent({ title: 'Cumpleaños 50 de Don Ernesto', type: 'cumpleanos', venue: 'salon', date: addDaysISO(T, 27), guests: 100, clientName: 'Ernesto Salinas', status: 'confirmado', packageId: 'clasico' }, 0.5, 'imperial')
-  addEvent({ title: 'Posada Grupo Altos', type: 'empresarial', venue: 'salon', date: addDaysISO(T, 41), startTime: '19:00', endTime: '01:00', guests: 120, clientName: 'Grupo Altos (RH)', status: 'cotizado', packageId: 'joya', includeIva: true }, 0)
-  addEvent({ title: 'Boda civil Mariana & Luis', type: 'boda', venue: 'jardin', date: addDaysISO(T, 62), guests: 90, clientName: 'Mariana Flores', status: 'prospecto', packageId: 'clasico' }, 0)
+  addEvent({ title: 'Baby shower de Sofía', type: 'baby-shower', venue: 'salon', date: enFinDe(2, 6), startTime: '13:00', endTime: '18:00', guests: 45, clientName: 'Sofía Castillo', status: 'confirmado', packageId: 'esencial' }, 1, 'coctel')
+  addEvent({ title: 'Bautizo de Mateo', type: 'bautizo', venue: 'salon', date: enFinDe(19, 0), startTime: '14:00', endTime: '20:00', guests: 80, clientName: 'Paola Jiménez', status: 'apartado', packageId: 'clasico' }, 0.3, 'banquete')
+  addEvent({ title: 'Cumpleaños 50 de Don Ernesto', type: 'cumpleanos', venue: 'salon', date: enFinDe(26, 6), guests: 100, clientName: 'Ernesto Salinas', status: 'confirmado', packageId: 'clasico' }, 0.5, 'imperial')
+  addEvent({ title: 'Posada Grupo Altos', type: 'empresarial', venue: 'salon', date: enFinDe(40, 5), startTime: '19:00', endTime: '01:00', guests: 120, clientName: 'Grupo Altos (RH)', status: 'cotizado', packageId: 'joya', includeIva: true }, 0)
+  addEvent({ title: 'Boda civil Mariana & Luis', type: 'boda', venue: 'jardin', date: enFinDe(60, 6), guests: 90, clientName: 'Mariana Flores', status: 'prospecto', packageId: 'clasico' }, 0)
 
   // Prospectos del wedding planner (CRM)
   const leads: [string, RanchEvent['type'], 'salon' | 'jardin', number, number, string, RanchEvent['leadSource'], number, number][] = [
@@ -320,7 +325,7 @@ export function createSeed(): DataState {
     ['Bautizo de Regina', 'bautizo', 'salon', 33, 70, 'Natalia Rivas', 'visita', 2, 60000],
   ]
   for (const [title, type, venue, inDays, guests, clientName, leadSource, follow, budget] of leads) {
-    const ev = addEvent({ title, type, venue, date: addDaysISO(T, inDays), guests, clientName, status: follow > 1 ? 'cotizado' : 'prospecto', packageId: 'clasico' }, 0)
+    const ev = addEvent({ title, type, venue, date: enFinDe(inDays, type === 'bautizo' ? 0 : type === 'graduacion' ? 5 : 6), guests, clientName, status: follow > 1 ? 'cotizado' : 'prospecto', packageId: 'clasico' }, 0)
     ev.leadSource = leadSource
     ev.followUpAt = addDaysISO(T, follow)
     ev.clientBudget = budget

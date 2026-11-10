@@ -1,17 +1,19 @@
 import { lazy, Suspense, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChevronLeft, ShieldCheck, CloudOff } from 'lucide-react'
-import { useCollection, useStore } from '@/lib/store'
+import { db, useCollection, useStore } from '@/lib/store'
+import { hashPin } from '@/lib/crypto'
 import { ROLE } from '@/lib/meta'
 import { greeting } from '@/lib/format'
 import { ease, fadeRise, heroRise, stagger } from '@/lib/motion'
-import { Avatar, cx } from '@/components/ui'
+import { Avatar, Button, cx, Field, Input } from '@/components/ui'
 import { PinPad } from '@/components/PinPad'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { NightSlab, SkyBlock, Sparkle } from '@/components/step1'
 import { PortonScene, SKY_TONES } from '@/components/scenes'
 import type { Employee } from '@/lib/types'
 import { pendingLink } from '@/lib/sync'
+import { hasBakedCloud } from '@/lib/cloudConfig'
 
 // Celular nuevo abierto desde el código QR: se conecta aquí mismo, sin entrar a ningún menú técnico
 const ConnectWizard = lazy(() => import('@/components/CloudCenter').then((m) => ({ default: m.ConnectWizard })))
@@ -57,11 +59,17 @@ export default function Login() {
   const [selected, setSelected] = useState<Employee | null>(null)
   const people = [...employees].sort((a, b) => ORDER.indexOf(a.role) - ORDER.indexOf(b.role))
 
-  const [linking, setLinking] = useState(() => !!pendingLink())
-  const right = linking ? (
+  // Celular nuevo: llegó desde un QR, o la app publicada trae la nube y este dispositivo aún no entra
+  const [linking, setLinking] = useState(() => !!pendingLink() || (hasBakedCloud && !useStore.getState().settings.supabaseUrl))
+  // Nube recién creada (primer dispositivo del rancho): ya bajó todo y no hay ningún perfil
+  const pulled = useStore((s) => !!s.sync.lastPullAt)
+  const firstRun = !linking && cloud && pulled && employees.length === 0
+  const right = firstRun ? (
+    <FirstProfile />
+  ) : linking ? (
     <div className="mx-auto w-full max-w-[560px] px-5 py-6">
-      <p className="eyebrow text-center">Celular nuevo</p>
-      <h1 className="heading mt-2 mb-5 text-center text-[clamp(1.9rem,1.5rem+2vw,2.8rem)]">Conectar este celular al rancho</h1>
+      <p className="eyebrow text-center">{hasBakedCloud ? 'Primera vez en este dispositivo' : 'Celular nuevo'}</p>
+      <h1 className="heading mt-2 mb-5 text-center text-[clamp(1.9rem,1.5rem+2vw,2.8rem)]">{hasBakedCloud ? 'Entra con tu correo' : 'Conectar este celular al rancho'}</h1>
       <div className="card p-5">
         <Suspense fallback={<p className="text-sm text-ink-soft">Cargando…</p>}>
           <ConnectWizard onDone={() => setLinking(false)} />
@@ -142,6 +150,57 @@ export default function Login() {
         </div>
         {right}
       </div>
+    </div>
+  )
+}
+
+/** Primer perfil en una nube vacía: el dueño escribe su nombre y elige su PIN. Otros puestos esperan al dueño. */
+function FirstProfile() {
+  const settings = useStore((s) => s.settings)
+  const login = useStore((s) => s.login)
+  const [name, setName] = useState('')
+  const [pin, setPin] = useState('')
+  const [pin2, setPin2] = useState('')
+  const [err, setErr] = useState<string>()
+  const owner = settings.cloudRole === 'admin'
+  if (!owner)
+    return (
+      <div className="mx-auto w-full max-w-[560px] px-4 py-6 text-center">
+        <p className="eyebrow">Casi listo</p>
+        <h1 className="heading mt-2 text-[clamp(1.9rem,1.5rem+2vw,2.6rem)]">Falta tu perfil</h1>
+        <p className="mx-auto mt-3 max-w-[38ch] text-[15px] text-ink-soft">El dueño todavía no da de alta a nadie del equipo. En cuanto lo haga, tu perfil aparece aquí solo.</p>
+      </div>
+    )
+  return (
+    <div className="mx-auto w-full max-w-[560px] px-4 py-6">
+      <p className="eyebrow text-center">Primera vez del rancho</p>
+      <h1 className="heading mt-2 mb-2 text-center text-[clamp(1.9rem,1.5rem+2vw,2.6rem)]">Crea tu perfil</h1>
+      <p className="mx-auto mb-5 max-w-[40ch] text-center text-[15px] text-ink-soft">La nube está vacía. Empieza con tu perfil de dueño; después das de alta al equipo en Equipo.</p>
+      <form
+        className="card grid gap-4 p-5"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!name.trim()) return setErr('Escribe tu nombre')
+          if (!/^\d{4}$/.test(pin)) return setErr('El PIN son 4 números')
+          if (pin !== pin2) return setErr('Los PIN no coinciden')
+          const id = settings.cloudEmployeeId || 'e_admin'
+          db.upsert('employees', { id, name: name.trim(), role: 'admin', pinHash: hashPin(id, pin), color: 'lavender', active: true, authEmail: settings.cloudEmail })
+          login(id, pin)
+        }}
+      >
+        <Field label="Tu nombre">
+          <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+        </Field>
+        <Field label="PIN de 4 números" hint="Con él entras cada vez en este y otros dispositivos.">
+          <Input type="password" inputMode="numeric" autoComplete="new-password" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} />
+        </Field>
+        <Field label="Repite el PIN" error={err}>
+          <Input type="password" inputMode="numeric" autoComplete="new-password" maxLength={4} value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g, '').slice(0, 4))} />
+        </Field>
+        <Button type="submit" variant="tinta">
+          Crear perfil y entrar
+        </Button>
+      </form>
     </div>
   )
 }

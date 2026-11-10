@@ -7,9 +7,8 @@ import { useMe, useStore } from '@/lib/store'
 import { TONE } from '@/lib/meta'
 import { ago, fmt } from '@/lib/format'
 import { ease, fadeRise, stagger } from '@/lib/motion'
-import { Button, Card, CardHeader, Empty, Segmented, Textarea, cx, toast } from '@/components/ui'
-import { CountUp, NightSlab, Sparkle } from '@/components/step1'
-import { MensajesScene } from '@/components/scenes'
+import { Button, Card, CardHeader, Empty, PageHeader, Segmented, Textarea, cx, toast } from '@/components/ui'
+import { Sparkle } from '@/components/step1'
 import { DEFAULT_TEMPLATES, TEMPLATE_META, fill, saveTemplate, sendItem, useOutbox, useSentLog, useTemplates, type OutboxItem, type TemplateKind } from '@/components/messages/outbox'
 import { OutboxCard } from '@/components/messages/OutboxCard'
 
@@ -31,42 +30,25 @@ export default function Mensajes() {
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-6">
       <motion.div variants={fadeRise}>
-        <NightSlab scene={<MensajesScene />} className="px-5 pt-7 pb-24 sm:px-9 sm:pt-9 md:pb-28" luzSize="clamp(48px, 8vw, 104px)">
-          <p className="text-[13px] font-medium text-on-night-soft">Mensajes</p>
-          <h1 className="heading mt-2.5 max-w-[18ch] pr-14 text-[clamp(2rem,1.6rem+2vw,3rem)] text-on-night">
-            {totalMessages ? (
-              <>
-                Hoy tienes <CountUp value={totalMessages} className="text-luz" /> {totalMessages === 1 ? 'mensaje' : 'mensajes'} por enviar
-              </>
-            ) : (
-              'Todo enviado. Bien hecho.'
-            )}
-          </h1>
-          <p className="mt-3 max-w-[52ch] text-[15px] text-on-night-soft">
-            Cada mensaje ya va con nombre, fecha y monto. Tú solo tocas enviar.
-          </p>
-          {byKind.length > 0 && (
-            <div className="mt-5 flex flex-wrap gap-2">
-              {byKind.map(([k, n]) => {
-                const meta = TEMPLATE_META[k]
-                const Icon = meta.icon
-                return (
-                  <span key={k} className="inline-flex h-9 items-center gap-2 rounded-full bg-[color-mix(in_oklab,var(--on-night)_10%,transparent)] px-3.5 text-sm text-on-night ring-1 ring-[color-mix(in_oklab,var(--on-night)_14%,transparent)]">
-                    <Icon size={15} strokeWidth={1.6} /> {meta.label} <span className="tabular text-on-night-soft">{n}</span>
-                  </span>
-                )
-              })}
-            </div>
-          )}
-          {first && (
-            <div className="mt-7 flex flex-wrap gap-2">
-              <Button variant="luz" icon={<Send size={17} strokeWidth={1.6} />} onClick={() => (first.guests ? setTab('hoy') : (sendItem(first), toast.success('Mensaje listo en WhatsApp', first.title)))}>
-                {first.guests ? 'Ver recordatorios' : 'Enviar el más urgente'}
-              </Button>
-              {urgent > 0 && <span className="inline-flex h-12 items-center px-2 text-sm text-on-night-soft">{urgent} urgentes</span>}
-            </div>
-          )}
-        </NightSlab>
+        <PageHeader
+          eyebrow="Mensajes"
+          title={totalMessages ? `${totalMessages} ${totalMessages === 1 ? 'mensaje' : 'mensajes'} por enviar` : 'Todo enviado. Bien hecho.'}
+          subtitle={`Cada mensaje ya va con nombre, fecha y monto. Tú solo tocas enviar.${urgent ? ` ${urgent} ${urgent === 1 ? 'es urgente' : 'son urgentes'}.` : ''}`}
+          primary={first ? { label: first.guests ? 'Ver recordatorios' : 'Enviar el más urgente', icon: <Send size={17} strokeWidth={1.6} />, onClick: () => (first.guests ? setTab('hoy') : (sendItem(first), toast.success('Mensaje listo en WhatsApp', first.title))) } : undefined}
+        />
+        {byKind.length > 0 && (
+          <div className="-mt-1 flex flex-wrap gap-2">
+            {byKind.map(([k, n]) => {
+              const meta = TEMPLATE_META[k]
+              const Icon = meta.icon
+              return (
+                <span key={k} className="inline-flex min-h-9 items-center gap-2 rounded-full px-3.5 py-1 text-[13px] text-ink-soft ring-1 ring-line ring-inset">
+                  <Icon size={15} strokeWidth={1.6} /> {meta.label} <span className="tabular font-semibold text-ink">{n}</span>
+                </span>
+              )
+            })}
+          </div>
+        )}
       </motion.div>
 
       <motion.div variants={fadeRise}>

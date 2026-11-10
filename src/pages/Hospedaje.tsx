@@ -1,16 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { motion } from 'motion/react'
-import { AlertTriangle, BedDouble, CalendarDays, ChevronLeft, ChevronRight, LogIn, LogOut, MapPin, Plus, Users, Wallet } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Link2, LogIn, LogOut, MapPin, Plus } from 'lucide-react'
 import { SwipeRow } from '@/components/interact'
 import { withUndo } from '@/lib/undo'
 import { db, useCollection, useRole } from '@/lib/store'
 import { RES_SOURCE, seesMoney, TONE, UNIT_STATUS } from '@/lib/meta'
 import { addDaysISO, capitalize, compactMxn, fmt, fmtDate, fmtDateLong, mxn, nights, pct, today } from '@/lib/format'
-import { fadeRise } from '@/lib/motion'
 import type { ID, Reservation, Unit } from '@/lib/types'
-import { Badge, Button, Card, CardHeader, Confirm, cx, Empty, IconBubble, PageHeader, ProgressBar, Segmented, Stat, StatStrip } from '@/components/ui'
-import { Reveal } from '@/components/step1'
+import { Badge, Button, Card, CardHeader, Confirm, cx, Empty, IconBubble, PageHeader, Segmented, Sheet } from '@/components/ui'
 import { Timeline } from '@/components/stays/Timeline'
 import { ReservationSheet, type ReservationDefaults } from '@/components/stays/ReservationSheet'
 import { ChannelSync } from '@/components/stays/ChannelSync'
@@ -26,6 +23,8 @@ export default function Hospedaje() {
   const [days, setDays] = useState<'14' | '30'>('14')
   const [offset, setOffset] = useState(0)
   const [sheet, setSheet] = useState<{ open: boolean; id?: ID; defaults?: ReservationDefaults }>({ open: false })
+  const [below, setBelow] = useState<'llegadas' | 'casas' | 'objetos'>('llegadas')
+  const [channels, setChannels] = useState(false)
   const t = today()
   const paramId = params.get('r') ?? undefined
   const paramUnit = params.get('u')
@@ -96,43 +95,46 @@ export default function Hospedaje() {
       <PageHeader
         eyebrow={capitalize(fmtDateLong(t))}
         title="Hospedaje"
-        subtitle="Llegadas, salidas y calendario. Arrastra en el calendario para reservar o mover una estancia."
         primary={{ label: 'Nueva reserva', icon: <Plus size={18} strokeWidth={1.6} />, onClick: () => setSheet({ open: true, defaults: {} }) }}
+        menu={role === 'admin' ? [{ label: 'Airbnb y Booking', icon: <Link2 />, hint: 'Conectar calendarios', onClick: () => setChannels(true) }] : undefined}
       />
 
-      <StatStrip className="mb-6">
-        <Stat label="Ocupación del mes" value={pct(totalOcc)} sub={capitalize(fmt(t, 'MMMM'))} tone="sky" icon={<CalendarDays size={16} strokeWidth={1.6} />} />
-        <Stat label="En casa ahora" value={inHouse.length} sub={`${inHouse.reduce((n, r) => n + r.guests, 0)} huéspedes`} tone="lavender" icon={<Users size={16} strokeWidth={1.6} />} />
-        <Stat label="Hoy" value={`${arrivals.length} · ${departures.length}`} sub="por llegar · por salir" tone="peach" icon={<LogIn size={16} strokeWidth={1.6} />} />
+      {/* Las cifras del mes, en una sola línea */}
+      <p className="-mt-3 mb-6 flex flex-wrap gap-x-5 gap-y-1 text-[14px] text-ink-soft">
+        <span>
+          <b className="font-semibold text-ink tabular">{pct(totalOcc)}</b> de ocupación en {fmt(t, 'MMMM')}
+        </span>
+        <span>
+          <b className="font-semibold text-ink tabular">{inHouse.length}</b> en casa · {inHouse.reduce((n, r) => n + r.guests, 0)} huéspedes
+        </span>
         {money ? (
-          <Stat label="Reservado este mes" value={compactMxn(monthRevenue)} sub="Hospedaje" tone="sage" icon={<Wallet size={16} strokeWidth={1.6} />} accent />
+          <span>
+            <b className="font-semibold text-ink tabular">{compactMxn(monthRevenue)}</b> reservado este mes
+          </span>
         ) : (
-          <Stat label="Unidades listas" value={units.filter((u) => u.status === 'lista').length} sub={`de ${units.length}`} tone="sage" icon={<BedDouble size={16} strokeWidth={1.6} />} />
+          <span>
+            <b className="font-semibold text-ink tabular">{units.filter((u) => u.status === 'lista').length}</b> de {units.length} listas
+          </span>
         )}
-      </StatStrip>
+      </p>
 
-      {/* Llegadas y salidas de hoy */}
-      <div className="mb-8 grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
-        <TodayList title="Llegan hoy" tone="lavender" icon={<LogIn size={18} strokeWidth={1.6} />} items={arrivals} units={units} empty="Sin llegadas hoy" action={(r) => ({ label: 'Check-in', onClick: () => checkIn(r) })} onOpen={openRes} warnNotReady />
-        <TodayList title="Salen hoy" tone="peach" icon={<LogOut size={18} strokeWidth={1.6} />} items={departures} units={units} empty="Sin salidas pendientes" action={(r) => ({ label: 'Check-out', onClick: () => quick(r, 'finalizada', 'Check-out: se creó la limpieza') })} onOpen={openRes} />
-      </div>
+      {/* Llegadas y salidas de hoy: solo lo que hay */}
+      {arrivals.length + departures.length > 0 ? (
+        <div className={cx('mb-7 grid gap-4 [&>*]:min-w-0', arrivals.length > 0 && departures.length > 0 && 'md:grid-cols-2')}>
+          {arrivals.length > 0 && <TodayList title="Llegan hoy" tone="lavender" icon={<LogIn size={18} strokeWidth={1.6} />} items={arrivals} units={units} empty="Sin llegadas hoy" action={(r) => ({ label: 'Check-in', onClick: () => checkIn(r) })} onOpen={openRes} warnNotReady />}
+          {departures.length > 0 && <TodayList title="Salen hoy" tone="peach" icon={<LogOut size={18} strokeWidth={1.6} />} items={departures} units={units} empty="Sin salidas pendientes" action={(r) => ({ label: 'Check-out', onClick: () => quick(r, 'finalizada', 'Check-out: se creó la limpieza') })} onOpen={openRes} />}
+        </div>
+      ) : (
+        <p className="mb-7 text-[14px] text-ink-soft">Hoy no llega ni sale nadie.</p>
+      )}
 
-      {/* Unidades */}
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <h2 className="heading text-[1.7rem]">Unidades</h2>
-        <p className="hidden text-sm text-ink-soft sm:block">Ocupación del mes y próxima llegada</p>
-      </div>
-      <Reveal className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
-        {sortedUnits.map((u) => (
-          <UnitCard key={u.id} unit={u} active={active} occ={occupancy(u.id)} onOpen={openRes} onReserve={() => setSheet({ open: true, defaults: { unitId: u.id, checkIn: t } })} onMap={() => navigate(`/mapa?u=${u.id}`)} />
-        ))}
-      </Reveal>
-
-      {/* Calendario */}
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      {/* Calendario: lo principal de esta pantalla */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="heading text-[1.7rem]">Calendario</h2>
-          <p className="text-sm text-ink-soft">{fmtDate(start)} – {fmtDate(addDaysISO(start, Number(days) - 1))}</p>
+          <h2 className="text-[17px] leading-tight font-semibold tracking-[-0.02em]">Calendario</h2>
+          <p className="mt-0.5 text-[13px] text-detail">
+            {fmtDate(start)} – {fmtDate(addDaysISO(start, Number(days) - 1))} · arrastra para reservar o mover
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" aria-label="Semana anterior" onClick={() => setOffset((o) => o - 7)}>
@@ -149,16 +151,33 @@ export default function Hospedaje() {
       </div>
       <Timeline units={sortedUnits} reservations={reservations} start={start} days={Number(days)} onCell={(unitId, date) => setSheet({ open: true, defaults: { unitId, checkIn: date } })} onBar={openRes} onCreate={(unitId, checkIn, checkOut) => setSheet({ open: true, defaults: { unitId, checkIn, checkOut } })} onMove={moveRes} money={money} />
 
-      <div className="mt-10 grid gap-5 xl:grid-cols-[1.4fr_1fr] [&>*]:min-w-0">
-        <UpcomingList reservations={active} units={units} onOpen={openRes} money={money} />
-        {role === 'admin' && <LostFoundList />}
+      {/* Lo demás, a un toque */}
+      <div className="mt-8 mb-4">
+        <Segmented
+          value={below}
+          onChange={setBelow}
+          options={[
+            { value: 'llegadas', label: <span>Próximas<span className="max-sm:hidden"> llegadas</span></span> },
+            { value: 'casas', label: <span>Casas<span className="max-sm:hidden"> y cabañas</span></span> },
+            ...(role === 'admin' || role === 'recepcion' ? [{ value: 'objetos' as const, label: <span>Objetos<span className="max-sm:hidden"> olvidados</span></span> }] : []),
+          ]}
+        />
       </div>
-
-      {role === 'admin' && (
-        <div className="mt-5">
-          <ChannelSync />
-        </div>
+      {below === 'llegadas' && <UpcomingList reservations={active} units={units} onOpen={openRes} money={money} />}
+      {below === 'casas' && (
+        <Card className="overflow-hidden">
+          <ul className="grid divide-y divide-line lg:grid-cols-2">
+            {sortedUnits.map((u) => (
+              <UnitRow key={u.id} unit={u} active={active} occ={occupancy(u.id)} onOpen={openRes} onReserve={() => setSheet({ open: true, defaults: { unitId: u.id, checkIn: t } })} onMap={() => navigate(`/mapa?u=${u.id}`)} />
+            ))}
+          </ul>
+        </Card>
       )}
+      {below === 'objetos' && <LostFoundList />}
+
+      <Sheet open={channels} onClose={() => setChannels(false)} wide title="Airbnb y Booking" subtitle="Conecta los calendarios para evitar dobles reservas">
+        <ChannelSync />
+      </Sheet>
 
       <Confirm
         open={!!notReadyAsk}
@@ -176,72 +195,31 @@ export default function Hospedaje() {
   )
 }
 
-function UnitCard({ unit: u, active, occ, onOpen, onReserve, onMap }: { unit: Unit; active: Reservation[]; occ: number; onOpen: (id: ID) => void; onReserve: () => void; onMap: () => void }) {
+function UnitRow({ unit: u, active, occ, onOpen, onReserve, onMap }: { unit: Unit; active: Reservation[]; occ: number; onOpen: (id: ID) => void; onReserve: () => void; onMap: () => void }) {
   const t = today()
   const current = active.find((r) => r.unitId === u.id && r.status === 'en-casa')
   const next = active.filter((r) => r.unitId === u.id && r.checkIn >= t && r.status !== 'en-casa' && r.status !== 'finalizada' && !(r.guests === 0 && r.externalUid)).sort((a, b) => a.checkIn.localeCompare(b.checkIn))[0]
   const st = UNIT_STATUS[u.status]
+  const target = current ?? next
   return (
-    <motion.div variants={fadeRise} className="h-full">
-      <Card className="flex h-full flex-col overflow-hidden">
-        {/* Cabecera tintada con la luz del estado */}
-        <div className="relative h-20 overflow-hidden" style={{ background: `linear-gradient(160deg, color-mix(in oklab, ${TONE[u.color].hex} 34%, var(--surface)), color-mix(in oklab, ${TONE[u.color].hex} 10%, var(--surface)))` }}>
-          <svg aria-hidden viewBox="0 0 320 80" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-10 w-full">
-            <path d="M0 52 C60 36 110 40 160 50 S260 34 320 46 V80 H0Z" fill="var(--surface)" opacity="0.55" />
-            <path d="M0 66 C80 56 150 60 220 64 S290 58 320 62 V80 H0Z" fill="var(--surface)" />
-          </svg>
-          <div className="absolute top-3 right-3">
-            <Badge tone={st.tone} dot className="!bg-[color-mix(in_oklab,var(--surface)_86%,transparent)]">
-              {st.label}
-            </Badge>
-          </div>
-          <span className="absolute top-3 left-4 text-xs text-detail">
-            {u.kind === 'cabana' ? 'Cabaña' : 'Casa'} · {u.capacity} personas
-          </span>
-        </div>
-        <div className="flex flex-1 flex-col px-5 pb-5">
-          <p className="heading -mt-1 truncate text-[1.45rem]">{u.name}</p>
-          <div className="mt-3 flex-1 space-y-2 text-sm">
-            {current ? (
-              <button onClick={() => onOpen(current.id)} className="flex w-full items-center gap-2 text-left">
-                <Users size={15} strokeWidth={1.6} className="shrink-0 text-ink-soft" />
-                <span className="truncate">
-                  <span className="font-medium">{current.guestName}</span> <span className="text-ink-soft">· sale {fmtDate(current.checkOut)}</span>
-                </span>
-              </button>
-            ) : (
-              <p className="flex items-center gap-2 text-ink-soft">
-                <BedDouble size={15} strokeWidth={1.6} /> Sin huéspedes ahora
-              </p>
-            )}
-            {next && (
-              <button onClick={() => onOpen(next.id)} className="flex w-full items-center gap-2 text-left text-ink-soft">
-                <LogIn size={15} strokeWidth={1.6} className="shrink-0" />
-                <span className="truncate">
-                  {next.checkIn === t ? 'Hoy' : fmtDate(next.checkIn)}
-                  {next.arrivalTime ? ` ${next.arrivalTime}` : ''} · {next.guestName}
-                </span>
-              </button>
-            )}
-          </div>
-          <div className="mt-4">
-            <div className="mb-1.5 flex justify-between text-xs text-detail">
-              <span>Ocupación del mes</span>
-              <span className="tabular text-ink">{pct(occ)}</span>
-            </div>
-            <ProgressBar value={occ} />
-          </div>
-          <div className="mt-4 flex gap-2">
-            <Button size="sm" variant="secondary" className="flex-1" onClick={onReserve}>
-              Reservar
-            </Button>
-            <Button size="icon" variant="outline" aria-label={`Ver ${u.name} en el mapa`} className="!h-10 !w-10" onClick={onMap}>
-              <MapPin size={16} strokeWidth={1.6} />
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </motion.div>
+    <li className="flex min-w-0 items-center gap-3 px-4 py-3 md:px-5">
+      <span title={st.label} className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: TONE[st.tone].hex }} />
+      <button onClick={() => target && onOpen(target.id)} className="min-w-0 flex-1 text-left" disabled={!target}>
+        <span className="block text-[15px] leading-snug font-semibold">{u.name}</span>
+        <span className="block text-[13px] leading-snug text-detail">
+          {current ? `${current.guestName} · sale ${fmtDate(current.checkOut)}` : next ? `${st.label} · llegan ${next.checkIn === t ? 'hoy' : fmtDate(next.checkIn)}${next.arrivalTime ? ` ${next.arrivalTime}` : ''}` : st.label}
+        </span>
+      </button>
+      <span className="hidden w-14 shrink-0 text-right text-[13px] text-ink-soft tabular sm:block" title="Ocupación del mes">
+        {pct(occ)}
+      </span>
+      <Button size="sm" variant="secondary" onClick={onReserve}>
+        Reservar
+      </Button>
+      <Button size="icon" variant="ghost" aria-label={`Ver ${u.name} en el mapa`} onClick={onMap}>
+        <MapPin size={16} strokeWidth={1.6} />
+      </Button>
+    </li>
   )
 }
 
@@ -256,7 +234,6 @@ function TodayList({ title, tone, icon, items, units, empty, action, onOpen, war
         }
         title={title}
         subtitle={items.length ? `${items.length} ${items.length === 1 ? 'reserva' : 'reservas'}` : empty}
-        action={<span className="display-num text-[2.2rem]">{items.length}</span>}
       />
       <div className="px-3 pt-3 pb-3">
         {items.length === 0 && <p className="px-3 pb-2 text-sm text-ink-soft">{empty}.</p>}
@@ -268,9 +245,9 @@ function TodayList({ title, tone, icon, items, units, empty, action, onOpen, war
             <SwipeRow key={r.id} className="!rounded-[14px]" hintKey={i === 0 ? `hoy-${a.label}` : undefined} left={{ label: a.label, icon: tone === 'lavender' ? <LogIn /> : <LogOut />, tone: 'success', onTrigger: a.onClick }}>
             <div className="flex items-center gap-3 rounded-[14px] bg-surface px-3 py-2.5 hover:bg-wash">
               <button onClick={() => onOpen(r.id)} className="min-w-0 flex-1 text-left">
-                <p className="truncate font-medium">{r.guestName}</p>
-                <p className={cx('flex items-center gap-1 truncate text-xs', notReady ? 'text-warning' : 'text-ink-soft')}>
-                  {notReady && <AlertTriangle size={12} strokeWidth={1.6} className="shrink-0" />}
+                <p className="font-medium">{r.guestName}</p>
+                <p className={cx('text-xs', notReady ? 'text-warning' : 'text-ink-soft')}>
+                  {notReady && <AlertTriangle size={12} strokeWidth={1.6} className="mr-1 inline align-[-2px]" />}
                   {u?.name} · {r.guests} huésp.{r.arrivalTime ? ` · ${r.arrivalTime}` : ''}
                   {notReady ? ` · ${UNIT_STATUS[u!.status].label.toLowerCase()}` : ''}
                 </p>
@@ -295,20 +272,19 @@ function UpcomingList({ reservations, units, onOpen, money }: { reservations: Re
     .slice(0, 10)
   return (
     <Card>
-      <CardHeader eyebrow="Agenda" title="Próximas llegadas" subtitle="Las siguientes 10 reservas" />
       {upcoming.length === 0 ? (
         <Empty kind="reserva" title="Sin reservas próximas" body="Las nuevas reservas y las de Airbnb aparecerán aquí." />
       ) : (
-        <div className="px-3 pt-3 pb-3">
+        <div className="grid p-3 lg:grid-cols-2 lg:gap-x-3">
           {upcoming.map((r) => (
-            <button key={r.id} onClick={() => onOpen(r.id)} className="flex w-full items-center gap-4 rounded-[14px] px-3 py-3 text-left hover:bg-wash">
+            <button key={r.id} onClick={() => onOpen(r.id)} className="flex w-full min-w-0 items-center gap-3 rounded-[14px] px-3 py-3 text-left hover:bg-wash">
               <div className="w-12 shrink-0 text-center">
                 <p className="eyebrow !text-[10px]">{fmt(r.checkIn, 'MMM')}</p>
                 <p className="display-num text-[1.8rem]">{r.checkIn.slice(8).replace(/^0/, '')}</p>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{r.guestName}</p>
-                <p className="truncate text-xs text-detail">
+                <p className="font-medium">{r.guestName}</p>
+                <p className="text-xs text-detail">
                   {units.find((u) => u.id === r.unitId)?.name} · {nights(r.checkIn, r.checkOut)} {nights(r.checkIn, r.checkOut) === 1 ? 'noche' : 'noches'} · {r.guests} huéspedes
                 </p>
               </div>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
-import { CalendarRange, KeyRound, MessageCircle, Plus, Timer, UserPlus, Users } from 'lucide-react'
+import { CalendarRange, KeyRound, MessageCircle, Timer, UserPlus, Users } from 'lucide-react'
 import { Choices, FormScope, PhoneField, TextField } from '@/components/fields'
 import { ShiftGrid } from '@/components/team/ShiftGrid'
 import { db, useCollection, useMe } from '@/lib/store'
@@ -97,7 +97,8 @@ export default function Equipo() {
     )
   }, [employees, tasks, audit])
 
-  const top = [...employees].sort((a, b) => (stats[b.id]?.done ?? 0) - (stats[a.id]?.done ?? 0))[0]
+  // Solo se destaca cuando hay algo que destacar, y al dueño no se le mide
+  const top = employees.filter((e) => e.role !== 'admin' && e.active).sort((a, b) => (stats[b.id]?.done ?? 0) - (stats[a.id]?.done ?? 0))[0]
   const openNew = () => {
     setEdit(undefined)
     setOpen(true)
@@ -125,7 +126,7 @@ export default function Equipo() {
         <ShiftGrid employees={employees.filter((e) => e.active && e.role !== 'admin')} editable={admin} />
       ) : (
       <>
-      {top && (stats[top.id]?.done ?? 0) > 0 && (
+      {top && (stats[top.id]?.done ?? 0) >= 5 && (
         <div className="mb-7 flex items-center gap-4 rounded-[var(--r-lg)] bg-[color-mix(in_oklab,var(--luz)_32%,var(--surface))] px-5 py-4 ring-1 ring-line">
           <Sparkle className="text-lg text-chispa" />
           <p className="text-[15px]">
@@ -138,38 +139,42 @@ export default function Equipo() {
           const s = stats[e.id]!
           return (
             <motion.div key={e.id} variants={fadeRise}>
-              <Card className={cx('h-full p-5 md:p-6', !e.active && 'opacity-50')}>
+              <Card className={cx('flex h-full flex-col p-5 md:p-6', !e.active && 'opacity-50')}>
                 <div className="flex items-center gap-4">
                   <span className="relative">
                     <Avatar name={e.name} tone={e.color} size={56} />
                     {s.doing && <span className="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full bg-success ring-2 ring-surface" title="Trabajando ahora" />}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <h2 className="heading truncate text-[1.4rem]">{e.name}</h2>
+                    <h2 className="heading text-[1.4rem]">{e.name}</h2>
                     <div className="mt-1">
                       <Badge tone={ROLE[e.role].tone}>{ROLE[e.role].label}</Badge>
                     </div>
                   </div>
                 </div>
-                {s.doing && <p className="mt-4 truncate rounded-[14px] bg-sunken px-3.5 py-2.5 text-[13px] text-ink-soft">Ahora: {s.doing.title}</p>}
-                <div className="mt-5 grid grid-cols-3 divide-x divide-line rounded-[18px] bg-sunken py-3 text-center">
-                  <div>
-                    <div className="display-num text-[1.7rem]">{s.open}</div>
-                    <div className="mt-0.5 text-[11px] text-detail">Abiertas</div>
-                  </div>
-                  <div>
-                    <div className="display-num text-[1.7rem]">{s.done}</div>
-                    <div className="mt-0.5 text-[11px] text-detail">Hechas · 30 d</div>
-                  </div>
-                  <div>
-                    <div className="display-num text-[1.7rem]">{s.avg ?? '—'}</div>
-                    <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-detail">
-                      <Timer size={11} strokeWidth={1.6} /> min por limpieza
+                {s.doing && <p className="mt-4 rounded-[14px] bg-sunken px-3.5 py-2.5 text-[13px] text-ink-soft">Ahora: {s.doing.title}</p>}
+                {e.role !== 'admin' && (
+                  <div className={cx('mt-5 grid divide-x divide-line rounded-[18px] bg-sunken py-3 text-center', e.role === 'limpieza' ? 'grid-cols-3' : 'grid-cols-2')}>
+                    <div>
+                      <div className="display-num text-[1.7rem]">{s.open}</div>
+                      <div className="mt-0.5 text-[11px] text-detail">Abiertas</div>
                     </div>
+                    <div>
+                      <div className="display-num text-[1.7rem]">{s.done}</div>
+                      <div className="mt-0.5 text-[11px] text-detail">Hechas en 30 días</div>
+                    </div>
+                    {e.role === 'limpieza' && (
+                      <div>
+                        <div className="display-num text-[1.7rem]">{s.avg ?? '—'}</div>
+                        <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-detail">
+                          <Timer size={11} strokeWidth={1.6} /> min por limpieza
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <p className="mt-3.5 text-xs text-ink-3">{s.lastSeen ? `Última actividad ${ago(s.lastSeen)}` : 'Sin actividad registrada'}</p>
-                <div className="mt-4 flex gap-2">
+                )}
+                {s.lastSeen && <p className="mt-3.5 text-xs text-ink-3">Última actividad {ago(s.lastSeen)}</p>}
+                <div className="mt-auto flex gap-2 pt-4">
                   {e.phone && (
                     <a href={waLink(e.phone, `Hola ${e.name.split(' ')[0]}, `)} target="_blank" rel="noreferrer" className="flex-1">
                       <Button size="sm" variant="secondary" className="w-full" icon={<MessageCircle size={16} strokeWidth={1.6} />}>
@@ -196,17 +201,6 @@ export default function Equipo() {
             </motion.div>
           )
         })}
-        {admin && (
-          <motion.div variants={fadeRise}>
-            <button onClick={openNew} className="pressable flex h-full min-h-[260px] w-full flex-col items-center justify-center gap-3 rounded-[var(--r-lg)] border border-dashed border-line-strong p-6 text-ink-soft hover:bg-wash hover:text-ink">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--luz)_55%,var(--surface))] text-night ring-[5px] ring-[color-mix(in_oklab,var(--luz)_22%,transparent)]">
-                <Plus size={20} strokeWidth={1.6} />
-              </span>
-              <span className="font-medium">Agregar persona</span>
-              <span className="max-w-[26ch] text-center text-xs">Aún no sabemos cuántos serán: agrégalos cuando quieras.</span>
-            </button>
-          </motion.div>
-        )}
       </motion.div>
       </>
       )}

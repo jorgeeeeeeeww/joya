@@ -1,6 +1,6 @@
 // Panel del dueño: lo que pasó hoy (quién hizo qué), el dinero de la semana y la ocupación de los próximos 7 días.
 // Reemplaza a la "línea del día": aquí la idea es que el dueño esté enterado de casi todo de un vistazo.
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, BedDouble, CalendarHeart, CheckCircle2, LogIn, Receipt, Sparkles, Wrench, type LucideIcon } from 'lucide-react'
 import type { DataState, Settings } from '@/lib/types'
@@ -144,6 +144,7 @@ export function MoneyWeek({ data }: { data: DataState }) {
 
 /** Ocupación de los próximos 7 días: casas ocupadas y eventos por día; los huecos son lo que se puede vender */
 export function Occupancy7({ data }: { data: DataState; settings?: Settings }) {
+  const [sel, setSel] = useState(0)
   const days = useMemo(() => {
     const units = Object.values(data.units).filter((u) => !u.deleted)
     const res = Object.values(data.reservations).filter((r) => !r.deleted && r.status !== 'cancelada' && r.guests > 0)
@@ -158,26 +159,59 @@ export function Occupancy7({ data }: { data: DataState; settings?: Settings }) {
   return (
     <Card className="h-full">
       <CardHeader eyebrow="Próximos 7 días" title="Ocupación" subtitle="Casas ocupadas y eventos de cada día. Lo vacío se puede vender." action={<Link to="/hospedaje" className="pressable inline-flex min-h-10 items-center gap-1 rounded-full px-3 text-sm text-ink-soft hover:bg-wash hover:text-ink">Hospedaje <ArrowRight size={15} strokeWidth={1.6} /></Link>} />
-      <div className="grid grid-cols-7 gap-1.5 px-4 pb-5 md:gap-2.5 md:px-6">
+      <div className="grid grid-cols-7 gap-1 px-3 pb-3 md:gap-2 md:px-5" onPointerLeave={() => setSel(0)}>
         {days.map((x, i) => {
-          const pct = x.total ? x.busy / x.total : 0
+          const free = x.total - x.busy
+          const full = x.total > 0 && free === 0
+          const label = i === 0 ? 'Hoy' : fmt(x.d, 'EEE').replace('.', '').slice(0, 3)
           return (
-            <Link key={x.d} to={`/hospedaje?d=${x.d}`} className="pressable flex flex-col items-center gap-1.5 rounded-[14px] py-2 hover:bg-wash" aria-label={`${fmtDate(x.d)}: ${x.busy} de ${x.total} casas ocupadas${x.events.length ? `, ${x.events.length} evento` : ''}`}>
-              <span className={cx('text-[12px] capitalize', i === 0 ? 'font-semibold text-ink' : 'text-ink-soft')}>{i === 0 ? 'Hoy' : fmt(x.d, 'EEE').replace('.', '').slice(0, 3)}</span>
-              <span className="relative flex h-24 w-full max-w-10 items-end overflow-hidden rounded-[10px] bg-sunken">
-                <span className="w-full rounded-[10px] bg-primary/70 transition-[height] duration-[var(--dur-4)]" style={{ height: `${Math.max(6, pct * 100)}%` }} />
+            <Link
+              key={x.d}
+              to={`/hospedaje?d=${x.d}`}
+              onPointerEnter={() => setSel(i)}
+              onFocus={() => setSel(i)}
+              className={cx(
+                'pressable flex min-w-0 flex-col items-center gap-2 rounded-[16px] px-0.5 pb-2.5 pt-2.5 transition-colors hover:bg-wash',
+                i === 0 && 'bg-wash ring-1 ring-line',
+                sel === i && i !== 0 && 'bg-wash',
+              )}
+              aria-label={`${fmtDate(x.d)}: ${x.busy} de ${x.total} casas ocupadas${x.events.length ? `, ${x.events.length} evento` : ''}`}
+            >
+              <span className={cx('text-[12px] capitalize', i === 0 ? 'font-semibold text-key' : 'text-ink-soft')}>{label}</span>
+              {/* una celda por casa: terracota = ocupada, hueco punteado = libre */}
+              <span className="flex h-28 w-full max-w-9 flex-col-reverse gap-[3px]" aria-hidden>
+                {Array.from({ length: x.total }, (_, k) => (
+                  <span
+                    key={k}
+                    className={cx(
+                      'min-h-[4px] flex-1 rounded-[6px] transition-colors duration-[var(--dur-4)]',
+                      k < x.busy ? (full ? 'bg-chispa' : 'bg-chispa/60') : 'border border-dashed border-sage/45 bg-sage-soft/50',
+                    )}
+                  />
+                ))}
               </span>
-              <span className="text-xs tabular">
-                {x.busy}/{x.total}
+              <span className="tabular leading-none">
+                <span className={cx('text-[17px] font-semibold', full ? 'text-key' : 'text-ink')}>{x.busy}</span>
+                <span className="text-[11px] text-detail">/{x.total}</span>
               </span>
-              <span className={cx('h-1.5 w-1.5 rounded-full', x.events.length ? 'bg-chispa' : 'bg-transparent')} title={x.events.map((e) => e.title).join(', ')} />
+              <span className={cx('inline-flex h-5 items-center justify-center gap-0.5 rounded-full px-1.5 text-[10px] font-medium', x.events.length ? 'bg-chispa-soft/30 text-key' : 'invisible')} title={x.events.map((e) => e.title).join(', ')}>
+                <CalendarHeart size={11} strokeWidth={1.8} />
+                {x.events.length > 1 ? x.events.length : <span className="hidden md:inline">Evento</span>}
+              </span>
             </Link>
           )
         })}
       </div>
-      <p className="px-6 pb-5 text-xs text-detail">
-        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-chispa align-middle" />
-        Día con evento en el salón o el jardín
+      <p className="px-5 pb-4 text-sm leading-snug text-ink-soft md:px-6" aria-live="polite">
+        <span className="font-semibold text-ink capitalize">{sel === 0 ? 'Hoy' : fmtDate(days[sel].d)}</span>
+        <span className="text-detail"> · </span>
+        {days[sel].total - days[sel].busy === 0 ? 'todo ocupado' : `${days[sel].total - days[sel].busy} ${days[sel].total - days[sel].busy === 1 ? 'casa libre' : 'casas libres'}`}
+        {days[sel].events.length > 0 && <span className="text-key"> · {days[sel].events.map((e) => e.title).join(', ')}</span>}
+      </p>
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-5 text-xs text-detail md:px-6">
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-[3px] bg-chispa/60" />Casa ocupada</span>
+        <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-[3px] border border-dashed border-sage/60 bg-sage-soft/50" />Libre, se puede vender</span>
+        <span className="inline-flex items-center gap-1.5"><CalendarHeart size={12} strokeWidth={1.8} className="text-key" />Evento en el salón o el jardín</span>
       </p>
     </Card>
   )

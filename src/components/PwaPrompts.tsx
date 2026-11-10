@@ -2,10 +2,10 @@
 // insignia con avisos sin leer y presencia del equipo conectado.
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Download, PlusSquare, Share, X } from 'lucide-react'
+import { CircleAlert, Download, PlusSquare, Share, X } from 'lucide-react'
 import { isIOS, promptInstall, useAppBadge, usePwa, visitCount } from '@/lib/pwa'
 import { usePresence } from '@/lib/sync'
-import { useCollection, useMe } from '@/lib/store'
+import { useCollection, useMe, useStore } from '@/lib/store'
 import { ROLE } from '@/lib/meta'
 import { NAV } from './AppShell'
 import { ease } from '@/lib/motion'
@@ -14,20 +14,26 @@ import { Luz, Sparkle } from './step1'
 
 function UpdateBanner() {
   const needRefresh = usePwa((s) => s.needRefresh)
+  const required = usePwa((s) => s.required)
   const update = usePwa((s) => s.update)
   const [busy, setBusy] = useState(false)
+  // La nube pide una versión más nueva pero todavía no se descarga: se avisa por qué no se suben los cambios
+  const show = needRefresh || required
   return (
     <AnimatePresence>
-      {needRefresh && (
+      {show && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0, transition: { duration: 0.48, ease: ease.calma } }}
           exit={{ opacity: 0, y: 12 }}
-          className="fixed inset-x-4 bottom-[calc(96px+env(safe-area-inset-bottom))] z-[62] flex justify-center md:right-6 md:bottom-6 md:left-auto"
+          className="fixed inset-x-4 bottom-[calc(96px+env(safe-area-inset-bottom))] z-[62] flex justify-center md:inset-x-0 md:bottom-6 md:pointer-events-none md:[&>*]:pointer-events-auto"
         >
-          <div className="flex w-full max-w-md items-center gap-3 rounded-full bg-night py-2 pr-2 pl-4 text-on-night shadow-[var(--shadow-3)]">
-            <Sparkle className="text-luz" />
-            <span className="min-w-0 flex-1 text-sm">Hay una versión nueva de La Joya</span>
+          <div className="flex w-full max-w-md items-center gap-3 rounded-[28px] bg-night py-2 pr-2 pl-4 text-on-night shadow-[var(--shadow-3)]">
+            <Sparkle className="shrink-0 text-luz" />
+            <span className="min-w-0 flex-1 py-1 text-sm">
+              {required ? (needRefresh ? 'Actualiza para seguir sincronizando. Tus cambios están guardados aquí.' : 'Descargando la versión que pide la nube…') : 'Hay una versión nueva de La Joya'}
+            </span>
+            {needRefresh && (
             <Button
               size="sm"
               variant="luz"
@@ -39,6 +45,33 @@ function UpdateBanner() {
             >
               Actualizar
             </Button>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+/** El dispositivo no dejó guardar (iPhone después de segundo plano, o sin espacio): se reintenta solo */
+function SaveErrorBanner() {
+  const saveError = useStore((s) => s.sync.saveError)
+  return (
+    <AnimatePresence>
+      {saveError && (
+        <motion.div
+          role="status"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0, transition: { duration: 0.42, ease: ease.calma } }}
+          exit={{ opacity: 0, y: -8 }}
+          className="fixed inset-x-4 top-[calc(env(safe-area-inset-top)+12px)] z-[63] flex justify-center md:right-6 md:left-auto"
+        >
+          <div className="flex w-full max-w-md items-start gap-3 rounded-[22px] bg-[color-mix(in_oklab,var(--danger)_12%,var(--surface))] px-4 py-3 text-sm shadow-[var(--shadow-3)] ring-1 ring-[color-mix(in_oklab,var(--danger)_30%,transparent)]">
+            <CircleAlert size={18} strokeWidth={1.7} className="mt-0.5 shrink-0 text-danger" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">{saveError}</span>
+              <span className="block text-ink-soft">No cierres la app un momento. Lo que capturaste sigue en pantalla.</span>
+            </span>
           </div>
         </motion.div>
       )}
@@ -150,6 +183,7 @@ export function PwaPrompts() {
   return (
     <>
       <UpdateBanner />
+      <SaveErrorBanner />
       <OfflineReady />
       <InstallCard />
       <BadgeSync />

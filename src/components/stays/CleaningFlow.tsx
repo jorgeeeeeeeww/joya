@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AlertTriangle, Check, Clock, MessageCircle, PackageSearch, Play, ShieldCheck, Sparkles, Timer, Users } from 'lucide-react'
 import { db, useDoc, useMe, useStore } from '@/lib/store'
-import { PRIORITY, TASK_STATUS, UNIT_STATUS } from '@/lib/meta'
+import { canDo, PRIORITY, TASK_STATUS, UNIT_STATUS } from '@/lib/meta'
 import { fmtDate, nowIso, relativeDay, today, waLink } from '@/lib/format'
 import { ease, haptic } from '@/lib/motion'
-import type { ID, Priority, Reservation } from '@/lib/types'
+import type { ID, Priority, Reservation, Task } from '@/lib/types'
 import { Badge, Button, CheckDraw, Confirm, cx, ProgressRing, Sheet, Textarea, toast } from '@/components/ui'
 import { Choices, Combobox, NotesField } from '@/components/fields'
 import { SwipeRow } from '@/components/interact'
@@ -40,6 +40,15 @@ export function arrivalText(next?: Reservation) {
   if (!next) return 'Sin llegada próxima'
   if (next.checkIn === today()) return `Llegan hoy${next.arrivalTime ? ' a las ' + next.arrivalTime : ''}`
   return `Llegan ${relativeDay(next.checkIn).toLowerCase()}${next.arrivalTime ? ' · ' + next.arrivalTime : ''}`
+}
+
+/** Regresar la limpieza con una nota: vuelve a "limpiando" y le llega un aviso a quien la hizo */
+export function sendBackCleaning(task: Task, note: string, unitName?: string) {
+  const text = note.trim() || 'Revisar de nuevo'
+  db.patch('tasks', task.id, { status: 'en-progreso', notes: [task.notes, `Regresada: ${text}`].filter(Boolean).join(' · ') })
+  const who = task.assigneeId ? db.get('employees', task.assigneeId) : undefined
+  if (who) useStore.getState().notify({ title: 'Te regresaron una limpieza', body: `${unitName ?? ''}: ${text}`, tone: 'peach', link: '/', roles: [who.role], userId: who.id })
+  toast.info('Limpieza regresada', who ? `Le avisamos a ${who.name.split(' ')[0]}.` : text)
 }
 
 // ── Éxito: orbe de luz + ✦ escalonadas (sin confeti, sin giros) ──
@@ -137,8 +146,12 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
   const next = unit ? nextArrival(Object.values(reservations).filter((r) => !r.deleted), unit.id) : undefined
   const done = task?.checklist.filter((c) => c.done).length ?? 0
   const total = task?.checklist.length ?? 0
-  const supervisor = me?.role === 'admin' || me?.role === 'mantenimiento'
-  const locked = task?.status === 'hecha' || task?.status === 'verificada'
+  // Quien limpia captura; administración y recepción revisan; los demás solo ven el avance
+  const canWork = canDo(me?.role, 'trabajarLimpieza') || (!!me && me.role !== 'admin' && task?.assigneeId === me.id)
+  const supervisor = canDo(me?.role, 'verificarLimpieza')
+  const finished = task?.status === 'hecha' || task?.status === 'verificada'
+  const locked = !canWork || finished
+  const who = task?.assigneeId ? db.get('employees', task.assigneeId)?.name.split(' ')[0] : undefined
 
   useEffect(() => {
     if (taskId) setVerified(false)
@@ -165,13 +178,8 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
     }, 1700)
   }
   const tryFinish = () => (task.photoIds.length ? finish() : setAskNoPhoto(true))
-  // Regresar la limpieza con una nota: vuelve a "limpiando" y le llega un aviso a quien la hizo
   const sendBack = () => {
-    const note = backNote.trim() || 'Revisar de nuevo'
-    db.patch('tasks', task.id, { status: 'en-progreso', notes: [task.notes, `Regresada: ${note}`].filter(Boolean).join(' · ') })
-    const who = task.assigneeId ? db.get('employees', task.assigneeId) : undefined
-    if (who) useStore.getState().notify({ title: 'Te regresaron una limpieza', body: `${unit?.name ?? ''}: ${note}`, tone: 'peach', link: '/', roles: [who.role], userId: who.id })
-    toast.info('Limpieza regresada', who ? `Le avisamos a ${who.name.split(' ')[0]}.` : note)
+    sendBackCleaning(task, backNote, unit?.name)
     setBackOpen(false)
     setBackNote('')
     onClose()
@@ -197,11 +205,11 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
             <Button size="lg" variant="outline" className="w-full" onClick={onClose}>
               Listo
             </Button>
-          ) : task.status === 'pendiente' ? (
+          ) : task.status === 'pendiente' && canWork ? (
             <Button size="lg" variant="tinta" className="w-full" icon={<Play size={20} strokeWidth={1.6} />} onClick={start}>
               Empezar limpieza
             </Button>
-          ) : task.status === 'en-progreso' ? (
+          ) : task.status === 'en-progreso' && canWork ? (
             <Button size="lg" className="w-full" icon={<Sparkles size={20} strokeWidth={1.6} />} onClick={tryFinish}>
               Marcar como lista
             </Button>
@@ -216,8 +224,12 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
             </div>
           ) : (
             <p className="flex items-center justify-center gap-2 py-2 text-center text-sm text-ink-soft">
-              {task.status === 'hecha' ? (
-                'Esperando revisión de administración'
+              {task.status === 'pendiente' ? (
+                who ? `Pendiente · le toca a ${who}` : 'Pendiente · sin asignar'
+              ) : task.status === 'en-progreso' ? (
+                who ? `${who} la está limpiando` : 'Limpieza en progreso'
+              ) : task.status === 'hecha' ? (
+                'Esperando revisión de administración o recepción'
               ) : (
                 <>
                   <Sparkle className="text-chispa-soft" /> Limpieza verificada
@@ -262,7 +274,7 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
                   <Timer size={14} strokeWidth={1.6} /> Tiempo
                 </p>
                 <p className="display-num mt-1.5 text-[1.6rem]">{elapsed || '—'}</p>
-                <p className="text-xs text-ink-3">{task.startedAt ? (task.completedAt ? 'duración total' : 'desde que empezaste') : 'aún no empieza'}</p>
+                <p className="text-xs text-ink-3">{task.startedAt ? (task.completedAt ? 'duración total' : canWork ? 'desde que empezaste' : 'desde que empezó') : 'aún no empieza'}</p>
               </div>
             </div>
 
@@ -280,7 +292,7 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
               </ProgressRing>
               <div>
                 <h3 className="heading text-[1.4rem]">Checklist</h3>
-                <p className="text-sm text-ink-soft">{locked ? 'Limpieza terminada' : 'Cuarto por cuarto: toca o desliza cada paso al terminarlo'}</p>
+                <p className="text-sm text-ink-soft">{finished ? 'Limpieza terminada' : !canWork ? 'Avance en vivo, cuarto por cuarto' : 'Cuarto por cuarto: toca o desliza cada paso al terminarlo'}</p>
               </div>
             </div>
             <div className="flex flex-col gap-5">
@@ -334,19 +346,20 @@ export function CleaningSheet({ taskId, onClose }: { taskId?: ID; onClose: () =>
                 {task.photoIds.map((pid) => (
                   <PhotoThumb key={pid} id={pid} size={84} onRemove={locked ? undefined : () => db.patch('tasks', task.id, { photoIds: task.photoIds.filter((x) => x !== pid) }, { silent: true })} />
                 ))}
-                {task.status !== 'verificada' && (
+                {!canWork && task.photoIds.length === 0 && <p className="text-sm text-ink-soft">Todavía sin fotos.</p>}
+                {canWork && task.status !== 'verificada' && (
                   <PhotoButton taskId={task.id} onAdded={(pid) => db.patch('tasks', task.id, { photoIds: [...(db.get('tasks', task.id)?.photoIds ?? []), pid] }, { silent: true })} label={task.photoIds.length ? 'Otra foto' : 'Tomar foto'} className="h-[84px] flex-col !rounded-[18px] px-5" />
                 )}
               </div>
             </div>
 
-            <button onClick={() => setLostOpen(true)} className="pressable mt-6 flex w-full items-center gap-3 rounded-[18px] px-4 py-3.5 text-left ring-1 ring-line ring-inset hover:bg-wash">
+            {canDo(me?.role, 'registrarObjeto') && <button onClick={() => setLostOpen(true)} className="pressable mt-6 flex w-full items-center gap-3 rounded-[18px] px-4 py-3.5 text-left ring-1 ring-line ring-inset hover:bg-wash">
               <PackageSearch size={20} strokeWidth={1.6} className="shrink-0 text-ink-soft" />
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-medium">¿Encontraste algo olvidado?</span>
                 <span className="block text-xs text-detail">Regístralo con foto para devolverlo al huésped</span>
               </span>
-            </button>
+            </button>}
           </>
         )}
       </Sheet>

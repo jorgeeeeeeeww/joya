@@ -3,7 +3,7 @@
 // - arrastrar sobre días libres dibuja una estancia nueva (noches y precio en vivo);
 // - arrastrar una barra la mueve de fechas o de unidad; estirar sus bordes cambia llegada o salida;
 // - con el dedo, mantener presionado un momento para empezar (así no pelea con el desplazamiento).
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import type { ID, Reservation, Unit } from '@/lib/types'
@@ -16,6 +16,16 @@ import { suggestedTotal } from './ReservationSheet'
 const ROW_H = 64
 const NAME_W = 156
 const HEAD_H = 60
+
+/** Sin puntos suspensivos: si no cabe el nombre completo va el principal, y si tampoco, las iniciales */
+function barLabel(name: string, room: number) {
+  const fits = (t: string) => t.length * 6.3 <= room
+  if (fits(name)) return name
+  const [first = '', second = ''] = name.split(' ')
+  const main = /^familia$/i.test(first) && second ? second : first
+  if (fits(main)) return main
+  return (first[0] ?? '') + (second[0] ?? '')
+}
 
 type Kind = 'create' | 'move' | 'start' | 'end'
 interface DragState {
@@ -36,7 +46,18 @@ interface DragState {
 export function Timeline({ units, reservations, start, days, onCell, onBar, onCreate, onMove, money = true }: { units: Unit[]; reservations: Reservation[]; start: string; days: number; onCell: (unitId: ID, date: string) => void; onBar: (id: ID) => void; onCreate?: (unitId: ID, checkIn: string, checkOut: string) => void; onMove?: (id: ID, patch: Pick<Reservation, 'unitId' | 'checkIn' | 'checkOut'>) => void; money?: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
-  const colW = days <= 14 ? 60 : 42
+  // Las columnas se estiran para llenar la tarjeta: en pantallas anchas no queda un hueco a la derecha
+  const [boxW, setBoxW] = useState(0)
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const measure = () => setBoxW(el.clientWidth)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const colW = Math.max(days <= 14 ? 60 : 42, boxW ? (boxW - NAME_W) / days : 0)
   const end = addDaysISO(start, days)
   const t = today()
   const dates = useMemo(() => Array.from({ length: days }, (_, i) => addDaysISO(start, i)), [start, days])
@@ -192,10 +213,15 @@ export function Timeline({ units, reservations, start, days, onCell, onBar, onCr
     window.addEventListener('pointercancel', stable.up)
   }
 
+  // Una estancia que empezó antes de lo que se ve arranca en la orilla, con su nombre a la vista
   const barGeom = (checkIn: string, checkOut: string) => {
-    const a = Math.max(-0.5, dayIndex(checkIn) + 0.5)
-    const b = Math.min(days, dayIndex(checkOut) + 0.5)
-    return { left: NAME_W + a * colW + 3, width: Math.max(colW * 0.7, (b - a) * colW - 6) }
+    const from = dayIndex(checkIn) + 0.5
+    const to = dayIndex(checkOut) + 0.5
+    const cutL = from < 0
+    const cutR = to > days
+    const a = Math.max(0, from)
+    const b = Math.min(days, to)
+    return { left: NAME_W + a * colW + (cutL ? 0 : 3), width: Math.max(colW * 0.7, (b - a) * colW - (cutL ? 0 : 3) - (cutR ? 0 : 3)), cutL, cutR }
   }
 
   return (
@@ -254,23 +280,27 @@ export function Timeline({ units, reservations, start, days, onCell, onBar, onCr
                   const inHouse = r.status === 'en-casa'
                   const movable = !locked(r) && !!onMove
                   const isDragged = drag?.active && drag.id === r.id
+                  const narrow = g.width < 76
+                  const room = g.width - (narrow ? 14 : 38)
+                  const label = barLabel(block ? 'Bloqueado' : r.guestName, room)
+                  const showTag = inHouse && room - label.length * 6.3 >= 50
                   return (
                     <motion.div
                       key={r.id}
                       initial={{ opacity: 0, x: -6 }}
                       animate={{ opacity: isDragged ? 0.3 : 1, x: 0, transition: { duration: 0.36, ease: ease.calma } }}
-                      className={cx('group/bar absolute top-1/2 z-[5] h-9 -translate-y-1/2 rounded-full shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)]', block ? 'bg-sunken text-ink-soft [background-image:repeating-linear-gradient(135deg,transparent_0_6px,var(--line)_6px_8px)]' : [TONE[tone].soft, TONE[tone].ink], inHouse && 'ring-[1.5px] ring-primary')}
+                      className={cx('group/bar absolute top-1/2 z-[5] h-9 -translate-y-1/2 rounded-full shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)]', g.cutL && 'rounded-l-[6px]', g.cutR && 'rounded-r-[6px]', block ? 'bg-sunken text-ink-soft [background-image:repeating-linear-gradient(135deg,transparent_0_6px,var(--line)_6px_8px)]' : [TONE[tone].soft, TONE[tone].ink], inHouse && 'ring-[1.5px] ring-primary')}
                       style={{ left: g.left, width: g.width }}
                     >
                       <button
                         onPointerDown={(e) => movable && begin(e, 'move', ui, r.id)}
                         onClick={() => !suppressClick.current && onBar(r.id)}
-                        className={cx('no-callout flex h-full w-full touch-manipulation items-center gap-2 overflow-hidden rounded-full px-3 text-left text-xs font-medium', movable && 'cursor-grab active:cursor-grabbing')}
+                        className={cx('no-callout flex h-full w-full touch-manipulation items-center gap-2 overflow-hidden rounded-[inherit] text-left text-xs font-medium', narrow ? 'justify-center px-1.5' : 'px-3', movable && 'cursor-grab active:cursor-grabbing')}
                         title={`${r.guestName} · ${r.checkIn} → ${r.checkOut}${movable ? ' · arrastra para mover' : ''}`}
                       >
-                        <span className={cx('h-1.5 w-1.5 shrink-0 rounded-full', block ? 'bg-ink-faint' : TONE[tone].solid)} />
-                        <span className="truncate keep-truncate">{block ? 'Bloqueado' : r.guestName}</span>
-                        {inHouse && <span className="ml-auto shrink-0 text-[10px] opacity-75">en casa</span>}
+                        {!narrow && <span className={cx('h-1.5 w-1.5 shrink-0 rounded-full', block ? 'bg-ink-faint' : TONE[tone].solid)} />}
+                        <span className="whitespace-nowrap">{label}</span>
+                        {showTag && <span className="ml-auto shrink-0 text-[10px] opacity-75">en casa</span>}
                       </button>
                       {movable && (
                         <>
@@ -286,7 +316,7 @@ export function Timeline({ units, reservations, start, days, onCell, onBar, onCr
                 <div
                   aria-live="polite"
                   className={cx('pointer-events-none absolute top-1/2 z-[7] flex h-10 -translate-y-1/2 items-center gap-2 overflow-hidden rounded-full px-3 text-xs font-semibold whitespace-nowrap shadow-[var(--shadow-3)] ring-2', draft.conflict ? 'bg-[color-mix(in_oklab,var(--danger)_14%,var(--surface))] text-danger ring-danger' : 'bg-surface text-ink ring-primary shadow-[0_0_24px_color-mix(in_oklab,var(--luz)_55%,transparent)]')}
-                  style={barGeom(draft.checkIn, draft.checkOut)}
+                  style={{ left: barGeom(draft.checkIn, draft.checkOut).left, width: barGeom(draft.checkIn, draft.checkOut).width }}
                 >
                   <span className="truncate keep-truncate">
                     {draft.conflict ? `Choca con ${draft.conflict.guestName.split(' ')[0]}` : `${draft.n} ${draft.n === 1 ? 'noche' : 'noches'}`}

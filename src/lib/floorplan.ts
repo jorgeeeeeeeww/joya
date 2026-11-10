@@ -194,6 +194,20 @@ export function autoLayout(venue: Venue, guests: number, style: LayoutStyle = 'b
   return items
 }
 
+/** Lo que pide un plano contra lo que hay en la bodega */
+export function furnitureNeeds(items: FloorItem[], stockOf: (id: string) => number) {
+  const count = (t: FloorItemType) => items.filter((i) => i.type === t).length
+  const rect = count('mesa-rectangular') + count('mesa-cuadrada') + count('mesa-novios') + count('mesa-dulces') + count('mesa-imperial') * 3 + count('mesa-principal') * 3
+  const chairs = items.filter((i) => ITEM_SPECS[i.type].isTable && i.type !== 'periquera').reduce((n, i) => n + (i.seats ?? 0), 0) + items.filter((i) => i.type === 'sillas-ceremonia').reduce((n, i) => n + (i.seats ?? 0), 0)
+  return [
+    { label: 'Mesas redondas', need: count('mesa-redonda') + count('mesa-media-luna'), have: stockOf('inv_redondas') },
+    { label: 'Mesas rectangulares', need: rect, have: stockOf('inv_rect') },
+    { label: 'Periqueras', need: count('periquera'), have: stockOf('inv_periqueras') },
+    { label: 'Sillas', need: chairs, have: stockOf('inv_tiffany') + stockOf('inv_plegables'), hint: `${stockOf('inv_tiffany')} Tiffany + ${stockOf('inv_plegables')} plegables` },
+    { label: 'Manteles redondos', need: count('mesa-redonda'), have: stockOf('inv_manteles') },
+  ].filter((f) => f.need > 0)
+}
+
 export function layoutStats(items: FloorItem[]) {
   const tables = items.filter((i) => ITEM_SPECS[i.type].isTable)
   const seats = items.filter((i) => ITEM_SPECS[i.type].isTable || i.type === 'sillas-ceremonia' || i.type === 'lounge').reduce((n, i) => n + (i.seats ?? 0), 0)

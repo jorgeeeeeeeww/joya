@@ -120,10 +120,19 @@ export type TaskType = 'limpieza' | 'mantenimiento' | 'evento' | 'jardin' | 'com
 export type TaskStatus = 'pendiente' | 'en-progreso' | 'hecha' | 'verificada'
 export type Priority = 'baja' | 'media' | 'alta' | 'urgente'
 
+/** Carriles del camino de un evento (Estudio de la wedding planner) */
+export type CaminoLane = 'dinero' | 'proveedores' | 'invitados' | 'diseno' | 'dia'
+
 export interface ChecklistItem {
   id: ID
   text: string
   done: boolean
+  /** Fecha límite: con ella, el pendiente aparece en el camino del evento */
+  due?: ISODate
+  /** Carril del camino donde vive este pendiente */
+  lane?: CaminoLane
+  /** Por qué importa o cómo se hace, en una frase */
+  note?: string
 }
 
 export interface Task extends BaseDoc {
@@ -325,6 +334,8 @@ export interface RanchEvent extends BaseDoc {
   paymentPlan?: PaymentPlanItem[]
   signatures?: Signature[]
   vendorIds?: ID[]
+  /** Fechas de los hitos que la planner movió a mano en el camino del evento (clave del hito → fecha) */
+  milestoneDates?: Record<string, ISODate>
   /** Qué partes usa este evento (lista de invitados, plano, pagos…); lo que falta toma el valor del tipo de evento */
   modules?: Partial<Record<'invitados' | 'plano' | 'cotizacion' | 'pagos' | 'presupuesto' | 'inspiracion' | 'programa' | 'beo' | 'proveedores' | 'checklist', boolean>>
 }
@@ -471,11 +482,16 @@ export interface Settings {
   automations: AutomationSettings
   supabaseUrl?: string
   supabaseAnonKey?: string
+  /** Puesto y persona de la cuenta vinculada en este dispositivo (los da la nube al entrar) */
+  cloudRole?: Role
+  cloudEmployeeId?: ID
+  cloudEmail?: string
   /** Llave pública VAPID para notificaciones push (opcional) */
   vapidPublicKey?: string
   lastBackupAt?: ISODateTime
   /** Precio por persona de cada paquete (los pone el rancho; sin precio no se muestran estimados) */
   packagePrices?: Record<string, number>
+  extraHourPrice?: number
   /** PIN aparte para el panel de desarrollador (solo el dueño) */
   devPinHash?: string
   /** Muestra opciones técnicas (cómo funciona, vitrina de diseño, diagnósticos) */

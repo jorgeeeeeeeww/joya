@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, ClipboardPaste, Eye, MessageCircle, Phone, Plus, Search, Sun, Trash2, UserPlus, Zap } from 'lucide-react'
 import type { Guest, Provider, RanchEvent, TimelineItem } from '@/lib/types'
 import { ITEM_SPECS } from '@/lib/floorplan'
-import { today, uid, waLink } from '@/lib/format'
+import { fmtDate, today, uid, waLink } from '@/lib/format'
 import { haptic } from '@/lib/motion'
 import { Badge, Button, Card, CardHeader, Chip, Empty, Field, Input, ProgressRing, Select, Sheet, Textarea, cx, toast } from '@/components/ui'
 import { CountUp, Sparkle } from '@/components/step1'
+import { GrowText } from '@/components/fields'
 import { useEventDraft } from './useDraft'
 import { SortableList } from '@/components/interact'
 import { withUndo } from '@/lib/undo'
@@ -213,7 +215,7 @@ const timeKey = (t: string) => {
 }
 
 /** Mantiene la pantalla encendida mientras `active` (Screen Wake Lock API) */
-function useWakeLock(active: boolean) {
+export function useWakeLock(active: boolean) {
   const [on, setOn] = useState(false)
   useEffect(() => {
     if (!active) return
@@ -250,7 +252,8 @@ function useWakeLock(active: boolean) {
 
 export function TimelineTab({ ev }: { ev: RanchEvent }) {
   const [items, setItems] = useEventDraft(ev, 'timeline')
-  const [live, setLive] = useState(ev.date === today())
+  const navigate = useNavigate()
+  const live = ev.date === today()
   const awake = useWakeLock(live)
   const sorted = [...items].sort((a, b) => timeKey(a.time) - timeKey(b.time))
   const now = new Date()
@@ -272,8 +275,8 @@ export function TimelineTab({ ev }: { ev: RanchEvent }) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant={live ? 'tinta' : 'outline'} size="sm" icon={<Zap size={16} strokeWidth={1.6} />} onClick={() => setLive((v) => !v)} aria-pressed={live}>
-              Modo día del evento
+            <Button variant={live ? 'tinta' : 'outline'} size="sm" icon={<Zap size={16} strokeWidth={1.6} />} onClick={() => navigate(`/estudio/${ev.id}/dia`)}>
+              {live ? 'Abrir Modo día' : 'Ensayar el día'}
             </Button>
             <Button variant="secondary" size="sm" icon={<Plus size={16} strokeWidth={1.6} />} onClick={() => setItems([...items, { id: uid('tl_'), time: sorted.at(-1)?.time ?? ev.startTime, title: 'Nueva actividad', done: false }])}>
               Actividad
@@ -312,7 +315,7 @@ export function TimelineTab({ ev }: { ev: RanchEvent }) {
                 </span>
                 <div className={cx('min-w-0 flex-1 rounded-[18px] p-3.5 transition-colors duration-[var(--dur-3)]', isNow ? 'bg-[color-mix(in_oklab,var(--luz)_45%,var(--surface))] shadow-[var(--glow)]' : isNext && live ? 'bg-secondary' : 'bg-sunken/60')}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <input type="time" value={it.time} onChange={(e) => update(it.id, { time: e.target.value })} aria-label="Hora" className="rounded-[10px] bg-surface px-2.5 py-1 text-sm tabular outline-none ring-1 ring-line" />
+                    <HourInput value={it.time} onChange={(time) => update(it.id, { time })} />
                     {isNow && <Badge tone="butter" sparkle>Ahora</Badge>}
                     {isNext && !isNow && live && <Badge tone="lavender">Sigue</Badge>}
                     {it.done && <Sparkle className="text-chispa-soft" />}
@@ -324,7 +327,7 @@ export function TimelineTab({ ev }: { ev: RanchEvent }) {
                       <Trash2 size={15} strokeWidth={1.6} />
                     </Button>
                   </div>
-                  <input value={it.title} onChange={(e) => update(it.id, { title: e.target.value })} aria-label="Actividad" className={cx('mt-1.5 w-full bg-transparent font-medium outline-none', it.done && 'text-ink-3 line-through', live && 'heading text-xl')} />
+                  <GrowText label="Actividad" value={it.title} onChange={(title) => update(it.id, { title })} className={cx('mt-1.5 leading-snug font-medium', it.done && 'text-ink-3 line-through', live && 'heading text-xl')} />
                   <input value={it.owner ?? ''} onChange={(e) => update(it.id, { owner: e.target.value })} placeholder="Responsable" aria-label="Responsable" className="w-full bg-transparent text-sm text-ink-soft outline-none" />
                 </div>
               </div>
@@ -365,12 +368,10 @@ export function TimelineTab({ ev }: { ev: RanchEvent }) {
   )
 }
 
-// ── Checklist y proveedores rápidos ──────────────────────
+// ── Pendientes del evento ────────────────────────────────
 export function ChecklistTab({ ev }: { ev: RanchEvent }) {
   const [checklist, setChecklist] = useEventDraft(ev, 'checklist')
-  const [providers, setProviders] = useEventDraft(ev, 'providers')
   const [newItem, setNewItem] = useState('')
-  const [provOpen, setProvOpen] = useState(false)
   const done = checklist.filter((c) => c.done).length
   const addItem = () => {
     if (!newItem.trim()) return
@@ -379,14 +380,26 @@ export function ChecklistTab({ ev }: { ev: RanchEvent }) {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <div className="max-w-3xl">
       <Card>
-        <CardHeader title="Checklist del evento" subtitle={done === checklist.length && checklist.length ? 'Todo listo' : `${done} de ${checklist.length} listos`} icon={<ProgressRing value={checklist.length ? done / checklist.length : 0} size={52} stroke={4} gradient />} />
+        <CardHeader
+          title="Pendientes del evento"
+          subtitle={done === checklist.length && checklist.length ? 'Todo listo' : `${done} de ${checklist.length} listos`}
+          icon={<ProgressRing value={checklist.length ? done / checklist.length : 0} size={52} stroke={4} gradient />}
+          action={
+            <Link to={`/estudio/${ev.id}`} className="pressable inline-flex h-10 items-center rounded-full px-3 text-[13px] font-medium ring-1 ring-line-strong ring-inset hover:bg-wash pointer-fine:h-8">
+              Ver en su camino
+            </Link>
+          }
+        />
         <div className="flex flex-col gap-1 p-3 md:p-4">
           {checklist.map((c) => (
             <div key={c.id} className="group flex items-center gap-3 rounded-[14px] px-2 py-1.5 hover:bg-wash">
               <RoundCheck done={c.done} tone="primary" onClick={() => setChecklist(checklist.map((x) => (x.id === c.id ? { ...x, done: !x.done } : x)))} label={c.done ? `Desmarcar ${c.text}` : `Marcar ${c.text}`} />
-              <span className={cx('flex-1', c.done && 'text-ink-3 line-through')}>{c.text}</span>
+              <span className={cx('min-w-0 flex-1 leading-snug', c.done && 'text-ink-3 line-through')}>
+                {c.text}
+                {c.due && <span className={cx('block text-[12.5px] no-underline', !c.done && c.due < today() ? 'font-medium text-key' : 'text-detail')}>{fmtDate(c.due)}</span>}
+              </span>
               {c.done && <Sparkle className="text-[11px] text-chispa-soft" />}
               <Button size="icon-sm" variant="ghost" aria-label={`Quitar ${c.text}`} onClick={() => setChecklist(checklist.filter((x) => x.id !== c.id))} className="opacity-0 group-hover:opacity-100 focus:opacity-100 hover:!text-danger max-md:opacity-100">
                 <Trash2 size={15} strokeWidth={1.6} />
@@ -401,17 +414,42 @@ export function ChecklistTab({ ev }: { ev: RanchEvent }) {
           </div>
         </div>
       </Card>
+    </div>
+  )
+}
 
+/** Proveedores que no están en el directorio: solo para este evento (viven en la pestaña Proveedores) */
+/** Hora en 24 h: se escribe 1630 o 16:30 (el campo del navegador la mostraría con a. m. y p. m.) */
+function HourInput({ value, onChange }: { value: string; onChange: (hhmm: string) => void }) {
+  const [text, setText] = useState(value)
+  useEffect(() => setText(value), [value])
+  const commit = () => {
+    const d = text.replace(/\D/g, '')
+    const h = Number(d.length <= 2 ? d : d.slice(0, -2))
+    const m = d.length <= 2 ? 0 : Number(d.slice(-2))
+    if (!d || h > 23 || m > 59) return setText(value)
+    const next = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    setText(next)
+    if (next !== value) onChange(next)
+  }
+  return <input value={text} inputMode="numeric" maxLength={5} aria-label="Hora" onChange={(e) => setText(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} className="h-11 w-[72px] rounded-[10px] bg-surface text-center text-sm tabular ring-1 ring-line outline-none focus:ring-[1.5px] focus:ring-primary pointer-fine:h-9" />
+}
+
+export function QuickProvidersCard({ ev }: { ev: RanchEvent }) {
+  const [providers, setProviders] = useEventDraft(ev, 'providers')
+  const [provOpen, setProvOpen] = useState(false)
+  return (
+    <div>
       <Card>
-        <CardHeader title="Proveedores rápidos" subtitle={providers.length ? `${providers.filter((p) => p.confirmed).length} de ${providers.length} confirmados` : 'Para los que no están en el directorio'} action={<Button size="sm" variant="secondary" icon={<Plus size={16} strokeWidth={1.6} />} onClick={() => setProvOpen(true)}>Agregar proveedor</Button>} />
+        <CardHeader title="Fuera del directorio" subtitle={providers.length ? `${providers.filter((p) => p.confirmed).length} de ${providers.length} confirmados` : 'Proveedores solo para este evento, que no están en el directorio'} action={<Button size="sm" variant="secondary" icon={<Plus size={16} strokeWidth={1.6} />} onClick={() => setProvOpen(true)}>Agregar proveedor</Button>} />
         <div className="flex flex-col gap-2 p-3 md:p-4">
-          {providers.length === 0 && <Empty kind="proveedores" title="Sin proveedores" body="Banquete, DJ, decoración, fotografía…" />}
+          {providers.length === 0 && <p className="px-1 py-2 text-sm text-ink-soft">Si alguien participa y no está en el directorio (el primo DJ, la tía que hace el pastel), agrégalo aquí.</p>}
           {providers.map((p) => (
             <div key={p.id} className="flex items-center gap-3 rounded-[14px] bg-sunken/70 p-3">
               <RoundCheck done={p.confirmed} onClick={() => setProviders(providers.map((x) => (x.id === p.id ? { ...x, confirmed: !x.confirmed } : x)))} label={p.confirmed ? `Quitar confirmación de ${p.name}` : `Confirmar a ${p.name}`} />
               <div className="min-w-0 flex-1">
-                <div className="truncate font-medium">{p.name}</div>
-                <div className="truncate text-xs text-detail">{p.service}</div>
+                <div className="font-medium leading-snug">{p.name}</div>
+                <div className="text-xs text-detail">{p.service}</div>
               </div>
               {p.phone && (
                 <>

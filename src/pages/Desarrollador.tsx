@@ -6,7 +6,9 @@ import { useStore } from '@/lib/store'
 import { hashPin } from '@/lib/crypto'
 import { pull, push, restartSync, uploadAll, useNetwork } from '@/lib/sync'
 import { clearErrors, explain, readErrors } from '@/lib/errorLog'
-import { usePwa } from '@/lib/pwa'
+import { applyUpdate, checkForUpdate } from '@/lib/pwa'
+import { buildLabel, BUILD_ID, APP_VERSION } from '@/lib/version'
+import { DeviceMonitor } from '@/components/owner/DeviceMonitor'
 import { ago, fmt } from '@/lib/format'
 import { Badge, Button, Card, CardHeader, Confirm, cx, Field, Input, PageHeader, toast } from '@/components/ui'
 import { CloudCenter } from '@/components/CloudCenter'
@@ -99,7 +101,6 @@ function Panel() {
   const dirty = useStore((s) => Object.keys(s.dirty).length)
   const linked = useStore((s) => !!s.settings.supabaseUrl)
   const { online } = useNetwork()
-  const update = usePwa((s) => s.update)
   const [errors, setErrors] = useState(readErrors)
   const [confirmClear, setConfirmClear] = useState(false)
   const syncErrors = useMemo(() => sync.log.filter((l) => l.level !== 'info'), [sync.log])
@@ -113,9 +114,7 @@ function Panel() {
   }
 
   const checkUpdate = async () => {
-    const reg = await navigator.serviceWorker?.getRegistration()
-    await reg?.update()
-    if (update && usePwa.getState().needRefresh) return update()
+    if (await checkForUpdate(true)) return applyUpdate()
     toast.info('Ya tienes la última versión', 'Si acabas de publicar, espera un minuto y vuelve a intentar.')
   }
 
@@ -142,10 +141,13 @@ function Panel() {
           ))}
         </div>
         <p className="px-6 pb-5 text-xs text-detail">
-          Última vez sincronizado: {sync.lastSyncAt ? ago(sync.lastSyncAt) : 'nunca'} · Subidos {sync.pushed} · Bajados {sync.pulled} · Combinados {sync.merged}
+          Versión {APP_VERSION} · {buildLabel(BUILD_ID)} · Última vez sincronizado: {sync.lastSyncAt ? ago(sync.lastSyncAt) : 'nunca'} · Subidos {sync.pushed} · Bajados {sync.pulled} · Combinados {sync.merged}
           {sync.error ? ` · Último error: ${sync.error}` : ''}
         </p>
       </Card>
+
+      {/* Monitor central: todos los dispositivos */}
+      {linked && <DeviceMonitor />}
 
       {/* Reparar */}
       <Card>
@@ -213,9 +215,9 @@ function Panel() {
           <div className="min-w-0">
             <p className="font-medium">Publicar un arreglo en Cloudflare</p>
             <p className="mt-1 text-sm text-ink-soft">
-              El código nuevo se publica desde la computadora (no desde la app). Después, en cada dispositivo toca «Buscar versión nueva» o espera: la app se actualiza sola y conserva todos los datos.
+              Al subir el código a main en GitHub se publica solo (pruebas, Supabase y Cloudflare). Cada dispositivo toma la versión nueva al abrir la app o al volver a ella, y conserva todos los datos. A mano, desde la computadora:
             </p>
-            <pre className="mt-3 overflow-x-auto rounded-[12px] bg-sunken p-3 text-xs">npm run build{'\n'}npx wrangler pages deploy dist --project-name la-joya</pre>
+            <pre className="mt-3 overflow-x-auto rounded-[12px] bg-sunken p-3 text-xs">npm run build{'\n'}npx wrangler deploy</pre>
           </div>
         </div>
       </Card>

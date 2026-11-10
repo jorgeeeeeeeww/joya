@@ -1,7 +1,9 @@
-# Respaldo nocturno cifrado de la base de datos de La Joya.
+# Respaldo nocturno cifrado de La Joya: datos, cuentas del equipo y fotos.
 # Requiere estos "secrets" en el repositorio (Settings → Secrets and variables → Actions):
 #   SUPABASE_DB_URL      → cadena de conexión de Postgres (Supabase → Project Settings → Database → URI, modo "session")
 #   BACKUP_PASSPHRASE    → contraseña larga para cifrar el respaldo (guárdala también fuera de GitHub)
+#   SB_SECRET_KEY        → llave secreta nueva (sb_secret_…), para bajar las fotos y avisar al monitor
+# Y la variable SUPABASE_URL (https://TU-PROYECTO.supabase.co).
 # El archivo cifrado queda como "artifact" del workflow durante 30 días.
 name: Respaldo nocturno
 
@@ -16,8 +18,10 @@ permissions:
 jobs:
   respaldo:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
+      - uses: actions/checkout@v4
+
       - name: Instalar cliente de Postgres 17
         run: |
           sudo apt-get update -qq
@@ -25,25 +29,49 @@ jobs:
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y -qq postgresql-client-17
 
-      - name: Volcar base de datos
+      - name: Volcar datos y cuentas
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           STAMP=$(date -u +%Y-%m-%d)
-          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --schema=public --no-owner --no-privileges --format=custom --file="la-joya-$STAMP.dump"
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          mkdir -p "la-joya-$STAMP"
+          # Todo lo de la app (documentos, historial, perfiles, monitor)
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --schema=public --no-owner --no-privileges --format=custom --file="la-joya-$STAMP/datos.dump"
+          # Cuentas del equipo (correos y contraseñas cifradas) para poder recrearlas
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --data-only --table=auth.users --table=auth.identities --no-owner --no-privileges --format=custom --file="la-joya-$STAMP/cuentas.dump"
+          # Lista de fotos con sus datos (para restaurarlas en el almacén)
+          /usr/lib/postgresql/17/bin/psql "$DB_URL" -c "\copy (select name, metadata, created_at from storage.objects where bucket_id = 'fotos') to 'la-joya-$STAMP/fotos.csv' csv header"
 
-      - name: Cifrar (AES-256)
+      - name: Bajar las fotos
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SB_SECRET_KEY: ${{ secrets.SB_SECRET_KEY }}
+        run: node scripts/respaldo-fotos.mjs "la-joya-$STAMP/fotos"
+
+      - name: Empaquetar y cifrar (AES-256)
         env:
           PASS: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
-          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" --symmetric --cipher-algo AES256 "la-joya-$STAMP.dump"
-          rm "la-joya-$STAMP.dump"
+          tar -czf "la-joya-$STAMP.tar.gz" "la-joya-$STAMP"
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" --symmetric --cipher-algo AES256 "la-joya-$STAMP.tar.gz"
+          rm -rf "la-joya-$STAMP" "la-joya-$STAMP.tar.gz"
           ls -lh
 
       - name: Guardar respaldo
         uses: actions/upload-artifact@v4
         with:
           name: la-joya-${{ env.STAMP }}
-          path: la-joya-*.dump.gpg
+          path: la-joya-*.tar.gz.gpg
           retention-days: 30
+
+      - name: Avisar al monitor central
+        if: always()
+        env:
+          URL: ${{ vars.SUPABASE_URL }}
+          KEY: ${{ secrets.SB_SECRET_KEY }}
+          OK: ${{ job.status == 'success' }}
+        run: |
+          [ -z "$KEY" ] && exit 0
+          curl -fsS -X POST "$URL/rest/v1/rpc/record_backend_run" -H "apikey: $KEY" -H "Content-Type: application/json" \
+            -d "{\"p_job\":\"respaldo\",\"p_label\":\"Respaldo nocturno\",\"p_ok\":$OK,\"p_detail\":\"$( [ "$OK" = true ] && echo "Datos, cuentas y fotos del ${STAMP:-hoy}" || echo 'Revisa el registro en GitHub Actions')\"}" || true

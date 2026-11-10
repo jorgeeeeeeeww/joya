@@ -3,16 +3,16 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { Heart, Pencil, Plus, Star, Store, Trash2 } from 'lucide-react'
+import { Heart, Pencil, Plus, Star, Trash2 } from 'lucide-react'
 import type { Vendor, VendorCategory } from '@/lib/types'
 import { db, useCollection } from '@/lib/store'
 import { VENDOR_CATEGORY } from '@/lib/meta'
 import { fmtDate, mxn, today } from '@/lib/format'
 import { haptic } from '@/lib/motion'
-import { Badge, Button, Card, Chip, Empty, PageHeader, Sheet, Stat, Toggle, cx, toast, StatStrip, FilterMenu } from '@/components/ui'
+import { Badge, Button, Card, Chip, Empty, PageHeader, Sheet, Toggle, cx, toast, FilterMenu } from '@/components/ui'
 import { Choices, EmailField, FormScope, MoneyField, NotesField, PhoneField, SearchField, TextField } from '@/components/fields'
 import { removeWithUndo } from '@/lib/undo'
-import { CountUp, Sparkle } from '@/components/step1'
+import { Sparkle } from '@/components/step1'
 import { Rating, VendorActions } from '@/components/events/PlannerTabs'
 
 export default function Proveedores() {
@@ -46,7 +46,6 @@ export default function Proveedores() {
     .filter((v) => !q || norm(`${v.name} ${v.contact ?? ''} ${v.notes ?? ''}`).includes(norm(q)))
     .sort((a, b) => Number(b.favorite) - Number(a.favorite) || b.rating - a.rating || a.name.localeCompare(b.name))
   const cats = (Object.keys(VENDOR_CATEGORY) as VendorCategory[]).filter((c) => vendors.some((v) => v.category === c))
-  const avg = vendors.length ? vendors.reduce((n, v) => n + v.rating, 0) / vendors.length : 0
 
   return (
     <div>
@@ -60,12 +59,6 @@ export default function Proveedores() {
           </Button>
         }
       />
-      <StatStrip className="mb-6">
-        <Stat label="Proveedores" value={<CountUp value={vendors.length} />} tone="lavender" icon={<Store size={16} strokeWidth={1.6} />} />
-        <Stat label="Favoritos" value={<CountUp value={vendors.filter((v) => v.favorite).length} />} tone="rose" icon={<Heart size={16} strokeWidth={1.6} />} onClick={() => setFavOnly((v) => !v)} />
-        <Stat label="Calificación promedio" value={avg.toFixed(1)} sub="De 5 estrellas" tone="butter" />
-        <Stat label="Categorías" value={cats.length} tone="sage" />
-      </StatStrip>
 
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
         <SearchField value={q} onChange={setQ} placeholder="Buscar proveedor" className="lg:w-80" shortcut />
@@ -125,14 +118,12 @@ export default function Proveedores() {
                       {u ? (
                         <button onClick={() => u.next && navigate(`/eventos/${u.next.id}?tab=proveedores`)} className="flex w-full items-center gap-2 rounded-[14px] bg-sunken/70 px-3 py-2.5 text-left text-xs text-ink-soft hover:bg-sunken">
                           <Sparkle className="text-chispa-soft" />
-                          <span className="min-w-0 flex-1 truncate">
+                          <span className="min-w-0 flex-1 leading-snug">
                             {u.count} {u.count === 1 ? 'evento' : 'eventos'}
                             {u.next ? ` · próximo: ${u.next.title}, ${fmtDate(u.next.date)}` : ''}
                           </span>
                         </button>
-                      ) : (
-                        <div className="rounded-[14px] px-3 py-2.5 text-xs text-ink-3 ring-1 ring-line ring-inset [border-style:dashed]">Sin eventos asignados</div>
-                      )}
+                      ) : null}
                       <VendorActions phone={v.phone} instagram={v.instagram} message={`Hola ${v.contact ?? v.name}, te escribimos de Jardines La Joya para cotizar un evento.`} />
                     </div>
                   </Card>

@@ -3,8 +3,17 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
+import { readFileSync } from 'node:fs'
+
+// Número de versión de cada publicación: fecha y hora UTC (AAAAMMDDHHmm). Se compara como texto.
+const BUILD_ID = process.env.LAJOYA_BUILD_ID || new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12)
+const APP_VERSION = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version
 
 export default defineConfig({
+  define: {
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
@@ -13,7 +22,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.ico', 'logo.svg', 'apple-touch-icon-180x180.png', 'push-sw.js'],
+      // Service worker propio (src/sw/sw.ts): app sin internet, actualizaciones y avisos push en un solo archivo
+      strategies: 'injectManifest',
+      srcDir: 'src/sw',
+      filename: 'sw.ts',
+      includeAssets: ['favicon.ico', 'logo.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
         id: '/',
         name: 'La Joya · Jardines & Cabañas',
@@ -43,27 +56,13 @@ export default defineConfig({
           { name: 'Hospedaje', url: '/hospedaje', icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }] },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        // Lo pesado y opcional (motor 3D y lector de códigos) no se descarga al instalar: se guarda la primera vez que se usa
-        globIgnores: ['**/tres-d-*.js', '**/*.wasm'],
-        importScripts: ['push-sw.js'],
-        cleanupOutdatedCaches: true,
-        navigateFallbackDenylist: [/^\/functions\//, /^\/rest\//],
+        // Lo pesado y opcional (motor 3D, lector de códigos) y las pantallas de arranque de iPhone no se descargan al instalar
+        globIgnores: ['**/tres-d-*.js', '**/*.wasm', 'arranque/**'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        navigateFallback: '/index.html',
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => /\/assets\/(tres-d-[^/]+\.js|[^/]+\.wasm)$/.test(url.pathname),
-            handler: 'CacheFirst',
-            options: { cacheName: 'modulos-pesados', expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 60 } },
-          },
-          {
-            urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'clima', expiration: { maxEntries: 4, maxAgeSeconds: 60 * 60 * 6 } },
-          },
-        ],
+        // El service worker también conoce el número de versión de la publicación
+        buildPlugins: { vite: [{ name: 'la-joya-version', config: () => ({ define: { __BUILD_ID__: JSON.stringify(BUILD_ID) } }) }] },
       },
     }),
   ],

@@ -28,7 +28,7 @@ function Money({ value, className }: { value: number; className?: string }) {
 }
 
 export function WhatIfCard({ base }: { base: WhatIfBase }) {
-  const init = () => ({ occ: Math.round(base.occupancy * 100), adr: Math.round(base.adr / 50) * 50 || 1800, events: Math.max(0, Math.round(base.eventsPerMonth)), ticket: Math.round(base.eventTicket / 1000) * 1000 || 90000, exp: 0 })
+  const init = () => ({ occ: Math.round(base.occupancy * 100), adr: Math.round(base.adr / 50) * 50 || 800, events: Math.max(0, Math.round(base.eventsPerMonth)), ticket: Math.round(base.eventTicket / 1000) * 1000 || 20000, exp: 0 })
   const [v, setV] = useState(init)
   const set = (p: Partial<typeof v>) => setV((x) => ({ ...x, ...p }))
   const lodging = base.units * 30 * (v.occ / 100) * v.adr

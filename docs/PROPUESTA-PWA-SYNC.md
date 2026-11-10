@@ -1,6 +1,6 @@
 # Propuesta: PWA, sync y backend de La Joya
 
-Estado: **pendiente de aprobación**. Todavía no se ha cambiado nada en el código.
+Estado: **aprobada y construida** (4 nov 2026). Probada con la nube de prueba en dos dispositivos simulados. Falta la prueba en un iPhone real y la configuración de las cuentas (ver docs/PUESTA-EN-MARCHA.md).
 
 > **Aclaración:** Supabase no hospeda la app. Solo es el backend (datos, cuentas, fotos, avisos). Los archivos de la app se publican en Cloudflare, como ya estaba planeado.
 
@@ -77,7 +77,7 @@ Estado: **pendiente de aprobación**. Todavía no se ha cambiado nada en el cód
 ## Decisiones por defecto (si no se indica otra cosa)
 
 - La dirección y la llave van dentro de la app, y se publica en Cloudflare Workers.
-- Hay 64 archivos con cambios de diseño sin guardar en git. No se tocan ni se hacen commits sin pedirlo.
+- Los cambios de diseño ya quedaron guardados en git (commit «Pulido premium»).
 
 ## Cómo se va a probar
 
