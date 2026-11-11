@@ -86,6 +86,14 @@
       "port": 5180
     },
     {
+      "name": "rancho-real",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "mac/nube-local/rancho-real.mjs"
+      ],
+      "port": 4325
+    },
+    {
       "name": "marcar-mapa",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
