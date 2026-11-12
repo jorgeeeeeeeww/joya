@@ -213,9 +213,22 @@ for (const [que, a, b] of ESTANCIAS) {
 
 // Entrar el mismo día que sale el anterior
 {
-  const r = await Promise.all(LUGARES.map((l) => reservar({ cabana: l.slug, llegada: masDias(HOY, 2), salida: masDias(HOY, 3) })))
+  // El primer día en que alguien sale (la noche anterior ocupada) y la noche siguiente sigue libre. Antes era fijo
+  // «pasado mañana», y los miércoles caía en el fin de semana que ya se reservó arriba (falla de la prueba, no de la nube).
+  const salidaLibre = (slug) => {
+    let d = masDias(HOY, 2)
+    while (libreEnModelo(slug, masDias(d, -1), d) || !libreEnModelo(slug, d, masDias(d, 1))) d = masDias(d, 1)
+    return d
+  }
+  const dias = LUGARES.map((l) => salidaLibre(l.slug))
+  const r = await Promise.all(LUGARES.map((l, i) => reservar({ cabana: l.slug, llegada: dias[i], salida: masDias(dias[i], 1) })))
   const ok = r.every((x) => x.ok)
-  if (ok) r.forEach((x, i) => (apartarEnModelo(LUGARES[i].slug, masDias(HOY, 2), masDias(HOY, 3)), reservadas.push({ slug: LUGARES[i].slug, codigo: x.codigo, token: x.token, llegada: masDias(HOY, 2), salida: masDias(HOY, 3) })))
+  r.forEach((x, i) => {
+    if (!x.ok) return
+    const [a, b] = [dias[i], masDias(dias[i], 1)]
+    apartarEnModelo(LUGARES[i].slug, a, b)
+    reservadas.push({ slug: LUGARES[i].slug, codigo: x.codigo, token: x.token, llegada: a, salida: b })
+  })
   revisar(ok, 'Alguien puede llegar el mismo día que sale el huésped anterior', r.filter((x) => !x.ok).map((x) => x.motivo))
 }
 
@@ -442,8 +455,15 @@ console.log('\n10. Apartados que vencen y límites anti-abuso')
   revisar(seguidas.slice(0, 8).every((s) => s.ok) && seguidas[8].status === 429, 'Desde una misma conexión: 8 solicitudes por hora, la 9.ª recibe 429', seguidas.map((s) => s.status))
   const tel = '3399998888'
   const mismas = []
-  for (let i = 0; i < 4; i++) mismas.push(await reservar({ cabana: 'habitacion-15', llegada: masDias(`${anio + 1}-03-20`, i * 2), salida: masDias(`${anio + 1}-03-20`, i * 2 + 1) }, { tel }))
-  mismas.forEach((s, i) => s.ok && apartarEnModelo('habitacion-15', masDias(`${anio + 1}-03-20`, i * 2), masDias(`${anio + 1}-03-20`, i * 2 + 1)))
+  // Cada una en una noche que siga libre (antes eran fechas fijas que a veces ya había tomado el paso 6)
+  let dt = `${anio + 1}-03-20`
+  for (let i = 0; i < 4; i++) {
+    while (!libreEnModelo('habitacion-15', dt, masDias(dt, 1))) dt = masDias(dt, 1)
+    const s = await reservar({ cabana: 'habitacion-15', llegada: dt, salida: masDias(dt, 1) }, { tel })
+    if (s.ok) apartarEnModelo('habitacion-15', dt, masDias(dt, 1))
+    mismas.push(s)
+    dt = masDias(dt, 2)
+  }
   revisar(mismas.slice(0, 3).every((s) => s.ok) && mismas[3].status === 429, 'Un mismo WhatsApp puede tener 3 solicitudes pendientes, la 4.ª no', mismas.map((s) => s.status))
 }
 
