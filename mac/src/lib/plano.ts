@@ -155,6 +155,9 @@ const clave = (t: string) =>
  * («Cabaña Elena», «Habitación 11»), luego lo que distingue al nombre («Elena», «11», «Sabas»).
  */
 export function buscarPieza(slug: string | null | undefined, nombre: string, libres: Pieza[] = HOSPEDAJES): Pieza | null {
+  // Las claves de la nube son las mismas que los edificios del plano (sabas, cabana-elena, habitacion-11, casa-3…)
+  const directo = slug ? libres.find((p) => p.id === slug) : undefined
+  if (directo) return directo
   const fijo = slug ? UBICACION[slug] : undefined
   if (fijo) return libres.find((p) => p.id === fijo) ?? null
   const n = limpio(nombre)
