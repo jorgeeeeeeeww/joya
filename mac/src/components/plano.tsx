@@ -67,7 +67,7 @@ const TONOS: Record<'claro' | 'oscuro', CSSProperties> = {
 
 /** Etiquetas que van fuera del edificio (arriba o abajo) para que no se encimen con la de al lado */
 const ETIQUETA_FUERA: Record<string, 'arriba' | 'abajo'> = { sabas: 'abajo', 'cabana-san-miguel': 'abajo', 'cabana-elena': 'arriba' }
-const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? p.nombre.replace(/\D+/g, '') : p.nombre.replace(/^Cabaña\s+/i, ''))
+const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? p.nombre.replace(/\D+/g, '') : p.tipo === 'casa' ? p.nombre.replace(/^Casita\s+/i, 'C') : p.nombre.replace(/^Cabaña\s+/i, ''))
 
 function Edificio({ p, c, sobre, elegida, rayas, onSobre, onPick, decorativa }: { p: Pieza; c?: CasaEscena; sobre: boolean; elegida: boolean; rayas: string; onSobre: (on: boolean) => void; onPick: () => void; decorativa?: boolean }) {
   const estado = c?.estado ?? 'libre'

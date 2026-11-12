@@ -12,6 +12,13 @@ import { crearMaqueta, type Maqueta } from '@/lib/maqueta'
 import { PlanoRancho, type CasaEscena } from './plano'
 import { cx } from './ui'
 
+/** Los grupos de edificios a los que se puede acercar la cámara (las hileras de habitaciones y las casitas) */
+const GRUPOS: { id: string; texto: string }[] = [
+  { id: 'casitas', texto: 'Casitas' },
+  { id: 'hilera-11-16', texto: 'Habitaciones 11–16' },
+  { id: 'hilera-1-3', texto: 'Habitaciones 1–3' },
+]
+
 /** El color de una variable de la app (ya resuelto para claro u oscuro) como número 0xRRGGBB */
 function colorDe(variable: string): number {
   const el = document.createElement('span')
@@ -28,7 +35,7 @@ const esNoche = () => {
   return t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
 }
 
-const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? p.nombre.replace(/\D+/g, '') : p.nombre.replace(/^Cabaña\s+/i, ''))
+const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? p.nombre.replace(/\D+/g, '') : p.tipo === 'casa' ? p.nombre.replace(/^Casita\s+/i, 'C') : p.nombre.replace(/^Cabaña\s+/i, ''))
 
 export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; elegida: string | null; onElegir: (id: string) => void }) {
   const caja = useRef<HTMLDivElement>(null)
@@ -39,6 +46,7 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
   alElegir.current = onElegir
   const [sinWebGL, setSinWebGL] = useState(false)
   const [sobre, setSobre] = useState<string | null>(null)
+  const [acercado, setAcercado] = useState<string | null>(null)
 
   // Cada hospedaje de la nube busca su edificio en el plano (por nombre); lo que no se reconoce va aparte
   const { porPieza, sueltos } = useMemo(() => {
@@ -122,14 +130,47 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elegida, ids])
 
+  // Acercar la cámara a un grupo (para elegir con comodidad las habitaciones o las casitas) o volver a ver todo
+  const acercar = (grupo: string | null) => {
+    const m = maqueta.current
+    if (!m) return
+    if (!grupo || grupo === acercado) {
+      m.volver(1.1)
+      setAcercado(null)
+    } else {
+      m.acercar(HOSPEDAJES.filter((p) => p.grupo === grupo).map((p) => p.id), 1.2)
+      setAcercado(grupo)
+    }
+  }
+
   if (sinWebGL) return <PlanoRancho casas={casas} elegida={elegida} onPick={onElegir} />
 
   const casaSobre = sobre ? porPieza.get(sobre) : undefined
   const posSobre = sobre ? posiciones.current.get(sobre) : undefined
   return (
     <div>
-      <div className="relative h-[clamp(340px,50vh,540px)] w-full overflow-hidden rounded-[var(--r-md)]">
+      <div className="relative h-[clamp(400px,60vh,640px)] w-full overflow-hidden rounded-[var(--r-md)]">
         <div ref={caja} className="absolute inset-0" />
+
+        {/* Acercar a un grupo: las habitaciones y las casitas quedan juntas y se eligen sin apretarse */}
+        <div className="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-1.5">
+          {acercado && (
+            <button type="button" onClick={() => acercar(null)} className="pressable inline-flex h-8 items-center rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary shadow-[var(--shadow-1)]">
+              Ver todo el rancho
+            </button>
+          )}
+          {GRUPOS.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              aria-pressed={acercado === g.id}
+              onClick={() => acercar(g.id)}
+              className={cx('pressable inline-flex h-8 items-center rounded-full px-3 text-[13px] font-medium shadow-[var(--shadow-1)] ring-1 ring-inset', acercado === g.id ? 'bg-ink text-paper ring-transparent' : 'bg-surface text-ink ring-line-strong hover:bg-wash')}
+            >
+              {g.texto}
+            </button>
+          ))}
+        </div>
 
         {/* Rótulo de cada hospedaje, sobre su edificio */}
         <div className="pointer-events-none absolute inset-0">

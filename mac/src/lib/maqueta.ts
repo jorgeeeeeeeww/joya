@@ -400,6 +400,27 @@ function construir(p: Pieza, tintes: Tinte[]): { g: THREE.Group; alto: number } 
       alto = H + 0.6
       break
     }
+    case 'casita': {
+      // Casitas (12 nov): muros de cal claros sobre un zócalo de piedra, techo de teja a dos aguas con alero, chimenea,
+      // un portal con dos postes de madera frente a la puerta y una ventana a cada lado
+      const H = 3.1
+      caja(mat(TONO.alero), W, H, D, 0, H / 2, 0)
+      caja(mat(TONO.piedraClara, 'fijo'), W + 0.1, 0.5, D + 0.1, 0, 0.25, 0)
+      pieza(dosAguas(W + 1.2, D + 1.4, 1.9), mat(TONO.teja, 'techo'), [1, 1, 1], [0, H, 0])
+      caja(mat(TONO.ladrillo), 0.55, 1.4, 0.55, W * 0.3, H + 1.25, -D * 0.12)
+      // El portal: piso de piedra, dos postes y su tejadillo
+      caja(mat(TONO.banqueta, 'fijo'), W * 0.55, 0.14, 1.5, 0, 0.07, D / 2 + 0.75)
+      for (const s of [-1, 1]) caja(mat(TONO.madera, 'fijo'), 0.16, 2.5, 0.16, s * W * 0.24, 1.35, D / 2 + 1.35)
+      caja(mat(TONO.madera), W * 0.6, 0.16, 1.8, 0, 2.68, D / 2 + 0.85)
+      // La puerta y las ventanas con su marco
+      caja(madera, 0.95, 2.1, 0.08, 0, 1.05, frente)
+      for (const s of [-1, 1]) {
+        caja(mat(TONO.marco, 'fijo'), 1.1, 1.15, 0.06, s * W * 0.33, 1.7, frente - 0.01)
+        caja(vano, 0.9, 0.95, 0.08, s * W * 0.33, 1.7, frente + 0.02)
+      }
+      alto = H + 1.9
+      break
+    }
     case 'salon': {
       // Salón: muros de vidrio entre columnas claras y un gran techo de cuatro aguas
       const H = 4.4
