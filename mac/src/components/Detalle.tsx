@@ -94,7 +94,7 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
             <Badge tone={e.tono} dot>
               {e.label}
             </Badge>
-            <button onClick={() => void copiar(d.codigo).then(() => toast.success(`Copiaste ${d.codigo}`))} title="Copiar código" className="pressable inline-flex h-[22px] items-center gap-1 rounded-full bg-sunken px-2 text-[11.5px] font-semibold tracking-wide text-ink-soft tabular hover:text-ink">
+            <button onClick={() => void copiar(d.codigo).then(() => toast.success(`Copiaste ${d.codigo}`))} title="Copiar código" className="pressable inline-flex h-[22px] items-center gap-1 rounded-full bg-sunken px-2 text-[12px] font-semibold tracking-wide text-ink-soft tabular hover:text-ink">
               {d.codigo}
               <Copy size={11} />
             </button>
@@ -135,13 +135,13 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
       </div>
 
       {v && (
-        <div className={cx('mt-5 flex items-center gap-3 rounded-[14px] px-4 py-3 text-[13.5px]', v.urgente ? 'bg-[color-mix(in_oklab,var(--chispa)_12%,var(--surface))]' : 'bg-peach-soft')}>
+        <div className={cx('mt-5 flex items-center gap-3 rounded-[14px] px-4 py-3 text-[14px]', v.urgente ? 'bg-[color-mix(in_oklab,var(--chispa)_12%,var(--surface))]' : 'bg-peach-soft')}>
           <span className={cx('font-semibold', v.urgente ? 'text-chispa' : 'text-peach-ink')}>Apartada: {v.texto}</span>
           <span className="text-ink-soft">Si no la confirmas, las fechas se liberan solas.</span>
         </div>
       )}
       {d.estado === 'cancelada' && (
-        <div className="mt-5 rounded-[14px] bg-rose-soft px-4 py-3 text-[13.5px] text-rose-ink">
+        <div className="mt-5 rounded-[14px] bg-rose-soft px-4 py-3 text-[14px] text-rose-ink">
           Cancelada{d.motivo_cancelacion ? `: ${MOTIVO[d.motivo_cancelacion]}` : ''}
           {d.cancelada_en ? ` · ${hace(d.cancelada_en)}` : ''}. Las fechas quedaron libres.
         </div>
@@ -182,7 +182,7 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
         {d.pagos.length > 0 && (
           <div className="mt-4 divide-y divide-line rounded-[14px] ring-1 ring-line">
             {d.pagos.map((p) => (
-              <div key={p.id} className="group flex items-center gap-3 px-4 py-2.5 text-[13.5px]">
+              <div key={p.id} className="group flex items-center gap-3 px-4 py-2.5 text-[14px]">
                 <span className="w-20 font-semibold tabular">{mxn(p.monto)}</span>
                 <span className="min-w-0 flex-1 text-ink-soft">
                   {METODO[p.metodo]} · {diaCorto(p.fecha)} {corta(p.fecha)}
@@ -217,7 +217,7 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
           {d.eventos.map((ev, i) => (
             <li key={i} className="relative pb-3.5 last:pb-0">
               <span className={cx('absolute top-1.5 -left-[25px] h-2 w-2 rounded-full ring-4 ring-surface', i === d.eventos.length - 1 ? 'bg-chispa-soft shadow-[0_0_8px_var(--luz)]' : 'bg-line-strong')} />
-              <div className="text-[13.5px]">{ev.detalle}</div>
+              <div className="text-[14px]">{ev.detalle}</div>
               <div className="text-[12px] text-ink-3">
                 {corta(diaLocal(ev.creado))} · {hora(ev.creado)}
               </div>
@@ -295,7 +295,7 @@ function TiraNoches({ d, onCubrir }: { d: Detalle; onCubrir?: (monto: number) =>
                 >
                   <motion.span aria-hidden className="absolute inset-x-0 bottom-0 block" style={{ background: llena }} initial={false} animate={{ height: `${parte * 100}%` }} transition={{ duration: 0.6, delay: i * 0.025 }} />
                   <span className="relative flex h-full flex-col items-center justify-center leading-none">
-                    {!corta_ && <span className="text-[10.5px] text-ink-3 uppercase">{diaCorto(noche)}</span>}
+                    {!corta_ && <span className="text-[11px] text-ink-3 uppercase">{diaCorto(noche)}</span>}
                     <span className={cx('tabular font-semibold', corta_ ? 'text-[11px]' : 'mt-1 text-[15px]')}>{dia(noche)}</span>
                   </span>
                 </Cel>
@@ -334,7 +334,7 @@ function NuevoPago({ d, inicial, onListo }: { d: Detalle; inicial?: number | nul
   const ok = !!monto && monto > 0
   return (
     <div className="mt-4 rounded-[14px] bg-sunken p-4">
-      <div className="mb-1 flex items-center justify-between text-[12.5px] text-ink-soft">
+      <div className="mb-1 flex items-center justify-between text-[13px] text-ink-soft">
         <span>Arrastra sobre la barra para elegir cuánto pagó</span>
         <span className="font-semibold text-ink tabular">{monto ? mxn(monto) : '—'}</span>
       </div>
@@ -364,7 +364,7 @@ function NuevoPago({ d, inicial, onListo }: { d: Detalle; inicial?: number | nul
         <motion.div className="absolute inset-y-0 rounded-r-full bg-luz shadow-[0_0_14px_var(--luz)]" style={{ left: pct(d.pagado) }} animate={{ width: pct(monto ?? 0) }} transition={{ duration: 0.18 }} />
         {d.anticipo > 0 && d.anticipo < d.total && (
           <div className="absolute inset-y-[-4px] w-px bg-ink-3" style={{ left: pct(d.anticipo) }}>
-            <span className="absolute top-full mt-1 -translate-x-1/2 text-[10.5px] whitespace-nowrap text-ink-3">anticipo</span>
+            <span className="absolute top-full mt-1 -translate-x-1/2 text-[11px] whitespace-nowrap text-ink-3">anticipo</span>
           </div>
         )}
       </div>
@@ -470,7 +470,7 @@ function Huesped({ d, setD }: { d: Detalle; setD: (d: Detalle) => void }) {
         <Campo label="Hora de llegada" value={f.hora_llegada} onChange={(v) => setF((x) => ({ ...x, hora_llegada: v }))} onBlur={() => void guardar('hora_llegada')} hint="Lo que dijo el huésped" />
       </div>
       {d.comentarios && (
-        <div className="rounded-[14px] bg-sunken px-4 py-3 text-[13.5px]">
+        <div className="rounded-[14px] bg-sunken px-4 py-3 text-[14px]">
           <div className="kicker mb-1">Comentarios del huésped</div>
           <p className="whitespace-pre-line">{d.comentarios}</p>
         </div>
@@ -520,7 +520,7 @@ function WhatsApp({ d }: { d: Detalle }) {
         }
       >
         <div className="px-2 pb-2">
-          <div className="rounded-[14px] rounded-tl-[4px] bg-[color-mix(in_oklab,var(--success)_12%,var(--surface))] px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-line select-text">{texto}</div>
+          <div className="rounded-[14px] rounded-tl-[4px] bg-[color-mix(in_oklab,var(--success)_12%,var(--surface))] px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-line select-text">{texto}</div>
           <p className="mt-2 px-1 text-[12px] text-ink-3">Se abre WhatsApp con el mensaje escrito. Tú lo revisas y lo mandas.</p>
         </div>
       </Popover>
@@ -558,7 +558,7 @@ function EditarEstancia({ d, onListo }: { d: Detalle; onListo: (d: Detalle | nul
         <RangoFechas llegada={llegada} salida={salida} hoy={masDias(datos.hoy, -60)} ocupacion={ocupacion} onChange={(a, b) => (setLlegada(a), setSalida(b))} />
       </div>
       <Contador className="mt-3" label="Personas" value={huespedes} onChange={setHuespedes} min={1} max={cab?.capacidad ?? 50} sufijo={(n) => plural(n, 'persona', 'personas')} />
-      <div className="mt-3 min-h-6 text-[13.5px]">
+      <div className="mt-3 min-h-6 text-[14px]">
         {bloqueo ? <span className="text-danger">{bloqueo}</span> : q?.ok && q.total !== undefined ? <span>Total nuevo: <b className="text-key">{mxn(q.total)}</b> {q.total !== d.total && <span className="text-ink-3">(antes {mxn(d.total)})</span>}</span> : null}
       </div>
       <div className="mt-3 flex justify-end gap-2">

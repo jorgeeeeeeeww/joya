@@ -52,7 +52,7 @@ export function Conexion() {
           <div className="pointer-events-auto flex max-w-full items-center gap-3 rounded-[14px] bg-night py-2 pr-2 pl-4 text-on-night shadow-[var(--shadow-2)] ring-1 ring-[color-mix(in_oklab,var(--on-night)_16%,transparent)]">
             <WifiOff size={16} className="shrink-0 text-luz" />
             <div className="min-w-0 leading-tight">
-              <div className="text-[13.5px] font-semibold">{hayInternet ? 'La nube no contesta' : 'Sin internet'}</div>
+              <div className="text-[14px] font-semibold">{hayInternet ? 'La nube no contesta' : 'Sin internet'}</div>
               <div className="text-[12px] text-on-night-soft">
                 {desde(ultima)}. No se puede cambiar nada hasta que vuelva la conexión.
               </div>

@@ -179,7 +179,7 @@ export async function alPedirNuevaReservacion(hacer: () => void): Promise<() => 
 
 // ── Menú de arriba de la Mac ──
 export interface AccionesMenu {
-  ir: (vista: 'hoy' | 'calendario' | 'reservaciones' | 'cabanas' | 'ajustes') => void
+  ir: (vista: 'hoy' | 'mapa' | 'calendario' | 'reservaciones' | 'cabanas' | 'ajustes') => void
   nuevaReservacion: () => void
   nuevoCierre: () => void
   buscar: () => void
@@ -235,9 +235,10 @@ export async function ponerMenu(a: AccionesMenu) {
       text: 'Ver',
       items: [
         await item('v-hoy', 'Hoy', 'CmdOrCtrl+1', () => a.ir('hoy')),
-        await item('v-cal', 'Calendario', 'CmdOrCtrl+2', () => a.ir('calendario')),
-        await item('v-res', 'Reservaciones', 'CmdOrCtrl+3', () => a.ir('reservaciones')),
-        await item('v-cab', 'Cabañas', 'CmdOrCtrl+4', () => a.ir('cabanas')),
+        await item('v-mapa', 'Mapa', 'CmdOrCtrl+2', () => a.ir('mapa')),
+        await item('v-cal', 'Calendario', 'CmdOrCtrl+3', () => a.ir('calendario')),
+        await item('v-res', 'Reservaciones', 'CmdOrCtrl+4', () => a.ir('reservaciones')),
+        await item('v-cab', 'Cabañas', 'CmdOrCtrl+5', () => a.ir('cabanas')),
         await sep(),
         await item('ir-hoy', 'Ir a hoy en el calendario', 'CmdOrCtrl+T', a.irAHoy),
         await item('recargar', 'Actualizar', 'CmdOrCtrl+R', a.actualizar),

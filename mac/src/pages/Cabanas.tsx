@@ -52,7 +52,7 @@ export default function Cabanas() {
             <button key={c.id} onClick={() => editar(c.id)} className={cx('flex w-full items-center gap-3 rounded-[12px] p-2 text-left transition-colors', sel === c.id ? 'bg-[color-mix(in_oklab,var(--primary)_13%,var(--surface))]' : 'hover:bg-wash')}>
               <Miniatura c={c} />
               <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] leading-tight font-semibold">{c.nombre}</span>
+                <span className="block text-[14px] leading-tight font-semibold">{c.nombre}</span>
                 <span className="block text-[12px] text-ink-3">
                   {TIPO[c.tipo].uno} · {c.publicada ? 'en la web' : 'oculta'}
                 </span>
@@ -65,7 +65,7 @@ export default function Cabanas() {
               <span className="flex h-11 w-14 items-center justify-center rounded-[8px] bg-sunken text-ink-3">
                 <Plus size={16} />
               </span>
-              <span className="text-[13.5px] font-semibold">Nuevo hospedaje</span>
+              <span className="text-[14px] font-semibold">Nuevo hospedaje</span>
             </div>
           )}
         </div>
@@ -284,7 +284,7 @@ function Editor({ original }: { original: Cabana | null }) {
       {/* En una ventana angosta la vista previa se guarda para dejarle espacio al formulario */}
       <aside className="hidden min-[1280px]:block">
         <div className="sticky top-8">
-          <div className="mb-2 flex items-center gap-1.5 text-[12.5px] font-medium text-ink-3">
+          <div className="mb-2 flex items-center gap-1.5 text-[13px] font-medium text-ink-3">
             {f.publicada ? <Eye size={14} /> : <EyeOff size={14} />} Así se ve en la página{f.publicada ? '' : ' (todavía oculta)'}
           </div>
           <VistaPrevia f={f} minimoGeneral={d.ajustes.noches_minimas} />
@@ -317,7 +317,7 @@ function Ejemplo({ f }: { f: Forma }) {
   const incluidas = f.huespedes_incluidos ?? f.capacidad
   const extra = f.precio_huesped_extra && f.capacidad > incluidas ? f.precio_huesped_extra * (f.capacidad - incluidas) * 2 : 0
   return (
-    <div className="mt-4 rounded-[14px] bg-sunken px-4 py-3 text-[13.5px]">
+    <div className="mt-4 rounded-[14px] bg-sunken px-4 py-3 text-[14px]">
       <span className="text-ink-soft">Con estos precios, un fin de semana de 2 noches para {plural(incluidas, 'persona', 'personas')} sale en </span>
       <b className="text-key">{mxn(finde * 2)}</b>
       {extra > 0 && (
@@ -448,7 +448,7 @@ function Fotos({ cabana, fotos, onChange }: { cabana: Cabana; fotos: Foto[]; onC
             <LightDots />
           </div>
         ))}
-        <button onClick={() => input.current?.click()} className="flex aspect-[4/3] flex-col items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-line-strong text-[12.5px] text-ink-soft hover:bg-wash hover:text-ink">
+        <button onClick={() => input.current?.click()} className="flex aspect-[4/3] flex-col items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-line-strong text-[13px] text-ink-soft hover:bg-wash hover:text-ink">
           <ImagePlus size={20} strokeWidth={1.6} />
           {fotos.length ? 'Agregar más' : 'Elegir fotos'}
         </button>
@@ -499,7 +499,7 @@ function Temporadas({ cabana, lista }: { cabana: Cabana; lista: Temporada[] }) {
             <div key={t.id} className="group flex items-center gap-3 px-4 py-3">
               <span className="min-w-0 flex-1">
                 <span className="block text-[14px] font-semibold">{t.nombre}</span>
-                <span className="block text-[12.5px] text-ink-soft">
+                <span className="block text-[13px] text-ink-soft">
                   Noches del {corta(t.desde)} al {corta(t.hasta)} · {plural(noches(t.desde, t.hasta) + 1, 'noche', 'noches')}
                   {t.noches_minimas ? ` · mínimo ${t.noches_minimas}` : ''}
                 </span>
@@ -533,7 +533,7 @@ function Temporadas({ cabana, lista }: { cabana: Cabana; lista: Temporada[] }) {
           <div className="mt-3 rounded-[12px] bg-surface p-3">
             <RangoFechas llegada={desde} salida={hastaSalida} hoy={d.hoy} ocupacion={ocupacion} onChange={(a, b) => (setDesde(a), setHastaSalida(b))} />
           </div>
-          <p className="mt-2 text-[12.5px] text-ink-3">{desde && hastaSalida ? `Cobra las noches del ${corta(desde)} al ${corta(masDias(hastaSalida, -1))} (${rango(desde, hastaSalida)})` : 'Elige la primera noche y el día siguiente a la última.'}</p>
+          <p className="mt-2 text-[13px] text-ink-3">{desde && hastaSalida ? `Cobra las noches del ${corta(desde)} al ${corta(masDias(hastaSalida, -1))} (${rango(desde, hastaSalida)})` : 'Elige la primera noche y el día siguiente a la última.'}</p>
           <Contador className="mt-3" label="Mínimo de noches en esas fechas" value={minimo} onChange={setMinimo} min={1} max={60} />
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setNueva(false)}>
@@ -569,15 +569,15 @@ function VistaPrevia({ f, minimoGeneral }: { f: Forma; minimoGeneral: number }) 
             <span className="text-[12px] text-on-night-soft">Aquí va la portada</span>
           </div>
         )}
-        <span className="absolute top-3 left-3 rounded-full bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] px-2.5 py-1 text-[11.5px] font-semibold backdrop-blur">{TIPO[f.tipo].uno}</span>
+        <span className="absolute top-3 left-3 rounded-full bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] px-2.5 py-1 text-[12px] font-semibold backdrop-blur">{TIPO[f.tipo].uno}</span>
         {f.fotos.length > 1 && <span className="absolute right-3 bottom-3 rounded-full bg-[color-mix(in_oklab,var(--night)_70%,transparent)] px-2 py-0.5 text-[11px] text-on-night">{f.fotos.length} fotos</span>}
       </div>
       <div className="p-5">
         <h4 className="text-[19px] leading-tight font-semibold tracking-[-0.02em]">
           {f.nombre.trim() || 'Nombre del hospedaje'}
         </h4>
-        <p className={cx('mt-1.5 text-[13.5px] leading-snug', f.resumen ? 'text-ink-soft' : 'text-ink-3')}>{f.resumen || 'El resumen aparece aquí'}</p>
-        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-ink-soft">
+        <p className={cx('mt-1.5 text-[14px] leading-snug', f.resumen ? 'text-ink-soft' : 'text-ink-3')}>{f.resumen || 'El resumen aparece aquí'}</p>
+        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-ink-soft">
           <span className="inline-flex items-center gap-1">
             <Users size={13} /> {plural(f.capacidad, 'persona', 'personas')}
           </span>
@@ -595,11 +595,11 @@ function VistaPrevia({ f, minimoGeneral }: { f: Forma; minimoGeneral: number }) 
         {f.amenidades.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1">
             {f.amenidades.slice(0, 6).map((a) => (
-              <span key={a} className="rounded-full bg-sunken px-2 py-0.5 text-[11.5px] text-ink-soft">
+              <span key={a} className="rounded-full bg-sunken px-2 py-0.5 text-[12px] text-ink-soft">
                 {a}
               </span>
             ))}
-            {f.amenidades.length > 6 && <span className="px-1 text-[11.5px] text-ink-3">y {f.amenidades.length - 6} más</span>}
+            {f.amenidades.length > 6 && <span className="px-1 text-[12px] text-ink-3">y {f.amenidades.length - 6} más</span>}
           </div>
         )}
         <div className="mt-4 flex items-end justify-between border-t border-line pt-3.5">
@@ -612,7 +612,7 @@ function VistaPrevia({ f, minimoGeneral }: { f: Forma; minimoGeneral: number }) 
           ) : (
             <span className="text-[13px] font-medium text-ink-soft">Pregunta por WhatsApp</span>
           )}
-          {minimo > 1 && <span className="text-[11.5px] text-ink-3">Mínimo {minimo} noches</span>}
+          {minimo > 1 && <span className="text-[12px] text-ink-3">Mínimo {minimo} noches</span>}
         </div>
       </div>
     </motion.article>

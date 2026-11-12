@@ -122,7 +122,7 @@ function Formulario({ nueva }: { nueva: Nueva }) {
     return (
       <div className="py-10 text-center">
         <p className="text-[16px] font-medium">Primero da de alta un hospedaje</p>
-        <p className="mt-1 text-[13.5px] text-ink-soft">En «Cabañas» capturas nombre, capacidad y precios.</p>
+        <p className="mt-1 text-[14px] text-ink-soft">En «Cabañas» capturas nombre, capacidad y precios.</p>
         <Button className="mt-5" onClick={() => (crear(null), useApp.getState().ir('cabanas'), useApp.getState().editarCabana('nueva'))}>
           Ir a Cabañas
         </Button>
@@ -146,7 +146,7 @@ function Formulario({ nueva }: { nueva: Nueva }) {
       <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-6">
         <div className="flex min-w-0 flex-col gap-5">
           <Pastillas label="Hospedaje" value={cabana} onChange={setCabana} opciones={d.cabanas.map((c) => ({ value: c.id, label: c.nombre, detalle: `${TIPO[c.tipo].uno} · ${plural(c.capacidad, 'persona', 'personas')}` }))} />
-          {intento && !cabana && <p className="-mt-3 text-[12.5px] text-danger">Elige el hospedaje</p>}
+          {intento && !cabana && <p className="-mt-3 text-[13px] text-danger">Elige el hospedaje</p>}
 
           <div className="rounded-[14px] p-4 ring-1 ring-line">
             <RangoFechas llegada={llegada} salida={salida} hoy={d.hoy} ocupacion={ocupacion} minimo={q?.minimo_noches ?? 1} onChange={(a, b) => (setLlegada(a), setSalida(b))} />
@@ -178,7 +178,7 @@ function Formulario({ nueva }: { nueva: Nueva }) {
         <aside className="flex flex-col">
           <div className="sticky top-0 flex flex-col overflow-hidden rounded-[16px] bg-night text-on-night">
             <div className="px-5 pt-5 pb-4">
-              <div className="flex items-center gap-2 text-[12.5px] text-on-night-soft">
+              <div className="flex items-center gap-2 text-[13px] text-on-night-soft">
                 <Moon size={14} />
                 {cab ? cab.nombre : 'Elige hospedaje'}
               </div>
@@ -189,7 +189,7 @@ function Formulario({ nueva }: { nueva: Nueva }) {
                 {cotizando && !q ? (
                   <LightDots />
                 ) : sinPrecio ? (
-                  <p className="flex items-start gap-2 text-[13.5px] text-chispa-soft">
+                  <p className="flex items-start gap-2 text-[14px] text-chispa-soft">
                     <AlertTriangle size={15} className="mt-0.5 shrink-0" /> {q!.mensaje}
                   </p>
                 ) : q?.ok ? (
@@ -211,8 +211,8 @@ function Formulario({ nueva }: { nueva: Nueva }) {
                         </div>
                       )}
                     </div>
-                    {!q.cumple_minimo && <p className="mt-2 text-[12.5px] text-chispa-soft">El mínimo en esas fechas es de {plural(q.minimo_noches!, 'noche', 'noches')} (tú sí puedes reservarla).</p>}
-                    {ocupada && <p className="mt-2 text-[12.5px] font-semibold text-chispa-soft">Esas fechas ya están ocupadas.</p>}
+                    {!q.cumple_minimo && <p className="mt-2 text-[13px] text-chispa-soft">El mínimo en esas fechas es de {plural(q.minimo_noches!, 'noche', 'noches')} (tú sí puedes reservarla).</p>}
+                    {ocupada && <p className="mt-2 text-[13px] font-semibold text-chispa-soft">Esas fechas ya están ocupadas.</p>}
                   </>
                 ) : (
                   <p className="text-[13px] text-on-night-soft">El precio sale de las tarifas que capturaste para cada noche.</p>
@@ -231,8 +231,8 @@ function Formulario({ nueva }: { nueva: Nueva }) {
                     </motion.span>
                   </AnimatePresence>
                 </div>
-                {anticipo != null && anticipo > 0 && <div className="mt-1 text-right text-[12.5px] text-on-night-soft">Anticipo ({d.ajustes.anticipo_pct} %): {mxn(anticipo)}</div>}
-                <button onClick={() => (setCambiarTotal((c) => !c), setTotalManual(total))} className="mt-3 text-[12.5px] text-on-night-soft underline-offset-2 hover:text-on-night hover:underline">
+                {anticipo != null && anticipo > 0 && <div className="mt-1 text-right text-[13px] text-on-night-soft">Anticipo ({d.ajustes.anticipo_pct} %): {mxn(anticipo)}</div>}
+                <button onClick={() => (setCambiarTotal((c) => !c), setTotalManual(total))} className="mt-3 text-[13px] text-on-night-soft underline-offset-2 hover:text-on-night hover:underline">
                   {cambiarTotal ? 'Usar el precio de las tarifas' : 'Cambiar el total (descuento o precio especial)'}
                 </button>
               </div>
@@ -243,7 +243,7 @@ function Formulario({ nueva }: { nueva: Nueva }) {
       </div>
 
       <div className="sticky -bottom-6 z-10 -mx-7 mt-6 flex items-center justify-between gap-3 border-t border-line bg-surface px-7 pt-4 pb-6">
-        <span className={cx('text-[12.5px]', intento && faltan.length ? 'text-danger' : 'text-ink-3')}>{faltan.length ? `Falta ${faltan.join(', ')}` : ocupada ? 'Esas fechas ya están ocupadas' : `${CMD}↩ para guardar`}</span>
+        <span className={cx('text-[13px]', intento && faltan.length ? 'text-danger' : 'text-ink-3')}>{faltan.length ? `Falta ${faltan.join(', ')}` : ocupada ? 'Esas fechas ya están ocupadas' : `${CMD}↩ para guardar`}</span>
         <div className="flex gap-2">
           <Button variant="ghost" onClick={() => crear(null)}>
             No

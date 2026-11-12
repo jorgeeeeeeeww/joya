@@ -99,7 +99,7 @@ export function ListoParaAbrir() {
     <section className="card mb-6 p-5" aria-label="Para dejar todo listo">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-[16px] font-semibold tracking-[-0.02em]">Para dejar todo listo</h2>
-        <span className="text-[12.5px] text-ink-3 tabular">
+        <span className="text-[13px] text-ink-3 tabular">
           {hechos} de {total}
         </span>
       </div>
@@ -112,7 +112,7 @@ export function ListoParaAbrir() {
             <CircleAlert size={17} className="shrink-0 text-butter-ink" />
             <div className="min-w-0 flex-1">
               <div className="text-[14px] font-medium">{p.texto}</div>
-              {p.detalle && <div className="text-[12.5px] text-ink-soft">{p.detalle}</div>}
+              {p.detalle && <div className="text-[13px] text-ink-soft">{p.detalle}</div>}
             </div>
             <Button size="sm" variant="outline" iconRight={<ArrowRight size={14} />} onClick={() => void p.hacer()}>
               {p.accion}

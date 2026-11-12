@@ -293,7 +293,7 @@ export function Etiquetas({ value, onChange, sugerencias = [], label, placeholde
       {faltan.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {faltan.slice(0, 10).map((s) => (
-            <button key={s} type="button" onClick={() => onChange([...value, s])} className="pressable inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12.5px] text-ink-soft ring-1 ring-line ring-inset hover:bg-wash hover:text-ink">
+            <button key={s} type="button" onClick={() => onChange([...value, s])} className="pressable inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[13px] text-ink-soft ring-1 ring-line ring-inset hover:bg-wash hover:text-ink">
               <Plus size={12} strokeWidth={2} /> {s}
             </button>
           ))}
@@ -333,7 +333,7 @@ export function RangoFechas({ llegada, salida, onChange, hoy, ocupacion, minimo 
         <button type="button" aria-label="Mes anterior" onClick={() => setMes(siguienteMes(mes, -1))} className="pressable flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-wash hover:text-ink">
           <ChevronLeft size={17} />
         </button>
-        <span className="text-[12.5px] text-ink-3">
+        <span className="text-[13px] text-ink-3">
           {eligiendoSalida ? 'Ahora elige el día de salida' : llegada && salida ? `${n} ${n === 1 ? 'noche' : 'noches'}${n < minimo ? ` · el mínimo es de ${minimo}` : ''}` : 'Elige el día de llegada'}
         </span>
         <button type="button" aria-label="Mes siguiente" onClick={() => setMes(siguienteMes(mes))} className="pressable flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-wash hover:text-ink">
@@ -378,7 +378,7 @@ function Mes({ mes, hoy, llegada, salida, estado, onPick, onSobre, eligiendoSali
   }, [mes])
   return (
     <div>
-      <div className="mb-1.5 text-center text-[13.5px] font-semibold capitalize">
+      <div className="mb-1.5 text-center text-[14px] font-semibold capitalize">
         {mesLargo(mes)} {mes.slice(0, 4)}
       </div>
       <div className="grid grid-cols-7 text-center text-[11px] text-ink-3">

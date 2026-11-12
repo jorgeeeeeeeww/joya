@@ -7,7 +7,7 @@ import { useApp, recargar } from '@/lib/store'
 import { rpc, URL_NUBE, esNubeLocal } from '@/lib/nube'
 import { clabeValida, mxn } from '@/lib/dinero'
 import { plural } from '@/lib/fechas'
-import { ATMOSFERAS, useApariencia, type Atmos } from '@/lib/apariencia'
+import { useApariencia } from '@/lib/apariencia'
 import { abreAlIniciar, avisar, buscarActualizacion, cambiarAbreAlIniciar, enMac, instalarActualizacion, permisoAvisos } from '@/lib/mac'
 import type { Ajustes as TAjustes } from '@/lib/tipos'
 import { Button, Segmented, Toggle, cx, toast } from '@/components/ui'
@@ -355,7 +355,7 @@ function Reloj({ salida, llegada, onSalida, onLlegada }: { salida: string | null
         <motion.div className="absolute top-[34px] h-6 rounded-[6px] bg-[color-mix(in_oklab,var(--surface)_70%,transparent)] ring-1 ring-[color-mix(in_oklab,var(--ink)_15%,transparent)] ring-inset" animate={{ left: x(s), width: `calc(${x(l)} - ${x(s)})` }} transition={{ duration: 0.15 }}>
           {/* Las marcas tapan las orillas: el texto largo solo sale si de verdad cabe entre las dos */}
           {hueco >= 120 && (
-            <span className="absolute inset-0 flex items-center justify-center text-[11.5px] font-semibold whitespace-nowrap text-ink">
+            <span className="absolute inset-0 flex items-center justify-center text-[12px] font-semibold whitespace-nowrap text-ink">
               {hueco % 60 ? `${(hueco / 60).toFixed(1)} h` : plural(hueco / 60, 'hora', 'horas')}
               {hueco >= 270 ? ' para dejar todo listo' : ''}
             </span>
@@ -364,7 +364,7 @@ function Reloj({ salida, llegada, onSalida, onLlegada }: { salida: string | null
         <Marca x={x(s)} etiqueta="Salida" hora={salida ? doce(s) : 'Sin definir'} icon={<LogOut size={14} />} activa={cual === 'salida'} definida={!!salida} />
         <Marca x={x(l)} etiqueta="Llegada" hora={llegada ? doce(l) : 'Sin definir'} icon={<LogIn size={14} />} activa={cual === 'llegada'} definida={!!llegada} abajo />
       </div>
-      <div className="relative mt-3 h-4 text-[10.5px] text-ink-3">
+      <div className="relative mt-3 h-4 text-[11px] text-ink-3">
         {horas
           .filter((m) => (m / 60) % 2 === 0)
           .map((m) => (
@@ -386,8 +386,8 @@ function Marca({ x, etiqueta, hora, icon, activa, definida, abajo }: { x: string
         <span className="flex h-full w-full items-center justify-center text-ink">{icon}</span>
       </div>
       <div className={cx('absolute -translate-x-1/2 text-center whitespace-nowrap', abajo ? 'top-[70px]' : '-top-[2px]')}>
-        <span className="text-[11.5px] text-ink-3">{etiqueta} </span>
-        <span className="text-[12.5px] font-semibold">{hora}</span>
+        <span className="text-[12px] text-ink-3">{etiqueta} </span>
+        <span className="text-[13px] font-semibold">{hora}</span>
       </div>
     </motion.div>
   )
@@ -395,22 +395,10 @@ function Marca({ x, etiqueta, hora, icon, activa, definida, abajo }: { x: string
 
 // ── Apariencia (en esta Mac) ───────────────────────────────
 function Apariencia() {
-  const { atmos, tema, cambiar } = useApariencia()
+  const { tema, cambiar } = useApariencia()
   return (
     <Bloque titulo="Apariencia" detalle="Solo cambia en esta Mac.">
-      <div className="grid grid-cols-4 gap-3">
-        {ATMOSFERAS.map((a) => (
-          <button key={a.valor} onClick={() => cambiar({ atmos: a.valor })} className={cx('overflow-hidden rounded-[14px] text-left ring-1 transition-shadow', atmos === a.valor ? 'ring-2 ring-primary shadow-[0_0_18px_color-mix(in_oklab,var(--luz)_45%,transparent)]' : 'ring-line hover:ring-line-strong')}>
-            <Muestra atmos={a.valor} />
-            <div className="px-3 py-2.5">
-              <div className="text-[13.5px] font-semibold">{a.nombre}</div>
-              <div className="text-[12px] text-ink-3">{a.detalle}</div>
-            </div>
-          </button>
-        ))}
-      </div>
       <Segmented
-        className="mt-4"
         value={tema}
         onChange={(t) => cambiar({ tema: t })}
         options={[
@@ -420,19 +408,6 @@ function Apariencia() {
         ]}
       />
     </Bloque>
-  )
-}
-
-/** Cielo, luz y colinas con los colores de cada atmósfera */
-function Muestra({ atmos }: { atmos: Atmos }) {
-  return (
-    <div data-atmos={atmos} className="relative h-20 overflow-hidden" style={{ background: 'linear-gradient(180deg, var(--night), color-mix(in oklab, var(--night) 70%, var(--sky-2)))' }}>
-      <span className="absolute top-3 right-4 h-5 w-5 rounded-full bg-luz shadow-[0_0_14px_var(--luz)]" />
-      <svg viewBox="0 0 200 80" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-10 w-full">
-        <path d="M0 40 C40 24 80 30 120 34 S180 26 200 32 V80 H0Z" fill="color-mix(in oklab, var(--night) 45%, var(--sky-3))" />
-        <path d="M0 58 C50 50 110 56 200 52 V80 H0Z" fill="var(--paper)" />
-      </svg>
-    </div>
   )
 }
 

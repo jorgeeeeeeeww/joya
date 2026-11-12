@@ -2,21 +2,21 @@
 // las cuatro secciones y abajo Ajustes, la conexión y tu cuenta.
 import { useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { BedDouble, CalendarRange, ChevronsUpDown, Inbox, LogOut, Plus, RefreshCw, Search, Settings, Sun } from 'lucide-react'
+import { BedDouble, CalendarRange, ChevronsUpDown, Inbox, LogOut, Map as MapaIcono, Plus, RefreshCw, Search, Settings, Sun } from 'lucide-react'
 import { useApp, type Vista } from '@/lib/store'
 import { CMD, enMac } from '@/lib/mac'
 import { activa } from '@/lib/estados'
-import { larga } from '@/lib/fechas'
 import { esNubeLocal } from '@/lib/nube'
 import { spring } from '@/lib/motion'
 import { Button, MenuList, Popover, cx } from './ui'
-import { Luz } from './step1'
+import { Marca } from './Loto'
 
 const SECCIONES: { vista: Vista; label: string; icon: typeof Sun; atajo: string }[] = [
   { vista: 'hoy', label: 'Hoy', icon: Sun, atajo: '1' },
-  { vista: 'calendario', label: 'Calendario', icon: CalendarRange, atajo: '2' },
-  { vista: 'reservaciones', label: 'Reservaciones', icon: Inbox, atajo: '3' },
-  { vista: 'cabanas', label: 'Cabañas', icon: BedDouble, atajo: '4' },
+  { vista: 'mapa', label: 'Mapa', icon: MapaIcono, atajo: '2' },
+  { vista: 'calendario', label: 'Calendario', icon: CalendarRange, atajo: '3' },
+  { vista: 'reservaciones', label: 'Reservaciones', icon: Inbox, atajo: '4' },
+  { vista: 'cabanas', label: 'Cabañas', icon: BedDouble, atajo: '5' },
 ]
 
 function Renglon({ activo, label, icon: Icon, onClick, cuenta, urgente, atajo }: { activo: boolean; label: string; icon: typeof Sun; onClick: () => void; cuenta?: number; urgente?: boolean; atajo?: string }) {
@@ -29,7 +29,7 @@ function Renglon({ activo, label, icon: Icon, onClick, cuenta, urgente, atajo }:
         </>
       )}
       <Icon size={17} strokeWidth={activo ? 2 : 1.7} className="relative shrink-0" />
-      <span className={cx('relative flex-1 text-[13.5px]', activo ? 'font-semibold' : 'font-medium')}>{label}</span>
+      <span className={cx('relative flex-1 text-[14px]', activo ? 'font-semibold' : 'font-medium')}>{label}</span>
       {!!cuenta && <span className={cx('relative min-w-5 text-right text-[12px] tabular', urgente ? 'font-semibold text-chispa' : 'font-medium text-key')}>{cuenta}</span>}
     </button>
   )
@@ -57,12 +57,8 @@ export function Barra() {
       <div className="flex w-full flex-col rounded-[20px] bg-surface shadow-[var(--shadow-1)] ring-1 ring-line">
         {/* Los semáforos de la ventana quedan aquí arriba en la Mac */}
         {enMac && <div data-tauri-drag-region className="h-7 shrink-0 rounded-t-[20px]" />}
-        <div data-tauri-drag-region className="flex items-center gap-2.5 px-4 pt-4 pb-3">
-          <Luz size={26} className="!animate-none shrink-0" />
-          <div className="min-w-0 flex-1 leading-tight">
-            <div className="text-[15px] font-semibold tracking-[-0.02em]">La Joya</div>
-            {hoy && <div className="mt-0.5 text-[12px] text-ink-3 first-letter:uppercase">{larga(hoy)}</div>}
-          </div>
+        <div data-tauri-drag-region className="px-4 pt-4 pb-4">
+          <Marca tamano={30} hueco="var(--surface)" className="text-ink" />
         </div>
 
         <div className="flex flex-col gap-1.5 px-2.5 pb-3">
@@ -90,8 +86,8 @@ export function Barra() {
               <span title={estado.texto} className={cx('absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-surface', estado.punto)} />
             </span>
             <span className="min-w-0 flex-1 leading-tight">
-              <span className="block text-[12.5px] font-semibold break-all">{correo}</span>
-              <span className="mt-0.5 block text-[11.5px] text-ink-3">
+              <span className="block text-[13px] font-semibold break-all">{correo}</span>
+              <span className="mt-0.5 block text-[12px] text-ink-3">
                 {estado.texto}
                 {esNubeLocal ? ' · nube local' : ''}
               </span>

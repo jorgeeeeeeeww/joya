@@ -188,7 +188,7 @@ export default function Calendario() {
           <p className="mt-1.5 text-[14px] text-ink-soft first-letter:uppercase">{meses.join(' – ')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="mr-2 hidden text-[12.5px] text-ink-3 xl:inline">Arrastra sobre los días libres para reservar o cerrar</span>
+          <span className="mr-2 hidden text-[13px] text-ink-3 xl:inline">Arrastra sobre los días libres para reservar o cerrar</span>
           <Button variant="outline" size="icon-sm" aria-label="Dos semanas antes" onClick={() => setInicio(masDias(inicio, -14))}>
             <ChevronLeft size={17} />
           </Button>
@@ -227,7 +227,7 @@ export default function Calendario() {
               const esHoy = x === d.hoy
               return (
                 <div key={x} className={cx('flex flex-col items-center justify-center py-2 text-center', finde && 'bg-[color-mix(in_oklab,var(--ink)_3%,transparent)]', dia(x) === 1 && 'border-l border-line-strong')} style={{ width: CELDA }}>
-                  <span className={cx('text-[10.5px] leading-none', esHoy ? 'font-semibold text-key' : 'text-ink-3')}>{dia(x) === 1 ? mesLargo(x).slice(0, 3) : diaCorto(x)}</span>
+                  <span className={cx('text-[11px] leading-none', esHoy ? 'font-semibold text-key' : 'text-ink-3')}>{dia(x) === 1 ? mesLargo(x).slice(0, 3) : diaCorto(x)}</span>
                   <span className={cx('mt-1 flex h-6 w-6 items-center justify-center rounded-full text-[13px] tabular', esHoy ? 'bg-primary font-semibold text-on-primary shadow-[0_0_12px_color-mix(in_oklab,var(--luz)_60%,transparent)]' : 'text-ink')}>{dia(x)}</span>
                 </div>
               )
@@ -240,8 +240,8 @@ export default function Calendario() {
           <div className="sticky left-0 z-10 shrink-0 border-r border-line bg-surface" style={{ width: NOMBRES }}>
             {cabanas.map((c) => (
               <button key={c.id} onClick={() => (useApp.getState().ir('cabanas'), useApp.getState().editarCabana(c.id))} className="flex w-full flex-col justify-center border-b border-line px-4 text-left hover:bg-wash" style={{ height: FILA }} title="Abrir en Cabañas">
-                <span className="text-[13.5px] leading-tight font-semibold">{c.nombre}</span>
-                <span className="text-[11.5px] text-ink-3">
+                <span className="text-[14px] leading-tight font-semibold">{c.nombre}</span>
+                <span className="text-[12px] text-ink-3">
                   {TIPO[c.tipo].uno} · {plural(c.capacidad, 'persona', 'personas')}
                   {!c.publicada ? ' · no sale en la web' : ''}
                 </span>
@@ -335,7 +335,7 @@ export default function Calendario() {
                   className={cx('absolute z-[3] flex cursor-grab flex-col justify-center overflow-hidden rounded-[10px] px-2.5 ring-1 ring-inset transition-shadow', tono, a && a.movio && 'z-[6] cursor-grabbing shadow-[var(--shadow-3)]', choca && 'ring-2 ring-danger')}
                   style={{ top: fila * FILA + 7, height: FILA - 14, left: p.left, width: p.width, borderTopLeftRadius: p.cortadaIzq ? 0 : undefined, borderBottomLeftRadius: p.cortadaIzq ? 0 : undefined, borderTopRightRadius: p.cortadaDer ? 0 : undefined, borderBottomRightRadius: p.cortadaDer ? 0 : undefined }}
                 >
-                  <span className="text-[12.5px] leading-tight font-semibold whitespace-nowrap">{nombre}</span>
+                  <span className="text-[13px] leading-tight font-semibold whitespace-nowrap">{nombre}</span>
                   {p.width >= 110 && <span className="text-[11px] leading-tight whitespace-nowrap opacity-80">{a && a.movio ? rango(llegada, salida) : r.estado === 'solicitud' ? 'Solicitud' : `${plural(r.huespedes, 'persona', 'personas')}`}</span>}
                   <Orilla onDown={(e) => setArrastre({ tipo: 'alargar', r, x0: e.clientX, dd: 0, movio: false })} />
                 </div>

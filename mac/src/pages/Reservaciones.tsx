@@ -11,7 +11,7 @@ import type { Reservacion } from '@/lib/tipos'
 import { Segmented, TONE, cx } from '@/components/ui'
 import { DetalleReservacion } from '@/components/Detalle'
 import { useMenuReservacion } from '@/components/menuReservacion'
-import { MiniHorizon } from '@/components/step1'
+import { Loto } from '@/components/Loto'
 
 const sinAcentos = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
@@ -99,9 +99,9 @@ export default function Reservaciones() {
         <div ref={listaRef} className="scroll-area min-h-0 flex-1 overflow-y-auto px-2.5 pb-6">
           {lista.length === 0 && (
             <div className="px-4 py-14 text-center">
-              <MiniHorizon size={96} />
+              <Loto size={44} hueco="var(--surface)" className="mx-auto opacity-60" />
               <p className="mt-4 text-[14px] font-medium">{texto ? 'Nada coincide con el filtro' : filtro === 'atender' ? 'Nada por atender' : 'Sin reservaciones aquí'}</p>
-              <p className="mt-1 text-[12.5px] text-ink-3">{filtro === 'atender' && !texto ? 'Las solicitudes nuevas y los saldos por cobrar de esta semana aparecen aquí.' : ''}</p>
+              <p className="mt-1 text-[13px] text-ink-3">{filtro === 'atender' && !texto ? 'Las solicitudes nuevas y los saldos por cobrar de esta semana aparecen aquí.' : ''}</p>
             </div>
           )}
           {lista.map((r) => {
@@ -148,9 +148,9 @@ function Renglon({ r, cabana, activo, onClick, onMenu }: { r: Reservacion; caban
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2">
           <span className="text-[14px] font-semibold">{r.nombre}</span>
-          <span className="shrink-0 text-[12.5px] font-medium text-key tabular">{mxn(r.total)}</span>
+          <span className="shrink-0 text-[13px] font-medium text-key tabular">{mxn(r.total)}</span>
         </span>
-        <span className="block text-[12.5px] text-ink-soft">
+        <span className="block text-[13px] text-ink-soft">
           {cabana} · {rango(r.llegada, r.salida)}
         </span>
         <span className={cx('block text-[12px]', v?.urgente ? 'font-medium text-chispa' : 'text-ink-3')}>

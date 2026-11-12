@@ -9,7 +9,8 @@ import { enMac, ponerMenu, buscarActualizacion, instalarActualizacion, alPedirNu
 import { ease } from './lib/motion'
 import { Button, Confirm, Sheet, Toaster, toast } from './components/ui'
 import { Conexion } from './components/Conexion'
-import { LightDots, Luz } from './components/step1'
+import { LightDots } from './components/step1'
+import { Loto } from './components/Loto'
 import { Barra } from './components/Barra'
 import Entrar from './pages/Entrar'
 import Hoy from './pages/Hoy'
@@ -18,6 +19,7 @@ import { NuevaHoja } from './components/NuevaHoja'
 import { Buscar } from './components/Buscar'
 import { Tropiezo } from './components/Tropiezo'
 
+const Mapa = lazy(() => import('./pages/Mapa'))
 const Calendario = lazy(() => import('./pages/Calendario'))
 const Reservaciones = lazy(() => import('./pages/Reservaciones'))
 const Cabanas = lazy(() => import('./pages/Cabanas'))
@@ -74,7 +76,7 @@ export default function App() {
   )
 }
 
-const VISTAS: Vista[] = ['hoy', 'calendario', 'reservaciones', 'cabanas']
+const VISTAS: Vista[] = ['hoy', 'mapa', 'calendario', 'reservaciones', 'cabanas']
 const AVISOS_PREGUNTADO = 'la-joya-mac:avisos-preguntado'
 
 function Marco() {
@@ -146,7 +148,7 @@ function Marco() {
       if (enMac) return
       const k = e.key.toLowerCase()
       const n = Number(e.key)
-      if (n >= 1 && n <= 4) acciones.ir(VISTAS[n - 1]!)
+      if (n >= 1 && n <= VISTAS.length) acciones.ir(VISTAS[n - 1]!)
       else if (k === ',') acciones.ir('ajustes')
       else if (k === 'n') (e.shiftKey ? acciones.nuevoCierre : acciones.nuevaReservacion)()
       else if (k === 'f' || k === 'k') acciones.buscar()
@@ -248,6 +250,7 @@ function Marco() {
                 }
               >
                 {vista === 'hoy' && <Hoy />}
+                {vista === 'mapa' && <Mapa />}
                 {vista === 'calendario' && <Calendario />}
                 {vista === 'reservaciones' && <Reservaciones />}
                 {vista === 'cabanas' && <Cabanas />}
@@ -291,7 +294,7 @@ function SinNube() {
   return (
     <div className="flex h-dvh items-center justify-center bg-paper p-8">
       <div className="card max-w-md p-8 text-center">
-        <Luz size={44} className="mx-auto" />
+        <Loto size={64} hueco="var(--surface)" className="mx-auto" />
         <h1 className="heading mt-5 text-[1.6rem]">Esta copia no está conectada al rancho</h1>
         <p className="mt-2 text-[14px] text-ink-soft">
           Se armó sin la dirección de la nube del rancho, así que no puede mostrar las reservaciones. Instala la versión que sale de GitHub (Actions → App de la Mac) con las variables <span className="font-medium text-ink">SUPABASE_URL</span> y{' '}
@@ -307,7 +310,7 @@ function SinPermiso({ correo }: { correo: string }) {
   return (
     <div className="flex h-dvh items-center justify-center bg-paper p-8">
       <div className="card max-w-md p-8 text-center">
-        <Luz size={44} className="mx-auto" />
+        <Loto size={64} hueco="var(--surface)" className="mx-auto" />
         <h1 className="heading mt-5 text-[1.6rem]">Esta cuenta no es del hospedaje</h1>
         <p className="mt-2 text-[14px] text-ink-soft">
           Entraste como <span className="font-medium text-ink">{correo}</span>, pero esa cuenta no tiene el puesto de dueño ni de recepción. Pídele al dueño que te dé acceso, o entra con otra cuenta.

@@ -5,9 +5,10 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { create } from 'zustand'
 import { clsx } from 'clsx'
-import { X, AlertTriangle, MoreHorizontal, RotateCcw } from 'lucide-react'
+import { X, AlertTriangle, Check, MoreHorizontal, RotateCcw } from 'lucide-react'
 import { ease, modal, spring } from '@/lib/motion'
-import { LightDots, MiniHorizon, Sparkle } from './step1'
+import { LightDots } from './step1'
+import { Loto } from './Loto'
 
 export const cx = clsx
 
@@ -94,7 +95,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       <span className={cx('inline-flex items-center gap-2 transition-opacity duration-[var(--dur-2)]', loading && 'opacity-0')}>
         {icon}
         {children}
-        {atajo && <span className="text-[11.5px] font-medium opacity-60 tabular">{atajo}</span>}
+        {atajo && <span className="text-[12px] font-medium opacity-60 tabular">{atajo}</span>}
         {iconRight && <span className="transition-transform duration-[var(--dur-2)] group-hover/btn:translate-x-[3px]">{iconRight}</span>}
       </span>
       {loading && <LightDots className="absolute" />}
@@ -138,12 +139,11 @@ export function SectionTitle({ title, subtitle, action, className }: { title: Re
   )
 }
 
-export function Badge({ tone = 'lavender', children, className, dot, sparkle }: { tone?: Pastel; children: ReactNode; className?: string; dot?: boolean; sparkle?: boolean }) {
+export function Badge({ tone = 'lavender', children, className, dot }: { tone?: Pastel; children: ReactNode; className?: string; dot?: boolean }) {
   const t = TONE[tone]
   return (
-    <span className={cx('inline-flex h-[22px] items-center gap-1.5 rounded-full px-2 text-[11.5px] font-medium whitespace-nowrap', t.soft, t.ink, className)}>
+    <span className={cx('inline-flex h-[22px] items-center gap-1.5 rounded-full px-2 text-[12px] font-medium whitespace-nowrap', t.soft, t.ink, className)}>
       {dot && <span className={cx('h-1.5 w-1.5 rounded-full', t.solid)} />}
-      {sparkle && <Sparkle className="text-[10px]" />}
       {children}
     </span>
   )
@@ -197,7 +197,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
           role="tab"
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cx('relative flex-1 rounded-full font-medium whitespace-nowrap transition-colors duration-[var(--dur-3)]', size === 'sm' ? 'h-7 px-3 text-[12.5px]' : 'h-8 px-3.5 text-[13px]', value === o.value ? 'text-ink' : 'text-ink-soft hover:text-ink')}
+          className={cx('relative flex-1 rounded-full font-medium whitespace-nowrap transition-colors duration-[var(--dur-3)]', size === 'sm' ? 'h-7 px-3 text-[13px]' : 'h-8 px-3.5 text-[13px]', value === o.value ? 'text-ink' : 'text-ink-soft hover:text-ink')}
         >
           {value === o.value && <motion.span layoutId={id} className="absolute inset-0 rounded-full bg-surface shadow-[var(--shadow-1)] ring-1 ring-line" transition={spring.suave} />}
           <span className="relative z-10 inline-flex items-center gap-1.5">{o.label}</span>
@@ -224,7 +224,7 @@ export function Stat({ label, value, sub, icon, onClick }: { label: string; valu
         <span>{label}</span>
       </span>
       <div className="display-num mt-2.5 text-[26px] leading-none">{value}</div>
-      {sub && <div className="mt-1.5 text-[12.5px] leading-snug text-ink-3">{sub}</div>}
+      {sub && <div className="mt-1.5 text-[13px] leading-snug text-ink-3">{sub}</div>}
     </>
   )
   const cls = cx('flex min-w-0 flex-col p-5 text-left', inStrip ? 'bg-surface' : 'card')
@@ -237,11 +237,11 @@ export function Stat({ label, value, sub, icon, onClick }: { label: string; valu
   )
 }
 
-/** Estado vacío: mini horizonte con luz + frase + acción */
+/** Estado vacío: el loto del logo, en tono apagado, + frase + acción */
 export function Empty({ title, body, action, className }: { title: string; body?: ReactNode; action?: ReactNode; className?: string }) {
   return (
     <div className={cx('flex flex-col items-center justify-center px-6 py-12 text-center', className)}>
-      <MiniHorizon size={120} />
+      <Loto size={56} hueco="var(--paper)" className="opacity-60" />
       <p className="mt-5 text-[17px] font-medium">{title}</p>
       {body && <p className="mt-1 max-w-sm text-sm text-ink-soft">{body}</p>}
       {action && <div className="mt-5">{action}</div>}
@@ -387,7 +387,7 @@ export function Toaster() {
             className="interfaz pointer-events-auto relative flex w-[380px] items-center gap-3 overflow-hidden rounded-[14px] bg-night py-3 pr-2 pl-4 text-left text-on-night shadow-[var(--shadow-3)]"
           >
             <button onClick={() => dismiss(t.id)} className="flex min-w-0 flex-1 items-start gap-3 py-0.5 text-left">
-              {t.tone === 'error' ? <AlertTriangle size={18} className="mt-0.5 shrink-0 text-chispa-soft" /> : <Sparkle className="mt-0.5 shrink-0 text-luz" />}
+              {t.tone === 'error' ? <AlertTriangle size={18} className="mt-0.5 shrink-0 text-chispa-soft" /> : <Check size={18} className="mt-0.5 shrink-0 text-luz" />}
               <span className="min-w-0">
                 <span className="block text-[14px] font-medium">{t.title}</span>
                 {t.body && <span className="block text-[13px] text-on-night-soft">{t.body}</span>}
@@ -513,7 +513,7 @@ export function MenuList({ items, onPick }: { items: MenuItem[]; onPick: () => v
                 onPick()
                 it.onClick()
               }}
-              className={cx('flex min-h-9 w-full items-center gap-3 rounded-[8px] px-2.5 text-left text-[13.5px] transition-colors duration-[var(--dur-1)] hover:bg-wash disabled:opacity-45', it.danger ? 'text-danger' : 'text-ink')}
+              className={cx('flex min-h-9 w-full items-center gap-3 rounded-[8px] px-2.5 text-left text-[14px] transition-colors duration-[var(--dur-1)] hover:bg-wash disabled:opacity-45', it.danger ? 'text-danger' : 'text-ink')}
             >
               {it.icon && <span className={cx('flex shrink-0 [&>svg]:h-4 [&>svg]:w-4', it.danger ? 'text-danger' : 'text-ink-soft')}>{it.icon}</span>}
               <span className="min-w-0 flex-1">

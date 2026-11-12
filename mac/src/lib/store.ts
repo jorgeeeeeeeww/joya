@@ -11,7 +11,7 @@ import { mxn } from './dinero'
 import { avisar, avisosPermitidos, ponerInsignia } from './mac'
 import { toast } from '@/components/ui'
 
-export type Vista = 'hoy' | 'calendario' | 'reservaciones' | 'cabanas' | 'ajustes'
+export type Vista = 'hoy' | 'mapa' | 'calendario' | 'reservaciones' | 'cabanas' | 'ajustes'
 export interface Nueva {
   tipo: 'reservacion' | 'cierre'
   cabana_id?: string

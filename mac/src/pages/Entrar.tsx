@@ -7,7 +7,7 @@ import { correoGuardado, motivoDeEntrada, recordarCorreo } from '@/lib/store'
 import { fadeRise, heroRise, stagger } from '@/lib/motion'
 import { enMac } from '@/lib/mac'
 import { Button } from '@/components/ui'
-import { NightSlab, Sparkle } from '@/components/step1'
+import { Marca } from '@/components/Loto'
 import { Campo } from '@/components/campos'
 import { PlanoRancho, type CasaEscena } from '@/components/plano'
 import { HOSPEDAJES } from '@/lib/plano'
@@ -63,25 +63,22 @@ export default function Entrar() {
 
   return (
     <div className="grid h-dvh grid-cols-[1.1fr_1fr] gap-0 bg-paper p-[var(--frame)]">
-      <NightSlab className="flex flex-col justify-between p-12" luzSize="clamp(64px, 6vw, 110px)" luzClassName="absolute right-[8%] top-[6%]" scene={<div className="absolute inset-x-8 bottom-10 opacity-90"><PlanoRancho casas={ADORNO} decorativa /></div>}>
+      <section className="relative isolate flex flex-col justify-between overflow-hidden rounded-[var(--r-slab)] bg-night p-12 text-on-night">
         <div data-tauri-drag-region className={enMac ? 'pt-6' : ''}>
-          <div className="flex items-center gap-2.5 text-on-night">
-            <Sparkle className="text-luz" />
-            <span className="heading text-xl">La Joya</span>
-          </div>
+          <Marca tamano={40} hueco="var(--night)" className="text-on-night" />
         </div>
-        <motion.div variants={stagger} initial="hidden" animate="show" className="mt-16 max-w-[560px] pb-[26vh]">
-          <motion.p variants={fadeRise} className="eyebrow !text-on-night-soft">
-            Jardines La Joya · Tototlán
-          </motion.p>
-          <motion.h1 variants={heroRise} className="heading mt-4 max-w-[13ch] text-[clamp(2.6rem,1.8rem+2.6vw,4.4rem)] text-on-night">
-            Las reservaciones del rancho, en calma.
+        <motion.div variants={stagger} initial="hidden" animate="show" className="relative z-[2] my-10 max-w-[560px]">
+          <motion.h1 variants={heroRise} className="heading max-w-[14ch] text-[clamp(2.4rem,1.7rem+2.4vw,4rem)] text-on-night">
+            Las reservaciones de La Joya, en un solo lugar.
           </motion.h1>
-          <motion.p variants={fadeRise} className="mt-5 max-w-[42ch] text-[17px] text-on-night-soft">
+          <motion.p variants={fadeRise} className="mt-5 max-w-[42ch] text-[16px] leading-relaxed text-on-night-soft">
             Las solicitudes de la página llegan aquí al instante. Tú confirmas, registras el pago y avisas por WhatsApp.
           </motion.p>
         </motion.div>
-      </NightSlab>
+        <div className="pointer-events-none relative z-[1] opacity-90">
+          <PlanoRancho casas={ADORNO} decorativa tono="oscuro" />
+        </div>
+      </section>
 
       <div className="relative flex flex-col justify-center px-[clamp(24px,5vw,72px)]">
         <motion.form
@@ -94,13 +91,10 @@ export default function Entrar() {
             void entrar()
           }}
         >
-          <motion.p variants={fadeRise} className="eyebrow">
-            Para el dueño y recepción
-          </motion.p>
           <motion.h2 variants={heroRise} className="heading mt-2 text-[2.1rem]">
             Entrar
           </motion.h2>
-          {vencio && <motion.p variants={fadeRise} className="mt-5 rounded-[12px] bg-butter-soft px-4 py-3 text-[13.5px] text-butter-ink">Tu sesión venció. Escribe tu contraseña para volver a entrar.</motion.p>}
+          {vencio && <motion.p variants={fadeRise} className="mt-5 rounded-[12px] bg-butter-soft px-4 py-3 text-[14px] text-butter-ink">Tu sesión venció. Escribe tu contraseña para volver a entrar.</motion.p>}
           <motion.div variants={fadeRise} className="mt-7 flex flex-col gap-3">
             <Campo label="Correo" type="email" icon={<Mail />} value={correo} onChange={setCorreo} autoComplete="username" autoFocus={!correo} ok={correoOk} />
             <Campo label="Contraseña" type="password" icon={<KeyRound />} value={clave} onChange={setClave} autoComplete="current-password" autoFocus={!!correo} error={error} onEnter={() => void entrar()} />
@@ -109,7 +103,7 @@ export default function Entrar() {
             <Button type="submit" size="lg" className="mt-6 w-full" loading={entrando}>
               Entrar
             </Button>
-            {detalle && <pre className="mt-3 rounded-[10px] bg-sunken px-3 py-2 text-[11.5px] leading-snug whitespace-pre-wrap break-all text-ink-soft select-text">{detalle}</pre>}
+            {detalle && <pre className="mt-3 rounded-[10px] bg-sunken px-3 py-2 text-[12px] leading-snug whitespace-pre-wrap break-all text-ink-soft select-text">{detalle}</pre>}
             <p className="mt-4 text-[13px] text-ink-3">La sesión se queda guardada en esta Mac. Si olvidaste la contraseña, Jorge la cambia desde la nube.</p>
           </motion.div>
           {esNubeLocal && (

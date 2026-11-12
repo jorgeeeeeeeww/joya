@@ -114,12 +114,12 @@ function Panel({ onCerrar }: { onCerrar: () => void }) {
                   <span className="block text-[14px] font-medium">
                     {r.nombre} <span className="text-[12px] font-normal text-ink-3 tabular">{r.codigo}</span>
                   </span>
-                  <span className="block text-[12.5px] text-ink-soft">
+                  <span className="block text-[13px] text-ink-soft">
                     {(r as Reservacion & { cabana?: string }).cabana ?? nombreDe(d, r.cabana_id)} · {rango(r.llegada, r.salida)} · {e.label}
                     {r.telefono ? ` · ${formatoTelefono(r.telefono)}` : ''}
                   </span>
                 </span>
-                <span className="text-[12.5px] text-key tabular">{mxn(r.total)}</span>
+                <span className="text-[13px] text-key tabular">{mxn(r.total)}</span>
                 {i === sel && <CornerDownLeft size={14} className="text-ink-3" />}
               </button>
             )
