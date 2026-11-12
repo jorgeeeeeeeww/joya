@@ -12,9 +12,9 @@ import { crearMaqueta, type Maqueta } from '@/lib/maqueta'
 import { PlanoRancho, type CasaEscena } from './plano'
 import { cx } from './ui'
 
-/** Los grupos de edificios a los que se puede acercar la cámara (las hileras de habitaciones y las casitas) */
+/** Los grupos de edificios a los que se puede acercar la cámara (las hileras de habitaciones y las casas) */
 const GRUPOS: { id: string; texto: string }[] = [
-  { id: 'casitas', texto: 'Casitas' },
+  { id: 'casas', texto: 'Casas' },
   { id: 'hilera-11-16', texto: 'Habitaciones 11–16' },
   { id: 'hilera-1-3', texto: 'Habitaciones 1–3' },
 ]
@@ -35,7 +35,7 @@ const esNoche = () => {
   return t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
 }
 
-const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? p.nombre.replace(/\D+/g, '') : p.tipo === 'casa' ? p.nombre.replace(/^Casita\s+/i, 'C') : p.nombre.replace(/^Cabaña\s+/i, ''))
+const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? p.nombre.replace(/\D+/g, '') : p.tipo === 'casa' ? p.nombre.replace(/^Casa\s+/i, 'C') : p.nombre.replace(/^Cabaña\s+/i, ''))
 
 export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; elegida: string | null; onElegir: (id: string) => void }) {
   const caja = useRef<HTMLDivElement>(null)
@@ -130,7 +130,7 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elegida, ids])
 
-  // Acercar la cámara a un grupo (para elegir con comodidad las habitaciones o las casitas) o volver a ver todo
+  // Acercar la cámara a un grupo (para elegir con comodidad las habitaciones o las casas) o volver a ver todo
   const acercar = (grupo: string | null) => {
     const m = maqueta.current
     if (!m) return
@@ -152,7 +152,7 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
       <div className="relative h-[clamp(400px,60vh,640px)] w-full overflow-hidden rounded-[var(--r-md)]">
         <div ref={caja} className="absolute inset-0" />
 
-        {/* Acercar a un grupo: las habitaciones y las casitas quedan juntas y se eligen sin apretarse */}
+        {/* Acercar a un grupo: las habitaciones y las casas quedan juntas y se eligen sin apretarse */}
         <div className="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-1.5">
           {acercado && (
             <button type="button" onClick={() => acercar(null)} className="pressable inline-flex h-8 items-center rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary shadow-[var(--shadow-1)]">

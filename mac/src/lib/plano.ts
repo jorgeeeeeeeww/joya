@@ -21,7 +21,7 @@ export type Estilo =
   | 'adobe' // Habitaciones 11 a 16: adobe amarillo, teja roja, enredadera
   | 'cantera' // Habitaciones 1 a 3: piedra volcánica gris, techo plano con pretil y vigas al frente
   | 'salon' // Salón: techo de cuatro aguas y muros de vidrio
-  | 'casita' // Casitas: casas pequeñas de muros claros, techo de teja a dos aguas y un portal con dos postes
+  | 'casa' // Casas: casas pequeñas de muros claros, techo de teja a dos aguas y un portal con dos postes
 
 export interface Pieza {
   id: string
@@ -64,21 +64,21 @@ const hilera: Pieza[] = [16, 15, 14, 13, 12, 11].map((n, i) => ({
 }))
 
 /**
- * Casitas 1 a 4 (12 nov): cuatro casas pequeñas en el jardín del lado oeste, entre el salón y las habitaciones 1 a 3,
+ * Casas 1 a 4 (12 nov): cuatro casas pequeñas en el jardín del lado oeste, entre el salón y las habitaciones 1 a 3,
  * en hilera de norte a sur con el portal hacia el andador. Una vereda las junta con el andador por el pasillo que queda
  * entre la hilera de las habitaciones 11 a 16 y la cabaña San Miguel.
  */
-const casitas: Pieza[] = [1, 2, 3, 4].map((n, i) => ({
-  id: `casita-${n}`,
+const casas: Pieza[] = [1, 2, 3, 4].map((n, i) => ({
+  id: `casa-${n}`,
   tipo: 'casa',
-  nombre: `Casita ${n}`,
+  nombre: `Casa ${n}`,
   x: -24,
   z: 17 + i * 8.8,
   w: 6,
   d: 6.5,
-  estilo: 'casita',
+  estilo: 'casa',
   frente: 'e',
-  grupo: 'casitas',
+  grupo: 'casas',
 }))
 
 /** Habitaciones 1 a 3: frente al estacionamiento (de oeste a este) */
@@ -109,7 +109,7 @@ export const PIEZAS: Pieza[] = [
   { id: 'cabana-elena', tipo: 'cabana', nombre: 'Cabaña Elena', x: -9.4, z: 44.3, w: 8, d: 7, estilo: 'enredadera', frente: 'e' },
   ...hilera,
   ...estacionamiento,
-  ...casitas,
+  ...casas,
 ]
 
 /** Los lugares donde uno se queda */
@@ -119,7 +119,13 @@ export const HOSPEDAJES = PIEZAS.filter((p) => p.tipo === 'cabana' || p.tipo ===
  * Qué edificio es cada hospedaje: slug de la nube → id de la pieza. Casi nunca hace falta: cada hospedaje
  * encuentra su edificio por nombre (ver `buscarPieza`). Aquí solo va lo que se llame distinto en la nube.
  */
-export const UBICACION: Record<string, string> = {}
+export const UBICACION: Record<string, string> = {
+  // Las casas: su edificio va por su clave, así el nombre que les ponga el rancho (en la app) no desacomoda el mapa
+  'casa-1': 'casa-1',
+  'casa-2': 'casa-2',
+  'casa-3': 'casa-3',
+  'casa-4': 'casa-4',
+}
 
 const limpio = (t: string) =>
   t
@@ -160,7 +166,7 @@ export const CAMINOS: { puntos: [number, number][]; ancho: number }[] = [
   { puntos: [[-1, 58], [-25, 58]], ancho: 2.6 },
   { puntos: [[-27, 69], [-26, 69]], ancho: 6 },
   { puntos: [[6, -3], [13, 6]], ancho: 3 },
-  // A las casitas: una vereda que sale del andador entre las habitaciones 11 a 16 y San Miguel, y otra a lo largo de sus portales
+  // A las casas: una vereda que sale del andador entre las habitaciones 11 a 16 y San Miguel, y otra a lo largo de sus portales
   { puntos: [[-1, 30], [-17.5, 30]], ancho: 2 },
   { puntos: [[-17.5, 14], [-17.5, 48]], ancho: 1.8 },
 ]

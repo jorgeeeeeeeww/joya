@@ -400,8 +400,8 @@ function construir(p: Pieza, tintes: Tinte[]): { g: THREE.Group; alto: number } 
       alto = H + 0.6
       break
     }
-    case 'casita': {
-      // Casitas (12 nov): muros de cal claros sobre un zócalo de piedra, techo de teja a dos aguas con alero, chimenea,
+    case 'casa': {
+      // Casas (12 nov): muros de cal claros sobre un zócalo de piedra, techo de teja a dos aguas con alero, chimenea,
       // un portal con dos postes de madera frente a la puerta y una ventana a cada lado
       const H = 3.1
       caja(mat(TONO.alero), W, H, D, 0, H / 2, 0)
@@ -437,7 +437,7 @@ function construir(p: Pieza, tintes: Tinte[]): { g: THREE.Group; alto: number } 
       break
     }
     default: {
-      // Sin estilo: una casita de muros claros y techo de dos aguas
+      // Sin estilo: una casa de muros claros y techo de dos aguas
       const H = 3.2
       caja(mat(TONO.piedraClara), W, H, D, 0, H / 2, 0)
       pieza(dosAguas(W + 1, D + 1, Math.min(W, D) * 0.3), mat(TONO.teja, 'techo'), [1, 1, 1], [0, H, 0])
