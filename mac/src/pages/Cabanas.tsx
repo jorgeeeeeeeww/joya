@@ -177,7 +177,6 @@ function Editor({ original }: { original: Cabana | null }) {
   })
 
   const temporadas = original ? d.temporadas.filter((t) => t.cabana_id === original.id) : []
-  const faltaParaWeb = [!f.precio_noche && 'precio por noche', !f.fotos.length && 'fotos', !f.resumen && 'resumen'].filter(Boolean) as string[]
 
   return (
     <div className="mx-auto grid max-w-[1120px] grid-cols-1 gap-7 px-6 pt-8 pb-16 min-[1280px]:grid-cols-[minmax(0,1fr)_288px]">
@@ -198,7 +197,7 @@ function Editor({ original }: { original: Cabana | null }) {
             </Button>
           ) : (
             <div className="rounded-[14px] px-4 py-2.5 ring-1 ring-line">
-              <Toggle checked={f.publicada} onChange={(v) => set('publicada', v)} label={f.publicada ? 'Sale en la página' : 'No sale en la página'} description={!f.publicada && faltaParaWeb.length ? `Le falta: ${faltaParaWeb.join(', ')}` : f.publicada && !f.precio_noche ? 'Sin precio sale con «Pregunta por WhatsApp»' : undefined} />
+              <Toggle checked={f.publicada} onChange={(v) => set('publicada', v)} label={f.publicada ? 'Sale en la página' : 'No sale en la página'} description={!f.publicada ? 'Apagado: no sale en la página' : !f.precio_noche ? 'Sin precio: en la página se pregunta por WhatsApp (ponle el precio en «Editar datos y precios»)' : undefined} />
             </div>
           )}
         </div>
