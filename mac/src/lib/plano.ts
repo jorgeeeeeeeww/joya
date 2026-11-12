@@ -47,6 +47,11 @@ export const LOTE: [number, number][] = [
   [30, -84],
   [38, 82],
   [-30, 84],
+  // Una franja más ancha por el oeste (12 nov), para que las casas queden en hilera y con aire entre ellas
+  [-30.7, 54],
+  [-36.5, 50],
+  [-37.5, -12],
+  [-32.6, -18],
 ]
 
 /** Habitaciones 11 a 16: una hilera de un piso que ve al andador (de sur a norte: 16 → 11) */
@@ -64,30 +69,20 @@ const hilera: Pieza[] = [16, 15, 14, 13, 12, 11].map((n, i) => ({
 }))
 
 /**
- * Casas 1 a 7 (12 nov): siete casas pequeñas en el jardín del lado oeste, entre el salón y las habitaciones 1 a 3.
- * Dos hileras que se miran por una vereda central: la del oeste (casas 1 a 4, de norte a sur) con su portal al este,
- * y la del este (casas 5 a 7) con el suyo al oeste. Entre la 6 y la 7 queda el hueco por donde entra la vereda que
- * sale del andador, en el pasillo entre las habitaciones 11 a 16 y la cabaña San Miguel.
+ * Casas 1 a 7 (12 nov): siete casas pequeñas en una sola hilera a lo largo del lado oeste del jardín (de norte a sur),
+ * cada una con su portal al este y con aire entre ellas. Una vereda corre por delante de todos los portales y otra la
+ * junta con el andador, por el pasillo entre las habitaciones 11 a 16 y la cabaña San Miguel.
  */
-const CASAS_POS: [number, number, 'e' | 'o'][] = [
-  [-27.4, 14, 'e'],
-  [-27.4, 22.2, 'e'],
-  [-27.4, 30.4, 'e'],
-  [-27.4, 38.6, 'e'],
-  [-18.6, 16, 'o'],
-  [-18.6, 23.5, 'o'],
-  [-18.6, 44, 'o'],
-]
-const casas: Pieza[] = CASAS_POS.map(([x, z, frente], i) => ({
-  id: `casa-${i + 1}`,
+const casas: Pieza[] = [1, 2, 3, 4, 5, 6, 7].map((n, i) => ({
+  id: `casa-${n}`,
   tipo: 'casa',
-  nombre: `Casa ${i + 1}`,
-  x,
-  z,
+  nombre: `Casa ${n}`,
+  x: -32,
+  z: -9 + i * 9.4,
   w: 5.6,
   d: 5.8,
   estilo: 'casa',
-  frente,
+  frente: 'e',
   grupo: 'casas',
 }))
 
@@ -179,9 +174,9 @@ export const CAMINOS: { puntos: [number, number][]; ancho: number }[] = [
   { puntos: [[-1, 58], [-25, 58]], ancho: 2.6 },
   { puntos: [[-27, 69], [-26, 69]], ancho: 6 },
   { puntos: [[6, -3], [13, 6]], ancho: 3 },
-  // A las casas: una vereda que sale del andador entre las habitaciones 11 a 16 y San Miguel, y otra al centro, entre sus dos hileras
-  { puntos: [[-1, 30], [-23, 30]], ancho: 2 },
-  { puntos: [[-23, 11], [-23, 48]], ancho: 1.8 },
+  // A las casas: una vereda que sale del andador entre las habitaciones 11 a 16 y San Miguel, y otra por delante de sus portales
+  { puntos: [[-1, 30], [-27.4, 30]], ancho: 2 },
+  { puntos: [[-27.4, -12], [-27.4, 51]], ancho: 1.7 },
 ]
 
 export type Arbol = { x: number; z: number; tipo: 'cipres' | 'palma' | 'copa' | 'pino' | 'cola'; s: number }
@@ -200,6 +195,8 @@ function arboles(): Arbol[] {
   for (let z = -77; z <= 79; z += 4.4) a.push({ x: orilla('der', z) - 2.4 + (azar(z, 3) - 0.5) * 0.8, z, tipo: 'cola', s: 0.85 + azar(z, 1) * 0.3 })
   // Matas de cola de zorro frente a San Miguel y Elena (como en sus fotos), sin tapar las puertas
   for (const [x, z] of [[-4.5, 32.2], [-4.2, 33.5], [-4.3, 36.6], [-4.6, 37.8], [-4.3, 41.4], [-4.1, 42.6], [-4.2, 45.6], [-4.5, 47]] as const) a.push({ x, z, tipo: 'cola', s: 0.6 })
+  // Entre casa y casa, del lado de la cerca: matas de cola de zorro
+  for (let i = 0; i < 6; i++) a.push({ x: -36 + (azar(i, 5) - 0.5) * 0.8, z: -9 + 4.7 + i * 9.4, tipo: 'cola', s: 0.8 })
   // Cerca oeste, al norte: cipreses
   for (let z = -64; z <= -20; z += 4.5) a.push({ x: orilla('izq', z) + 2.4, z, tipo: 'cipres', s: 0.85 })
   // Pinos alrededor de Sabas (el frente, al sur, queda libre para el caminito)

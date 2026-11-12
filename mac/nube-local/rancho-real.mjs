@@ -1,4 +1,4 @@
-// Prueba en pantalla con los 12 hospedajes reales: levanta una nube en memoria con esos nombres,
+// Prueba en pantalla con los 19 hospedajes reales: levanta una nube en memoria con esos nombres,
 // la web (http://localhost:4325) y la app de la Mac (http://127.0.0.1:5182), las dos conectadas a ella.
 // No toca la nube local de siempre (54331) ni sus datos. Los precios son SOLO de prueba.
 //
@@ -57,13 +57,14 @@ const LUGARES = [
   { slug: 'sabas', nombre: 'Sabas', tipo: 'cabana', capacidad: 6 },
   { slug: 'cabana-san-miguel', nombre: 'Cabaña San Miguel', tipo: 'cabana', capacidad: 10 },
   { slug: 'cabana-elena', nombre: 'Cabaña Elena', tipo: 'cabana', capacidad: 4 },
+  ...[1, 2, 3, 4, 5, 6, 7].map((n) => ({ slug: `casa-${n}`, nombre: `Casa ${n}`, tipo: 'casa', capacidad: 4 })),
   ...[11, 12, 13, 14, 15, 16, 1, 2, 3].map((n) => ({ slug: `habitacion-${n}`, nombre: `Habitación ${n}`, tipo: 'habitacion', capacidad: 2 })),
 ]
 for (const [i, l] of LUGARES.entries()) {
-  const [n, f] = l.tipo === 'cabana' ? [1000, 1300] : [600, 750]
+  const [n, f] = l.tipo === 'cabana' ? [1000, 1300] : l.tipo === 'casa' ? [1500, 1800] : [600, 750]
   await rpc('hosp_guardar_cabana', { p: { ...l, precio_noche: n, precio_fin_semana: f, publicada: true, orden: i + 1 } })
 }
-console.log(`[rancho] Nube con los 12 hospedajes reales en ${URL_NUBE} (precios de prueba)`)
+console.log(`[rancho] Nube con los 19 hospedajes reales en ${URL_NUBE} (precios de prueba)`)
 
 correr('mac', 'npm', ['--prefix', 'mac', 'run', 'dev', '--', '--port', String(PUERTO_MAC)], { VITE_SUPABASE_URL: URL_NUBE, VITE_SUPABASE_PUBLISHABLE_KEY: PUBLICA })
 

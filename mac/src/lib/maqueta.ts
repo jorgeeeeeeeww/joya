@@ -71,9 +71,11 @@ export interface Maqueta {
   resaltar: (id: string | null) => void
   volarA: (id: string, duracion: number) => void
   /** Acerca la cámara a un grupo de edificios (sigue pudiéndose girar y tocar) */
-  acercar: (ids: string[], duracion: number) => void
+  acercar: (ids: string[], duracion: number, forzar?: boolean) => void
   /** ¿La cámara está acercada a un grupo? */
   acercada: () => boolean
+  /** ¿La cámara está en la vista de todo el rancho (ni acercada a un grupo ni sobre un edificio)? */
+  enGeneral: () => boolean
   volver: (duracion: number) => void
   entrar: () => void
   pausar: (si: boolean) => void
@@ -1083,7 +1085,7 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
         y: ps.length === 1 ? 1.2 + e.alto * 0.6 : 2,
         z: (z0 + z1) / 2,
         // Una construcción sola (Sabas, de dos pisos con cúpula) se mira a media altura: queda al centro con su punto a la vista
-        d: Math.max(ps.length === 1 ? 62 : 44, camara.aspect < 1 ? (tramo + 4) * 2.9 : tramo * 2.2),
+        d: Math.max(ps.length === 1 ? 62 : 44, camara.aspect < 1 ? (tramo + 4) * (tramo > 50 ? 3.9 : 2.9) : tramo * 2.2),
         ph: 0.62,
         th: giro,
         thAjuste: 0,
@@ -1094,8 +1096,8 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
       })
       if (o.reduce) requestAnimationFrame(cuadro)
     },
-    acercar(ids, duracion) {
-      if (o.fija) return
+    acercar(ids, duracion, forzar) {
+      if (o.fija && !forzar) return
       const ps = ids.flatMap((id) => piezaPorId.get(id) ?? [])
       if (!ps.length) return
       const x0 = Math.min(...ps.map((p) => p.x - p.w / 2))
@@ -1112,7 +1114,8 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
         x: (x0 + x1) / 2,
         y: 2,
         z: (z0 + z1) / 2,
-        d: Math.max(50, camara.aspect < 1 ? (tramo + 4) * 2.9 : tramo * 2.2),
+        // Una hilera muy larga (las siete casas) en pantalla angosta pide la cámara más lejos para que quepa toda
+        d: Math.max(50, camara.aspect < 1 ? (tramo + 4) * (tramo > 50 ? 3.9 : 2.9) : tramo * 2.2),
         ph: 0.62,
         th: giro,
         thAjuste: 0,
@@ -1124,6 +1127,7 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
       if (o.reduce) requestAnimationFrame(cuadro)
     },
     acercada: () => zoom,
+    enGeneral: () => !zoom && !cerca,
     volver(duracion) {
       zoom = false
       enVuelo = true

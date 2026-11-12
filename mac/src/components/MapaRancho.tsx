@@ -35,6 +35,7 @@ const esNoche = () => {
   return t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
 }
 
+const IDS_CASAS = new Set(HOSPEDAJES.filter((p) => p.grupo === 'casas').map((p) => p.id))
 const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? p.nombre.replace(/\D+/g, '') : p.tipo === 'casa' ? p.nombre.replace(/^Casa\s+/i, 'C') : p.nombre.replace(/^Cabaña\s+/i, ''))
 
 export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; elegida: string | null; onElegir: (id: string) => void }) {
@@ -44,6 +45,8 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
   const posiciones = useRef(new Map<string, { x: number; y: number; ok: boolean }>())
   const alElegir = useRef(onElegir)
   alElegir.current = onElegir
+  const rotuloCasas = useRef<HTMLButtonElement>(null)
+  const juntarCasas = useRef(true) // sí mientras no se haya acercado a las casas ni haya una elegida
   const [sinWebGL, setSinWebGL] = useState(false)
   const [sobre, setSobre] = useState<string | null>(null)
   const [acercado, setAcercado] = useState<string | null>(null)
@@ -74,12 +77,33 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
       reduce,
       alMover: (pos) => {
         posiciones.current = pos
+        let sx = 0
+        let sy = 0
+        let n = 0
         for (const [id, el] of etiquetas.current) {
           const p = pos.get(id)
-          if (!p || !p.ok) el.style.opacity = '0'
+          const esCasa = IDS_CASAS.has(id)
+          if (esCasa && p?.ok) {
+            sx += p.x
+            sy += p.y
+            n++
+          }
+          if (!p || !p.ok || (esCasa && juntarCasas.current)) el.style.opacity = '0'
           else {
             el.style.opacity = '1'
             el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -100%)`
+          }
+        }
+        // Las casas, juntas: un solo rótulo en medio de la hilera
+        const rc = rotuloCasas.current
+        if (rc) {
+          if (juntarCasas.current && n) {
+            rc.style.opacity = '1'
+            rc.style.pointerEvents = 'auto'
+            rc.style.transform = `translate(${sx / n}px, ${sy / n}px) translate(-50%, -100%)`
+          } else {
+            rc.style.opacity = '0'
+            rc.style.pointerEvents = 'none'
           }
         }
       },
@@ -130,6 +154,10 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elegida, ids])
 
+  // Las casas se ven una por una solo cuando la cámara está acercada a ellas o una está elegida
+  const piezaElegida = piezaDe(elegida)
+  juntarCasas.current = acercado !== 'casas' && !(piezaElegida && IDS_CASAS.has(piezaElegida))
+
   // Acercar la cámara a un grupo (para elegir con comodidad las habitaciones o las casas) o volver a ver todo
   const acercar = (grupo: string | null) => {
     const m = maqueta.current
@@ -174,6 +202,17 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
 
         {/* Rótulo de cada hospedaje, sobre su edificio */}
         <div className="pointer-events-none absolute inset-0">
+          {IDS_CASAS.size > 0 && [...porPieza.keys()].some((id) => IDS_CASAS.has(id)) && (
+            <button
+              ref={rotuloCasas}
+              type="button"
+              onClick={() => acercar('casas')}
+              style={{ opacity: 0 }}
+              className="pressable absolute top-0 left-0 inline-flex items-center rounded-full bg-ink px-2.5 py-1 text-[11px] leading-tight font-semibold whitespace-nowrap text-paper shadow-[var(--shadow-1)] transition-opacity"
+            >
+              {[...porPieza.keys()].filter((id) => IDS_CASAS.has(id)).length} casas
+            </button>
+          )}
           {[...porPieza].map(([id, c]) => {
             const p = HOSPEDAJES.find((x) => x.id === id)
             if (!p) return null
