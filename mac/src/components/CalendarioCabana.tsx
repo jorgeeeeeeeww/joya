@@ -1,5 +1,5 @@
 // El calendario de un solo hospedaje, mes por mes. Cada día se ve de otra manera según lo que pase esa noche:
-//   · ocupado   → caramelo lleno, con el nombre de quien llega ese día
+//   · ocupado   → color fuerte lleno, con el nombre de quien llega ese día
 //   · solicitud → contorno punteado que late
 //   · cerrado   → rayado
 //   · libre     → vacío

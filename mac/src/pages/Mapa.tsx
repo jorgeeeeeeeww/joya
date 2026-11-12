@@ -10,7 +10,8 @@ import { nocheDe, TIPO } from '@/lib/ocupacion'
 import { urlFoto } from '@/lib/nube'
 import type { Cabana, ISODate } from '@/lib/tipos'
 import { Button, PageHeader, Sheet, cx } from '@/components/ui'
-import { PlanoRancho, type CasaEscena } from '@/components/plano'
+import type { CasaEscena } from '@/components/plano'
+import { MapaRancho } from '@/components/MapaRancho'
 import { casasDe } from '@/lib/casas'
 import { Noches } from '@/components/Noches'
 import { CalendarioCabana } from '@/components/CalendarioCabana'
@@ -58,8 +59,8 @@ export default function Mapa() {
             </div>
           </div>
 
-          <div className="rounded-[var(--r-md)] bg-sunken p-4 ring-1 ring-line ring-inset">
-            <PlanoRancho casas={casas} elegida={elegida} onPick={(id) => setElegida(id)} />
+          <div className="rounded-[var(--r-md)] bg-sunken p-2 ring-1 ring-line ring-inset">
+            <MapaRancho casas={casas} elegida={elegida} onElegir={setElegida} />
           </div>
 
           <div className="mt-6">

@@ -232,37 +232,47 @@
   --info:    light-dark(#34506A, #A9B6D6);
 }
 
-/* LA JOYA — la paleta de la marca (la misma de la página, «Niebla de agave»): tinta verde petróleo, niebla,
-   agave pastel y caramelo para lo que más importa. Es la única que usa la app; las demás quedan solo en este archivo. */
+/* LA JOYA — un solo color: el verde agave de la marca, en todos sus tonos. De día es niebla clara (sin blanco puro, para
+   no encandilar) y de noche un verde grisáceo medio, nunca negro. Lo importante va en el tono fuerte del mismo color;
+   lo secundario, en sus tonos pálidos. Solo el rojo se usa aparte, y únicamente para errores y borrar. */
 [data-atmos="lajoya"] {
-  --paper:          light-dark(#EDF0EC, #0F1C1B);
-  --surface:        light-dark(#F7F9F6, #162826);
-  --sunken:         light-dark(#DFE7E2, #0B1616);
-  --ink:            light-dark(#152725, #EEF1ED);
-  --ink-soft:       light-dark(#3F5754, #B7C8C2);
-  --primary:        light-dark(#152725, #B7CCC5);
-  --primary-hover:  light-dark(#23383A, #CFDDD8);
-  --on-primary:     light-dark(#EDF0EC, #0C1A19);
-  --secondary:      light-dark(#DAE4DF, #23383A);
-  --matiz:          light-dark(#7C968F, #4F6863);   /* decorativo */
-  --matiz-ink:      light-dark(#3F5C55, #B7CCC5);   /* salvia como texto */
-  --chispa:         light-dark(#96572C, #E5A672);   /* caramelo: lo importante */
-  --chispa-soft:    light-dark(#C98A5A, #B8764A);   /* no-texto: barras, puntos */
-  --on-chispa:      light-dark(#FBF3EA, #0F1C1B);
-  --luz:            light-dark(#E9CFA8, #E9CFA8);
-  --night:          light-dark(#152725, #0C1A19);   /* bloques de verde petróleo */
-  --on-night:       #EEF1ED;
-  --on-night-soft:  #B7C8C2;
-  --horizon:        light-dark(#6F8A84, #0A1514);
-  --shade:          light-dark(#152725, #030808);
-  --sky-1: light-dark(#6F8A84, #17302D);
-  --sky-2: light-dark(#9DB4AC, #234440);
-  --sky-3: light-dark(#C3D3CC, #3A5E58);
-  --sky-4: light-dark(#E3ECE8, #5B7F78);
-  --success: light-dark(#3E6A4F, #8FC4A0);
-  --warning: light-dark(#8A5C1A, #E0B36E);
-  --danger:  light-dark(#963F38, #E8988D);
-  --info:    light-dark(#2F5A61, #9CC2BD);
+  --paper:          light-dark(#E7EDE9, #1F2E2A);
+  --surface:        light-dark(#F1F5F2, #283A35);
+  --sunken:         light-dark(#DAE3DE, #1A2724);
+  --ink:            light-dark(#1F3631, #DCE8E3);
+  --ink-soft:       light-dark(#4B665F, #A8BEB7);
+  --primary:        light-dark(#3F7A6D, #86BFB0);
+  --primary-hover:  light-dark(#346B5F, #9CCDBF);
+  --on-primary:     light-dark(#F1F5F2, #14221E);
+  --secondary:      light-dark(#D0E0D9, #34493F);
+  --matiz:          light-dark(#7FA79B, #4E7A6E);   /* decorativo */
+  --matiz-ink:      light-dark(#3C685D, #A8D0C5);   /* tono suave como texto */
+  --chispa:         light-dark(#2F6256, #9AD0C2);   /* lo importante: el tono fuerte del mismo verde */
+  --chispa-soft:    light-dark(#6FA394, #5E9A8B);   /* no-texto: barras, puntos */
+  --on-chispa:      light-dark(#F1F5F2, #14221E);
+  --luz:            light-dark(#CBE0D8, #BFE0D6);
+  --night:          light-dark(#2A4A43, #324F48);   /* bloques y avisos oscuros */
+  --on-night:       #E8F1ED;
+  --on-night-soft:  #B5CBC4;
+  --horizon:        light-dark(#6F8A84, #1A2926);
+  --shade:          light-dark(#1F3631, #0B1311);
+  --sky-1: light-dark(#6F8A84, #2B423C);
+  --sky-2: light-dark(#9DB4AC, #3A5750);
+  --sky-3: light-dark(#C3D3CC, #4E7A6E);
+  --sky-4: light-dark(#E3ECE8, #6E9A8E);
+  --success: light-dark(#3F7A6D, #86BFB0);
+  --warning: light-dark(#5E7A72, #A8BEB7);
+  --danger:  light-dark(#A24A44, #E8958D);
+  --info:    light-dark(#3F7A6D, #86BFB0);
+}
+/* Los colores de etiquetas y estados (antes seis colores distintos): todos son tonos del mismo verde */
+:root[data-atmos="lajoya"] {
+  --data-1: light-dark(#3F7A6D, #86BFB0);
+  --data-2: light-dark(#8A9E97, #93A8A1);
+  --data-3: light-dark(#6F9A8C, #8FB8AA);
+  --data-4: light-dark(#5E9A8B, #6FB09F);
+  --data-5: light-dark(#5F8A82, #8FB5AB);
+  --data-6: light-dark(#4F8A7A, #86BFB0);
 }
 
 /* --------------------------------------------------------------------------

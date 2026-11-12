@@ -1,7 +1,7 @@
 // El plano del rancho visto desde arriba, con sus edificios reales: el mismo plano en metros y la misma orientación
 // que usa la página en «Reservar» (acostado: el norte queda a la izquierda). Cada lugar se pinta según la noche que se
 // esté viendo:
-//   · ocupado     → caramelo lleno
+//   · ocupado     → el color fuerte de la app, lleno
 //   · solicitud   → contorno punteado que late despacio (todavía no es seguro que lleguen)
 //   · cerrado     → rayado
 //   · libre       → verde agua pálido con contorno

@@ -713,20 +713,21 @@ html.is-dragging * {
 
 /* Barras del calendario. En modo oscuro el tono sube y el texto se aclara: con la mezcla suave de
    las insignias apenas se distinguían del fondo. */
+/* Barras del calendario: un solo color, y lo que cambia es cuánto se llena la barra */
 .barra-confirmada {
-  background-color: light-dark(var(--t-sky-soft), color-mix(in oklab, var(--t-sky) 46%, var(--surface)));
-  color: light-dark(var(--t-sky-ink), var(--ink));
-  --tw-ring-color: color-mix(in oklab, var(--t-sky) 60%, transparent);
+  background-color: color-mix(in oklab, var(--chispa) 18%, var(--surface));
+  color: var(--ink);
+  --tw-ring-color: color-mix(in oklab, var(--chispa) 55%, transparent);
 }
 .barra-pagada {
-  background-color: light-dark(var(--sage-soft), color-mix(in oklab, var(--sage) 46%, var(--surface)));
-  color: light-dark(var(--sage-ink), var(--ink));
-  --tw-ring-color: color-mix(in oklab, var(--sage) 60%, transparent);
+  background-color: var(--chispa);
+  color: var(--on-chispa);
+  --tw-ring-color: transparent;
 }
 .barra-solicitud {
-  background-color: light-dark(var(--peach-soft), color-mix(in oklab, var(--peach) 34%, var(--surface)));
-  color: light-dark(var(--peach-ink), var(--ink));
-  --tw-ring-color: color-mix(in oklab, var(--peach) 65%, transparent);
+  background-color: color-mix(in oklab, var(--chispa) 7%, var(--surface));
+  color: var(--chispa);
+  --tw-ring-color: var(--chispa);
 }
 .fx:has(.fx-value:focus-visible) {
   box-shadow:
