@@ -47,11 +47,11 @@ export const LOTE: [number, number][] = [
   [30, -84],
   [38, 82],
   [-30, 84],
-  // Una franja más ancha por el oeste (12 nov), para que las casas queden en hilera y con aire entre ellas
-  [-30.7, 54],
-  [-36.5, 50],
-  [-37.5, -12],
-  [-32.6, -18],
+  // Una franja más ancha por el oeste (12 nov), para que las casas quepan en hilera y con aire entre ellas
+  [-30.6, 64],
+  [-36.5, 60],
+  [-37.5, 4],
+  [-32.4, 0],
 ]
 
 /** Habitaciones 11 a 16: una hilera de un piso que ve al andador (de sur a norte: 16 → 11) */
@@ -69,18 +69,19 @@ const hilera: Pieza[] = [16, 15, 14, 13, 12, 11].map((n, i) => ({
 }))
 
 /**
- * Casas 1 a 7 (12 nov): siete casas pequeñas en una sola hilera a lo largo del lado oeste del jardín (de norte a sur),
- * cada una con su portal al este y con aire entre ellas. Una vereda corre por delante de todos los portales y otra la
- * junta con el andador, por el pasillo entre las habitaciones 11 a 16 y la cabaña San Miguel.
+ * Casas 1 a 7 (12 nov): siete casas pequeñas en una sola hilera a lo largo del lado oeste del jardín, justo debajo del
+ * salón (donde marcó Jorge) y hacia el estacionamiento, de norte a sur. Cada una con su portal al este y con aire entre
+ * ellas. Una vereda corre por delante de los portales y otra la junta con el andador, por el pasillo entre las
+ * habitaciones 11 a 16 y la cabaña San Miguel.
  */
 const casas: Pieza[] = [1, 2, 3, 4, 5, 6, 7].map((n, i) => ({
   id: `casa-${n}`,
   tipo: 'casa',
   nombre: `Casa ${n}`,
   x: -32,
-  z: -9 + i * 9.4,
-  w: 5.6,
-  d: 5.8,
+  z: 12.5 + i * 7.2,
+  w: 5.2,
+  d: 5,
   estilo: 'casa',
   frente: 'e',
   grupo: 'casas',
@@ -176,7 +177,7 @@ export const CAMINOS: { puntos: [number, number][]; ancho: number }[] = [
   { puntos: [[6, -3], [13, 6]], ancho: 3 },
   // A las casas: una vereda que sale del andador entre las habitaciones 11 a 16 y San Miguel, y otra por delante de sus portales
   { puntos: [[-1, 30], [-27.4, 30]], ancho: 2 },
-  { puntos: [[-27.4, -12], [-27.4, 51]], ancho: 1.7 },
+  { puntos: [[-27.4, 9], [-27.4, 58], [-25, 58]], ancho: 1.7 },
 ]
 
 export type Arbol = { x: number; z: number; tipo: 'cipres' | 'palma' | 'copa' | 'pino' | 'cola'; s: number }
@@ -196,7 +197,7 @@ function arboles(): Arbol[] {
   // Matas de cola de zorro frente a San Miguel y Elena (como en sus fotos), sin tapar las puertas
   for (const [x, z] of [[-4.5, 32.2], [-4.2, 33.5], [-4.3, 36.6], [-4.6, 37.8], [-4.3, 41.4], [-4.1, 42.6], [-4.2, 45.6], [-4.5, 47]] as const) a.push({ x, z, tipo: 'cola', s: 0.6 })
   // Entre casa y casa, del lado de la cerca: matas de cola de zorro
-  for (let i = 0; i < 6; i++) a.push({ x: -36 + (azar(i, 5) - 0.5) * 0.8, z: -9 + 4.7 + i * 9.4, tipo: 'cola', s: 0.8 })
+  for (let i = 0; i < 6; i++) a.push({ x: -36 + (azar(i, 5) - 0.5) * 0.8, z: 12.5 + 3.6 + i * 7.2, tipo: 'cola', s: 0.8 })
   // Cerca oeste, al norte: cipreses
   for (let z = -64; z <= -20; z += 4.5) a.push({ x: orilla('izq', z) + 2.4, z, tipo: 'cipres', s: 0.85 })
   // Pinos alrededor de Sabas (el frente, al sur, queda libre para el caminito)
