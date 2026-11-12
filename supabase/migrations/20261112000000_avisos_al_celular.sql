@@ -2,8 +2,12 @@
 -- celular, esté donde esté la Mac. Va por el mismo camino que los correos (tabla hospedaje_avisos → función
 -- avisos-hospedaje). El nombre del canal privado (tema) NO está en la base: es el secreto NTFY_TEMA de la función.
 
+-- Si una prueba anterior dejó el candado con otros canales, se cambia por el correcto
+alter table public.hospedaje_avisos drop constraint if exists hospedaje_avisos_canal_check;
 alter table public.hospedaje_avisos
-  add column if not exists canal text not null default 'correo' check (canal in ('correo', 'ntfy'));
+  add column if not exists canal text not null default 'correo';
+alter table public.hospedaje_avisos
+  add constraint hospedaje_avisos_canal_check check (canal in ('correo', 'ntfy'));
 
 -- La función de avisos ahora también recibe el canal de cada aviso
 create or replace function public.hosp_tomar_avisos()
