@@ -208,10 +208,11 @@ function Editor({ original }: { original: Cabana | null }) {
           <div className="mt-4 grid grid-cols-2 gap-3">
             <Campo label="Nombre" value={f.nombre} onChange={(v) => set('nombre', v)} maxLength={80} autoFocus={nueva} ok={!!f.nombre.trim()} />
             <Campo
-              label="Dirección en la página"
+              label={original ? 'Clave (no se cambia)' : 'Clave en la página'}
               value={f.slug}
+              disabled={!!original}
               onChange={(v) => (setSlugTocado(true), set('slug', aSlug(v)))}
-              hint={f.slug ? `/hospedaje/${f.slug}` : 'Se arma sola con el nombre'}
+              hint={original ? 'Une este lugar con su edificio en el mapa y con su ficha en la página. El nombre sí se puede cambiar.' : f.slug ? `Se arma con el nombre: ${f.slug}` : 'Se arma sola con el nombre'}
               error={f.slug && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(f.slug) ? 'Solo letras, números y guiones' : null}
             />
           </div>
