@@ -64,20 +64,30 @@ const hilera: Pieza[] = [16, 15, 14, 13, 12, 11].map((n, i) => ({
 }))
 
 /**
- * Casas 1 a 4 (12 nov): cuatro casas pequeñas en el jardín del lado oeste, entre el salón y las habitaciones 1 a 3,
- * en hilera de norte a sur con el portal hacia el andador. Una vereda las junta con el andador por el pasillo que queda
- * entre la hilera de las habitaciones 11 a 16 y la cabaña San Miguel.
+ * Casas 1 a 7 (12 nov): siete casas pequeñas en el jardín del lado oeste, entre el salón y las habitaciones 1 a 3.
+ * Dos hileras que se miran por una vereda central: la del oeste (casas 1 a 4, de norte a sur) con su portal al este,
+ * y la del este (casas 5 a 7) con el suyo al oeste. Entre la 6 y la 7 queda el hueco por donde entra la vereda que
+ * sale del andador, en el pasillo entre las habitaciones 11 a 16 y la cabaña San Miguel.
  */
-const casas: Pieza[] = [1, 2, 3, 4].map((n, i) => ({
-  id: `casa-${n}`,
+const CASAS_POS: [number, number, 'e' | 'o'][] = [
+  [-27.4, 14, 'e'],
+  [-27.4, 22.2, 'e'],
+  [-27.4, 30.4, 'e'],
+  [-27.4, 38.6, 'e'],
+  [-18.6, 16, 'o'],
+  [-18.6, 23.5, 'o'],
+  [-18.6, 44, 'o'],
+]
+const casas: Pieza[] = CASAS_POS.map(([x, z, frente], i) => ({
+  id: `casa-${i + 1}`,
   tipo: 'casa',
-  nombre: `Casa ${n}`,
-  x: -24,
-  z: 17 + i * 8.8,
-  w: 6,
-  d: 6.5,
+  nombre: `Casa ${i + 1}`,
+  x,
+  z,
+  w: 5.6,
+  d: 5.8,
   estilo: 'casa',
-  frente: 'e',
+  frente,
   grupo: 'casas',
 }))
 
@@ -125,6 +135,9 @@ export const UBICACION: Record<string, string> = {
   'casa-2': 'casa-2',
   'casa-3': 'casa-3',
   'casa-4': 'casa-4',
+  'casa-5': 'casa-5',
+  'casa-6': 'casa-6',
+  'casa-7': 'casa-7',
 }
 
 const limpio = (t: string) =>
@@ -166,9 +179,9 @@ export const CAMINOS: { puntos: [number, number][]; ancho: number }[] = [
   { puntos: [[-1, 58], [-25, 58]], ancho: 2.6 },
   { puntos: [[-27, 69], [-26, 69]], ancho: 6 },
   { puntos: [[6, -3], [13, 6]], ancho: 3 },
-  // A las casas: una vereda que sale del andador entre las habitaciones 11 a 16 y San Miguel, y otra a lo largo de sus portales
-  { puntos: [[-1, 30], [-17.5, 30]], ancho: 2 },
-  { puntos: [[-17.5, 14], [-17.5, 48]], ancho: 1.8 },
+  // A las casas: una vereda que sale del andador entre las habitaciones 11 a 16 y San Miguel, y otra al centro, entre sus dos hileras
+  { puntos: [[-1, 30], [-23, 30]], ancho: 2 },
+  { puntos: [[-23, 11], [-23, 48]], ancho: 1.8 },
 ]
 
 export type Arbol = { x: number; z: number; tipo: 'cipres' | 'palma' | 'copa' | 'pino' | 'cola'; s: number }
