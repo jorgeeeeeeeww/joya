@@ -89,14 +89,14 @@ reset role;
 -- y si eso avisara «hubo cambios», la app se quedaría recargando sin parar.
 select is((select count(*)::integer from pg_catalog.pg_trigger where tgname like '%\_cambio' and not tgisinternal and (tgtype & 1) = 0), 0, 'Solo se avisa si de verdad cambió un renglón');
 
--- ── Avisos por WhatsApp (CallMeBot) ──
-select is((select count(*)::integer from public.hospedaje_avisos a join datos_solicitud d on d.id = a.reservacion_id where a.canal = 'whatsapp'), 1, 'Cada solicitud de la página deja un aviso de WhatsApp para el dueño');
-select ok((select a.cuerpo like 'Nueva solicitud LJ-%' and a.cuerpo not like '%3312345678%' and a.cuerpo not like '%Huésped de Prueba%' from public.hospedaje_avisos a join datos_solicitud d on d.id = a.reservacion_id where a.canal = 'whatsapp'), 'El WhatsApp lleva solo el nombre de pila: no el teléfono ni el nombre completo');
+-- ── Avisos al celular (ntfy) ──
+select is((select count(*)::integer from public.hospedaje_avisos a join datos_solicitud d on d.id = a.reservacion_id where a.canal = 'ntfy'), 1, 'Cada solicitud de la página deja un aviso al celular del dueño');
+select ok((select a.cuerpo like 'Nueva solicitud LJ-%' and a.cuerpo not like '%3312345678%' and a.cuerpo not like '%Huésped de Prueba%' from public.hospedaje_avisos a join datos_solicitud d on d.id = a.reservacion_id where a.canal = 'ntfy'), 'El aviso al celular lleva solo el nombre de pila: no el teléfono ni el nombre completo');
 select pg_temp.como('00000000-0000-0000-0000-0000000000f2');
-select throws_ok($$ select public.hosp_probar_whatsapp() $$, '42501', null, 'Solo el dueño puede probar el WhatsApp');
+select throws_ok($$ select public.hosp_probar_aviso('ntfy') $$, '42501', null, 'Solo el dueño puede probar el aviso al celular');
 reset role;
 select pg_temp.como('00000000-0000-0000-0000-0000000000f1');
-select ok((select (public.hosp_probar_whatsapp() ->> 'id') is not null), 'El dueño deja un aviso de prueba y recibe su número');
+select ok((select (public.hosp_probar_aviso('ntfy') ->> 'id') is not null), 'El dueño deja un aviso de prueba y recibe su número');
 reset role;
 
 -- ── Actualizaciones de la app ──

@@ -157,7 +157,7 @@ console.log('\n3. La app de la Mac recibe la solicitud')
   revisar(detalle.data?.eventos?.[0]?.detalle === 'Llegó de la página web', 'La historia dice que llegó de la web', detalle.data?.eventos)
   const correos = await fetch(`${URL_NUBE}/__correos`).then((x) => x.json())
   revisar(correos.some((c) => c.para === 'dueno@lajoya.local' && c.asunto.includes(solicitud.codigo)) && correos.some((c) => c.para === 'huesped@prueba.mx'), 'Sale el correo al dueño y el acuse al huésped', correos.map((c) => `${c.para}: ${c.asunto}`))
-  revisar(correos.some((c) => c.canal === 'whatsapp' && c.cuerpo.includes(solicitud.codigo) && !c.cuerpo.includes('33 1234 5678') && !c.cuerpo.includes('1234')), 'Sale el WhatsApp al dueño, sin el teléfono del huésped', correos.filter((c) => c.canal === 'whatsapp').map((c) => c.cuerpo))
+  revisar(correos.some((c) => c.canal === 'ntfy' && c.cuerpo.includes(solicitud.codigo) && !c.cuerpo.includes('33 1234 5678') && !c.cuerpo.includes('1234')), 'Sale el aviso al celular del dueño, sin el teléfono del huésped', correos.filter((c) => c.canal === 'ntfy').map((c) => c.cuerpo))
 
   const mover = await dueno.rpc('hosp_actualizar_reservacion', { p_id: r.id, p: { llegada: masDias(viernes, -1), salida: domingo } })
   // jueves 1000 + viernes 1300 + sábado 1300 + 1 persona extra × 3 noches × 150

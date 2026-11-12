@@ -1,11 +1,11 @@
 // Lógica de la función «avisos-hospedaje», sin nada propio de Deno (corre igual en la nube local).
-// Toma los avisos pendientes (tabla hospedaje_avisos), los manda y los marca: los correos con Resend y los de
-// WhatsApp (el aviso al dueño de cada solicitud nueva) con CallMeBot.
+// Toma los avisos pendientes (tabla hospedaje_avisos), los manda y los marca: los correos con Resend y los avisos
+// al celular del dueño con ntfy (ntfy.sh).
 
 export interface Correo {
   id: number
   /** Por dónde va; los avisos viejos no lo traen y son correos */
-  canal?: 'correo' | 'whatsapp'
+  canal?: 'correo' | 'ntfy'
   para: string
   asunto: string
   cuerpo: string
@@ -18,13 +18,12 @@ export interface EntornoAvisos {
   resendKey?: string
   /** Remitente, por ejemplo «La Joya <reservas@jardineslajoya.mx>». Sin dominio propio: onboarding@resend.dev */
   remitente?: string
-  /** CallMeBot: el teléfono (con lada de país, sin +) y la clave (apikey) que le dio al mandar su permiso. Sin ellos los WhatsApp quedan «sin configurar». */
-  callmebotTelefono?: string
-  callmebotApikey?: string
+  /** Tema de ntfy: el nombre del canal privado del celular del dueño. Sin él, los avisos al celular quedan «sin configurar». */
+  ntfyTema?: string
   /** Para probar: en lugar de Resend */
   enviar?: (c: Correo) => Promise<{ ok: boolean; detalle?: string }>
-  /** Para probar: en lugar de CallMeBot */
-  enviarWhatsApp?: (c: Correo) => Promise<{ ok: boolean; detalle?: string }>
+  /** Para probar: en lugar de ntfy */
+  enviarNtfy?: (c: Correo) => Promise<{ ok: boolean; detalle?: string }>
 }
 
 function cabeceras(llave: string): Record<string, string> {
@@ -55,13 +54,16 @@ async function enviarConResend(c: Correo, env: EntornoAvisos): Promise<{ ok: boo
   return { ok: false, detalle: `Resend ${r.status}: ${(await r.text()).slice(0, 200)}` }
 }
 
-/** CallMeBot responde 200 aun cuando algo salió mal (clave inválida, sin permiso…): se lee lo que dice */
-async function enviarConCallMeBot(c: Correo, env: EntornoAvisos): Promise<{ ok: boolean; detalle?: string }> {
-  const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(env.callmebotTelefono!)}&text=${encodeURIComponent(c.cuerpo)}&apikey=${encodeURIComponent(env.callmebotApikey!)}`
-  const r = await fetch(url, { signal: AbortSignal.timeout(20_000) })
-  const texto = (await r.text().catch(() => '')).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-  if (r.ok && !/error|invalid|incorrect|not (found|registered|allowed|authori[sz]ed)|blocked|paused|wrong/i.test(texto)) return { ok: true, detalle: texto.slice(0, 120) || undefined }
-  return { ok: false, detalle: `CallMeBot ${r.status}: ${texto.slice(0, 200)}` }
+/** ntfy: una petición simple al tema. El cuerpo es el texto del aviso; el título va en cabecera (solo ASCII). */
+export async function enviarConNtfy(c: Correo, tema: string): Promise<{ ok: boolean; detalle?: string }> {
+  const r = await fetch(`https://ntfy.sh/${encodeURIComponent(tema)}`, {
+    method: 'POST',
+    headers: { Title: 'La Joya', Priority: 'high', Tags: 'house' },
+    body: c.cuerpo,
+    signal: AbortSignal.timeout(20_000),
+  })
+  if (r.ok) return { ok: true, detalle: 'ntfy' }
+  return { ok: false, detalle: `ntfy ${r.status}: ${(await r.text().catch(() => '')).slice(0, 200)}` }
 }
 
 export async function mandarAvisos(env: EntornoAvisos): Promise<{ enviados: number; fallidos: number; sinConfigurar: number }> {
@@ -69,27 +71,22 @@ export async function mandarAvisos(env: EntornoAvisos): Promise<{ enviados: numb
   let enviados = 0
   let fallidos = 0
   let sinConfigurar = 0
-  let ultimoWhatsApp = 0
   for (const c of lista) {
-    if (c.canal === 'whatsapp') {
-      if (!env.enviarWhatsApp && !(env.callmebotTelefono && env.callmebotApikey)) {
+    if (c.canal === 'ntfy') {
+      if (!env.enviarNtfy && !env.ntfyTema) {
         sinConfigurar++
-        await rpc(env, 'hosp_marcar_aviso', { p_id: c.id, p_estado: 'sin_configurar', p_detalle: 'Faltan CALLMEBOT_TELEFONO y CALLMEBOT_APIKEY en los secretos de las funciones' })
+        await rpc(env, 'hosp_marcar_aviso', { p_id: c.id, p_estado: 'sin_configurar', p_detalle: 'Falta el secreto NTFY_TEMA en la función avisos-hospedaje' })
         continue
       }
-      // CallMeBot pide un respiro entre mensajes
-      const espera = ultimoWhatsApp + 2_000 - Date.now()
-      if (!env.enviarWhatsApp && espera > 0) await new Promise((ok) => setTimeout(ok, espera))
-      let resW: { ok: boolean; detalle?: string }
+      let res: { ok: boolean; detalle?: string }
       try {
-        resW = env.enviarWhatsApp ? await env.enviarWhatsApp(c) : await enviarConCallMeBot(c, env)
+        res = env.enviarNtfy ? await env.enviarNtfy(c) : await enviarConNtfy(c, env.ntfyTema!)
       } catch (e) {
-        resW = { ok: false, detalle: e instanceof Error ? e.message : String(e) }
+        res = { ok: false, detalle: e instanceof Error ? e.message : String(e) }
       }
-      ultimoWhatsApp = Date.now()
-      if (resW.ok) enviados++
+      if (res.ok) enviados++
       else fallidos++
-      await rpc(env, 'hosp_marcar_aviso', { p_id: c.id, p_estado: resW.ok ? 'enviado' : 'error', p_detalle: resW.detalle ?? null })
+      await rpc(env, 'hosp_marcar_aviso', { p_id: c.id, p_estado: res.ok ? 'enviado' : 'error', p_detalle: res.detalle ?? null })
       continue
     }
     if (!env.enviar && !env.resendKey) {

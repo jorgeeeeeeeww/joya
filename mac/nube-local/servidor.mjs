@@ -49,7 +49,7 @@ const pg = new PGlite({ dataDir: enMemoria ? undefined : join(DATOS, 'postgres')
 try {
   await pg.exec(await readFile(join(AQUI, 'supabase-local.sql'), 'utf8'))
   await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261105000000_hospedaje.sql'), 'utf8'))
-await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261112000000_avisos_whatsapp.sql'), 'utf8'))
+await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261112000000_avisos_al_celular.sql'), 'utf8'))
   for (const c of CUENTAS) {
     await pg.query('insert into auth.users (id, email) values ($1, $2) on conflict (id) do nothing', [c.id, c.email])
     await pg.query('insert into public.profiles (id, role, display_name) values ($1, $2, $3) on conflict (id) do update set role = excluded.role', [c.id, c.role, c.nombre])
@@ -406,6 +406,9 @@ await pg.listen('realtime', (crudo) => {
 })
 
 // La base pide mandar correos (edge_post): se corre la misma lógica de la función, pero los correos se imprimen aquí
+// Tema de ntfy para probar el aviso al celular de verdad: NTFY_TEMA=el-tema npm run nube:ejemplo
+const NTFY_TEMA = process.env.NTFY_TEMA || undefined
+if (NTFY_TEMA) log('Aviso al celular: se manda de verdad por ntfy.sh al tema que pusiste en NTFY_TEMA')
 let correosPendientes = null
 await pg.listen('edge', (funcion) => {
   if (funcion !== 'avisos-hospedaje' || correosPendientes) return
@@ -420,11 +423,16 @@ await pg.listen('edge', (funcion) => {
           log(`Correo simulado para ${c.para}: «${c.asunto}»`)
           return { ok: true, detalle: 'simulado en la nube local' }
         },
-        enviarWhatsApp: async (c) => {
-          correos.push({ ...c, enviado: new Date().toISOString() })
-          log(`WhatsApp simulado: «${c.cuerpo}»`)
-          return { ok: true, detalle: 'simulado en la nube local' }
-        },
+        // Con NTFY_TEMA puesto, el aviso al celular sale de verdad por ntfy.sh (a tu celular, si estás suscrito).
+        // Sin él, se simula aquí como los correos.
+        ntfyTema: NTFY_TEMA,
+        enviarNtfy: NTFY_TEMA
+          ? undefined
+          : async (c) => {
+              correos.push({ ...c, enviado: new Date().toISOString() })
+              log(`Aviso al celular simulado: «${c.cuerpo}»`)
+              return { ok: true, detalle: 'simulado en la nube local' }
+            },
       })
     } catch (e) {
       log('No se pudieron mandar los correos:', e instanceof Error ? e.message : e)
