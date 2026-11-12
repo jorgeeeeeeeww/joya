@@ -35,6 +35,8 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_notification::init())
+        // Las peticiones a la nube salen por aquí y no por el navegador interno de la Mac (ver src/lib/nube.ts)
+        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())

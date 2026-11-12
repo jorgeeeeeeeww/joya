@@ -11,6 +11,17 @@
     "autostart:default",
     "opener:default",
     "process:default",
-    "updater:default"
+    "updater:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://*.supabase.co" },
+        { "url": "https://*.supabase.co/*" },
+        { "url": "http://127.0.0.1:*" },
+        { "url": "http://127.0.0.1:*/*" },
+        { "url": "http://localhost:*" },
+        { "url": "http://localhost:*/*" }
+      ]
+    }
   ]
 }

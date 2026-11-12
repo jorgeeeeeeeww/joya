@@ -2,19 +2,15 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { KeyRound, Mail, ShieldCheck, FlaskConical } from 'lucide-react'
-import { nube, esNubeLocal, URL_NUBE, LLAVE_PUBLICA } from '@/lib/nube'
+import { nube, esNubeLocal, URL_NUBE, LLAVE_PUBLICA, estadoRed, probarPorRust } from '@/lib/nube'
+import { sinColorMix } from '@/lib/compat'
+import mapaRancho from '@/assets/mapa-rancho.webp'
 import { correoGuardado, motivoDeEntrada, recordarCorreo } from '@/lib/store'
 import { fadeRise, heroRise, stagger } from '@/lib/motion'
 import { enMac } from '@/lib/mac'
 import { Button } from '@/components/ui'
 import { Marca } from '@/components/Loto'
 import { Campo } from '@/components/campos'
-import { PlanoRancho, type CasaEscena } from '@/components/plano'
-import { HOSPEDAJES } from '@/lib/plano'
-
-// Decoración: el plano del rancho con algunos lugares encendidos
-const ESTADOS: CasaEscena['estado'][] = ['reservada', 'libre', 'reservada', 'reservada', 'apartada', 'libre', 'reservada']
-const ADORNO: CasaEscena[] = HOSPEDAJES.map((p, i) => ({ id: p.id, nombre: p.nombre, tipo: p.tipo as CasaEscena['tipo'], estado: ESTADOS[i % ESTADOS.length]!, linea: '' }))
 
 function explicar(m: string) {
   if (/invalid login|credentials/i.test(m)) return 'El correo o la contraseña no coinciden.'
@@ -32,7 +28,12 @@ async function diagnosticar(e: { name?: string; message: string; status?: number
   } catch (x) {
     partes.push(`Prueba directa: ${x instanceof Error ? `${x.name}: ${x.message}` : String(x)}`)
   }
+  partes.push(`Por Rust: ${await probarPorRust()}`)
+  if (estadoRed.errorRust) partes.push(`Rust falló antes: ${estadoRed.errorRust}`)
+  if (estadoRed.violacionesCsp.length) partes.push(`Bloqueado por la app: ${estadoRed.violacionesCsp.join(' | ')}`)
   partes.push(`Internet: ${navigator.onLine ? 'sí' : 'no'} · ${navigator.userAgent.match(/Version\/[\d.]+|Chrome\/[\d.]+|AppleWebKit\/[\d.]+/)?.[0] ?? 'motor desconocido'}`)
+  partes.push(`Fecha de la Mac: ${new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`)
+  partes.push(`Colores: ${sinColorMix ? 'modo para Safari viejo' : 'normal'}`)
   return partes.join('\n')
 }
 
@@ -75,8 +76,9 @@ export default function Entrar() {
             Las solicitudes de la página llegan aquí al instante. Tú confirmas, registras el pago y avisas por WhatsApp.
           </motion.p>
         </motion.div>
-        <div className="pointer-events-none relative z-[1] opacity-90">
-          <PlanoRancho casas={ADORNO} decorativa tono="oscuro" />
+        {/* El mapa 3D del rancho, con sus siete casas, hecho imagen (sin fondo) */}
+        <div className="pointer-events-none relative z-[1] -mb-2">
+          <img src={mapaRancho} alt="" draggable={false} className="block w-full select-none" />
         </div>
       </section>
 
