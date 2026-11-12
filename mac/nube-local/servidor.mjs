@@ -49,6 +49,7 @@ const pg = new PGlite({ dataDir: enMemoria ? undefined : join(DATOS, 'postgres')
 try {
   await pg.exec(await readFile(join(AQUI, 'supabase-local.sql'), 'utf8'))
   await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261105000000_hospedaje.sql'), 'utf8'))
+await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261112000000_avisos_whatsapp.sql'), 'utf8'))
   for (const c of CUENTAS) {
     await pg.query('insert into auth.users (id, email) values ($1, $2) on conflict (id) do nothing', [c.id, c.email])
     await pg.query('insert into public.profiles (id, role, display_name) values ($1, $2, $3) on conflict (id) do update set role = excluded.role', [c.id, c.role, c.nombre])
@@ -417,6 +418,11 @@ await pg.listen('edge', (funcion) => {
         enviar: async (c) => {
           correos.push({ ...c, enviado: new Date().toISOString() })
           log(`Correo simulado para ${c.para}: «${c.asunto}»`)
+          return { ok: true, detalle: 'simulado en la nube local' }
+        },
+        enviarWhatsApp: async (c) => {
+          correos.push({ ...c, enviado: new Date().toISOString() })
+          log(`WhatsApp simulado: «${c.cuerpo}»`)
           return { ok: true, detalle: 'simulado en la nube local' }
         },
       })

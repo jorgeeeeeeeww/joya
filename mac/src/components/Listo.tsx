@@ -87,7 +87,7 @@ export function ListoParaAbrir() {
     revisar(!!a.telefono_hospedaje, { clave: 'telefono', texto: 'Falta el WhatsApp de reservaciones', detalle: 'Es el que sale en la página.', accion: 'Ir a Ajustes', hacer: irAjustes })
     revisar(!!a.politicas && !!a.aviso_privacidad, { clave: 'textos', texto: 'Faltan las políticas o el aviso de privacidad', detalle: 'Sin los dos, la página no deja reservar.', accion: 'Ir a Ajustes', hacer: irAjustes })
     revisar(!!a.correo_avisos, { clave: 'correo', texto: 'Falta el correo para los avisos', detalle: 'Aquí llega cada solicitud nueva.', accion: 'Ir a Ajustes', hacer: irAjustes })
-    revisar(d.avisos_sin_enviar === 0, { clave: 'correos', texto: `${plural(d.avisos_sin_enviar, 'correo no se pudo mandar', 'correos no se pudieron mandar')}`, detalle: 'Revisa que el correo de avisos (Resend) esté configurado en la nube. Las solicitudes sí llegan aquí.', accion: 'Ver ajustes', hacer: irAjustes })
+    revisar(d.avisos_sin_enviar === 0, { clave: 'correos', texto: `${plural(d.avisos_sin_enviar, 'aviso no se pudo mandar', 'avisos no se pudieron mandar')}`, detalle: 'Son correos (Resend) o WhatsApp (CallMeBot) que la nube no pudo mandar: revisa que estén configurados. Las solicitudes sí llegan aquí.', accion: 'Ver ajustes', hacer: irAjustes })
     // Encender la página va al final: solo tiene sentido cuando todo lo demás ya está
     revisar(a.reservas_web || pendientes.some((p) => ['publicadas', 'precios', 'fotos', 'clabe', 'telefono', 'textos'].includes(p.clave)), { clave: 'web', texto: 'La página todavía no recibe reservaciones', detalle: 'Ya está todo para encenderlas.', accion: 'Encender en Ajustes', hacer: irAjustes })
   }

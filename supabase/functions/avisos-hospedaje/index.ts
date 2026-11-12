@@ -1,6 +1,7 @@
 // Manda los correos de hospedaje (aviso al dueño de cada solicitud nueva y confirmaciones al huésped).
 // La llama la propia base (trigger de hospedaje_avisos y el barrido de cada 10 minutos) con el secreto de Vault.
-// Secretos: RESEND_API_KEY, AVISOS_REMITENTE (por ejemplo «La Joya <reservas@tudominio.mx>»), CRON_SECRET, SB_SECRET_KEY.
+// Secretos: RESEND_API_KEY, AVISOS_REMITENTE (por ejemplo «La Joya <reservas@tudominio.mx>»), CRON_SECRET, SB_SECRET_KEY
+// y, para los WhatsApp al dueño, CALLMEBOT_TELEFONO y CALLMEBOT_APIKEY (callmebot.com).
 import { mandarAvisos } from './handler.ts'
 import { adminClient, fromCron, recordRun, secretKey } from '../_shared/admin.ts'
 
@@ -13,6 +14,8 @@ Deno.serve(async (req) => {
       llaveSecreta: secretKey(),
       resendKey: Deno.env.get('RESEND_API_KEY') || undefined,
       remitente: Deno.env.get('AVISOS_REMITENTE') || undefined,
+      callmebotTelefono: Deno.env.get('CALLMEBOT_TELEFONO') || undefined,
+      callmebotApikey: Deno.env.get('CALLMEBOT_APIKEY') || undefined,
     })
     const detalle = `${r.enviados} enviados` + (r.fallidos ? `, ${r.fallidos} fallaron` : '') + (r.sinConfigurar ? `, ${r.sinConfigurar} sin configurar` : '')
     await recordRun(sb, 'correos-hospedaje', 'Correos de hospedaje', r.fallidos === 0 && r.sinConfigurar === 0, detalle)

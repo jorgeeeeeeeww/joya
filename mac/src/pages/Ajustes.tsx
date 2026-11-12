@@ -233,6 +233,10 @@ export default function Ajustes() {
           </div>
         </Bloque>
 
+        <Bloque titulo="Aviso por WhatsApp" detalle="Cada solicitud nueva de la página le llega al dueño por WhatsApp, además del aviso de esta Mac. Va por CallMeBot: el teléfono y la clave se cargan en la nube, no aquí.">
+          <ProbarWhatsApp />
+        </Bloque>
+
         <Bloque titulo="Textos para la página">
           <CampoLargo label="Políticas (cancelación, mascotas, horarios…)" value={f.politicas ?? ''} onChange={(v) => set('politicas', v || null)} maxLength={6000} minRows={5} />
           <CampoLargo className="mt-3" label="Aviso de privacidad" value={f.aviso_privacidad ?? ''} onChange={(v) => set('aviso_privacidad', v || null)} maxLength={20000} minRows={5} hint="El huésped lo acepta antes de mandar su solicitud" />
@@ -241,6 +245,40 @@ export default function Ajustes() {
 
       <Apariencia />
       <EstaMac />
+    </div>
+  )
+}
+
+/** Deja un WhatsApp de prueba en la cola y espera a ver cómo le fue (lo manda la función de avisos de la nube) */
+function ProbarWhatsApp() {
+  const [probando, setProbando] = useState(false)
+  const [resultado, setResultado] = useState<{ ok: boolean; texto: string } | null>(null)
+  const probar = async () => {
+    setProbando(true)
+    setResultado(null)
+    try {
+      const { id } = await rpc<{ id: number }>('hosp_probar_whatsapp')
+      for (let i = 0; i < 15; i++) {
+        await new Promise((ok) => setTimeout(ok, 2000))
+        const a = await rpc<{ estado: string; detalle: string | null } | null>('hosp_estado_aviso', { p_id: id })
+        if (!a || a.estado === 'pendiente' || a.estado === 'enviando') continue
+        if (a.estado === 'enviado') return setResultado({ ok: true, texto: 'Se mandó. Revisa el WhatsApp del dueño: puede tardar unos segundos en llegar.' })
+        if (a.estado === 'sin_configurar') return setResultado({ ok: false, texto: 'Falta cargar el teléfono y la clave de CallMeBot en la nube (CALLMEBOT_TELEFONO y CALLMEBOT_APIKEY).' })
+        return setResultado({ ok: false, texto: `CallMeBot no lo mandó${a.detalle ? `: ${a.detalle}` : '.'}` })
+      }
+      setResultado({ ok: false, texto: 'La nube todavía no lo manda. Espera un minuto y revisa el WhatsApp; si no llega, vuelve a probar.' })
+    } catch (e) {
+      setResultado({ ok: false, texto: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setProbando(false)
+    }
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button variant="outline" icon={<Bell size={16} />} loading={probando} onClick={() => void probar()}>
+        Probar WhatsApp
+      </Button>
+      {resultado && <span className={cx('min-w-0 flex-1 text-[13px]', resultado.ok ? 'text-success' : 'text-danger')}>{resultado.texto}</span>}
     </div>
   )
 }

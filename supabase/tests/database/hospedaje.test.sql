@@ -4,7 +4,7 @@
 -- En la computadora, sin Docker:   cd mac && npm run probar:base
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(26);
 
 insert into auth.users (id, email, instance_id, aud, role)
 values
@@ -88,6 +88,16 @@ reset role;
 -- Por renglón, no por instrucción: leer los datos corre un UPDATE que casi nunca toca nada,
 -- y si eso avisara «hubo cambios», la app se quedaría recargando sin parar.
 select is((select count(*)::integer from pg_catalog.pg_trigger where tgname like '%\_cambio' and not tgisinternal and (tgtype & 1) = 0), 0, 'Solo se avisa si de verdad cambió un renglón');
+
+-- ── Avisos por WhatsApp (CallMeBot) ──
+select is((select count(*)::integer from public.hospedaje_avisos a join datos_solicitud d on d.id = a.reservacion_id where a.canal = 'whatsapp'), 1, 'Cada solicitud de la página deja un aviso de WhatsApp para el dueño');
+select ok((select a.cuerpo like 'Nueva solicitud LJ-%' and a.cuerpo not like '%3312345678%' and a.cuerpo not like '%Huésped de Prueba%' from public.hospedaje_avisos a join datos_solicitud d on d.id = a.reservacion_id where a.canal = 'whatsapp'), 'El WhatsApp lleva solo el nombre de pila: no el teléfono ni el nombre completo');
+select pg_temp.como('00000000-0000-0000-0000-0000000000f2');
+select throws_ok($$ select public.hosp_probar_whatsapp() $$, '42501', null, 'Solo el dueño puede probar el WhatsApp');
+reset role;
+select pg_temp.como('00000000-0000-0000-0000-0000000000f1');
+select ok((select (public.hosp_probar_whatsapp() ->> 'id') is not null), 'El dueño deja un aviso de prueba y recibe su número');
+reset role;
 
 -- ── Actualizaciones de la app ──
 select is((select public from storage.buckets where id = 'versiones'), true, 'La app instalada puede bajar las versiones sin cuenta');
