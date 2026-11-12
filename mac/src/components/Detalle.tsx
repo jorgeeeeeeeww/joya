@@ -1,4 +1,4 @@
-// Detalle de una reservación: estancia, dinero (las noches como focos que se encienden conforme se paga),
+// Detalle de una reservación: estancia, dinero (una tira con cada noche que se va llenando conforme se paga),
 // datos del huésped, mensaje de WhatsApp ya escrito e historia. Se usa en «Reservaciones» (lado a lado,
 // como en Mail) y como panel a la derecha en las demás pantallas.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -8,7 +8,7 @@ import type { Detalle, MetodoPago } from '@/lib/tipos'
 import { rpc } from '@/lib/nube'
 import { useApp } from '@/lib/store'
 import { ESTADO, METODO, MOTIVO, ORIGEN, saldo as saldoDe } from '@/lib/estados'
-import { corta, diaCorto, diaLocal, hace, hora, larga, noches as contarNoches, plural, venceEn, masDias } from '@/lib/fechas'
+import { corta, dia, diaCorto, diaLocal, hace, hora, larga, noches as contarNoches, plural, venceEn, masDias } from '@/lib/fechas'
 import { mxn } from '@/lib/dinero'
 import { ligaWhatsApp, mensajePara } from '@/lib/mensajes'
 import { abrirLiga, copiar } from '@/lib/mac'
@@ -64,6 +64,8 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
   const falta = saldoDe(d)
   const [editando, setEditando] = useState(false)
   const [pagando, setPagando] = useState(false)
+  // Si el pago se empezó tocando una noche de la tira, el monto ya viene con lo que hace falta para cubrir hasta ahí
+  const [montoInicial, setMontoInicial] = useState<number | null>(null)
   const masRef = useRef<HTMLButtonElement>(null)
   const [mas, setMas] = useState(false)
   const v = d.estado === 'solicitud' ? venceEn(d.vence) : null
@@ -159,7 +161,7 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
 
       {/* Dinero */}
       <Seccion titulo="Dinero">
-        <Focos d={d} />
+        <TiraNoches d={d} onCubrir={d.estado === 'cancelada' ? undefined : (m) => (setMontoInicial(m), setPagando(true))} />
         <div className="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-[14px] bg-line ring-1 ring-line">
           <Dato etiqueta="Total" valor={mxn(d.total)} />
           <Dato etiqueta="Pagado" valor={mxn(d.pagado)} detalle={d.anticipo > 0 ? `Anticipo: ${mxn(d.anticipo)}` : undefined} />
@@ -168,7 +170,7 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
         <AnimatePresence initial={false}>
           {pagando && d.estado !== 'cancelada' && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-              <NuevoPago d={d} onListo={(x) => (x && setD(x), setPagando(false))} />
+              <NuevoPago key={montoInicial ?? 'sugerido'} d={d} inicial={montoInicial} onListo={(x) => (x && setD(x), setPagando(false), setMontoInicial(null))} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -253,59 +255,69 @@ function Dato({ etiqueta, valor, detalle }: { etiqueta: string; valor: ReactNode
   )
 }
 
-/** Cada noche es un foco colgado de un cable. Se encienden conforme entra el dinero. */
-function Focos({ d }: { d: Detalle }) {
+/**
+ * Una casilla por noche, con su día. Se van llenando conforme entra el dinero, una rayita marca hasta dónde llega el
+ * anticipo y, al tocar una noche, se abre el pago ya con lo que falta para cubrir hasta esa noche.
+ */
+function TiraNoches({ d, onCubrir }: { d: Detalle; onCubrir?: (monto: number) => void }) {
   const n = Math.max(1, contarNoches(d.llegada, d.salida))
-  const visibles = Math.min(n, 21)
   const fr = d.total > 0 ? Math.min(1, d.pagado / d.total) : 0
-  const encendidos = fr * visibles
-  const ancho = 520
-  const paso = ancho / (visibles + 1)
-  // Con pocas noches cada foco crece: una sola noche es un foco grande, no un punto perdido en el cable
-  const r = visibles === 1 ? 15 : visibles === 2 ? 12.5 : visibles <= 4 ? 10 : visibles <= 8 ? 7.5 : 5.5
-  const cable = 'color-mix(in oklab, var(--on-night) 30%, transparent)'
+  const antFr = d.total > 0 && d.anticipo > 0 && d.anticipo < d.total ? d.anticipo / d.total : null
+  const cubierto = d.anticipo > 0 && d.pagado >= d.anticipo
+  const corta_ = n > 12
+  const llena = 'color-mix(in oklab, var(--success) 34%, var(--surface))'
   return (
-    <div className="rounded-[14px] bg-night px-4 pt-2 pb-3" aria-label={`${Math.round(fr * 100)} % pagado`}>
-      <svg viewBox={`0 0 ${ancho} 78`} className="block h-[78px] w-full overflow-visible">
-        <defs>
-          <radialGradient id="det-brillo">
-            <stop offset="0" stopColor="var(--luz)" stopOpacity="0.9" />
-            <stop offset="1" stopColor="var(--luz)" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <path d={`M0 6 Q${ancho / 2} 30 ${ancho} 6`} stroke={cable} strokeWidth="1.4" fill="none" />
-        {Array.from({ length: visibles }, (_, i) => {
-          const x = paso * (i + 1)
-          const t = x / ancho
-          const y = (1 - t) * (1 - t) * 6 + 2 * (1 - t) * t * 30 + t * t * 6
-          const luz = Math.max(0, Math.min(1, encendidos - i))
-          const casquillo = r * 0.62
-          const centro = y + 4 + casquillo + r * 0.82
-          return (
-            <g key={i}>
-              <line x1={x} y1={y} x2={x} y2={y + 4} stroke={cable} strokeWidth="1.2" />
-              {luz > 0 && <circle cx={x} cy={centro} r={r * 2.6} fill="url(#det-brillo)" opacity={0.65 * luz} />}
-              <rect x={x - r * 0.42} y={y + 4} width={r * 0.84} height={casquillo} rx={r * 0.14} fill="color-mix(in oklab, var(--on-night) 42%, transparent)" />
-              <motion.circle cx={x} cy={centro} r={r} stroke="color-mix(in oklab, var(--on-night) 30%, transparent)" strokeWidth="1" initial={false} animate={{ fill: luz > 0 ? 'var(--luz)' : 'color-mix(in oklab, var(--on-night) 13%, transparent)', opacity: luz > 0 ? 0.35 + 0.65 * luz : 1 }} transition={{ duration: 0.6, delay: i * 0.03 }} />
-              {/* El filamento se ve aunque esté apagado: así se lee como foco y no como punto */}
-              {r >= 10 && <path d={`M${x - r * 0.3} ${centro + r * 0.1} q${r * 0.15} ${-r * 0.5} ${r * 0.3} 0 q${r * 0.15} ${-r * 0.5} ${r * 0.3} 0`} fill="none" stroke={luz > 0 ? 'color-mix(in oklab, var(--night) 45%, var(--luz))' : 'color-mix(in oklab, var(--on-night) 40%, transparent)'} strokeWidth="1.1" strokeLinecap="round" />}
-            </g>
-          )
-        })}
-      </svg>
-      <div className="flex items-center justify-between text-[12px] text-on-night-soft">
-        <span>{n > visibles ? `${n} noches (cada foco son ${(n / visibles).toFixed(1)})` : plural(n, 'noche', 'noches')}</span>
-        <span className="font-semibold text-luz">{fr >= 1 ? 'Pagada por completo' : fr > 0 ? `${Math.round(fr * 100)} % pagado` : 'Sin pagos todavía'}</span>
+    <div aria-label={`${Math.round(fr * 100)} % pagado`}>
+      <div className="relative">
+        {antFr !== null && n <= 31 && (
+          <span aria-hidden className="pointer-events-none absolute -top-2.5 z-10 h-[calc(100%+10px)] w-px bg-chispa/70" style={{ left: `${antFr * 100}%` }} title="Hasta aquí llega el anticipo">
+            <span className="absolute -top-px left-1/2 h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-chispa" />
+          </span>
+        )}
+        {n > 31 ? (
+          <div className="h-3 overflow-hidden rounded-full bg-sunken ring-1 ring-line">
+            <div className="h-full rounded-full" style={{ width: `${fr * 100}%`, background: llena }} />
+          </div>
+        ) : (
+          <div className="flex gap-[3px]">
+            {Array.from({ length: n }, (_, i) => {
+              const noche = masDias(d.llegada, i)
+              const parte = Math.max(0, Math.min(1, fr * n - i))
+              // Lo que hay que haber pagado para tener cubierta esta noche
+              const objetivo = Math.min(d.total, Math.ceil((d.total * (i + 1)) / n))
+              const puede = !!onCubrir && objetivo > d.pagado
+              const Cel = puede ? 'button' : 'div'
+              return (
+                <Cel
+                  key={i}
+                  {...(puede ? { type: 'button' as const, onClick: () => onCubrir!(objetivo - d.pagado), title: `Cubrir hasta la noche del ${diaCorto(noche)} ${corta(noche)}: ${mxn(objetivo - d.pagado)}`, 'aria-label': `Registrar ${mxn(objetivo - d.pagado)} para cubrir hasta la noche del ${diaCorto(noche)} ${corta(noche)}` } : {})}
+                  className={cx('relative min-w-0 flex-1 overflow-hidden rounded-[8px] bg-sunken text-center ring-1 ring-line ring-inset', corta_ ? 'h-11' : 'h-[58px]', puede && 'pressable cursor-pointer hover:ring-line-strong')}
+                >
+                  <motion.span aria-hidden className="absolute inset-x-0 bottom-0 block" style={{ background: llena }} initial={false} animate={{ height: `${parte * 100}%` }} transition={{ duration: 0.6, delay: i * 0.025 }} />
+                  <span className="relative flex h-full flex-col items-center justify-center leading-none">
+                    {!corta_ && <span className="text-[10.5px] text-ink-3 uppercase">{diaCorto(noche)}</span>}
+                    <span className={cx('tabular font-semibold', corta_ ? 'text-[11px]' : 'mt-1 text-[15px]')}>{dia(noche)}</span>
+                  </span>
+                </Cel>
+              )
+            })}
+          </div>
+        )}
       </div>
+      <div className="mt-2.5 flex items-center justify-between gap-3 text-[12px] text-ink-3">
+        <span>{plural(n, 'noche', 'noches')}{antFr !== null ? (cubierto ? ' · anticipo cubierto' : ' · falta el anticipo') : ''}</span>
+        <span className={cx('font-semibold', fr >= 1 ? 'text-success' : 'text-ink-soft')}>{fr >= 1 ? 'Pagada por completo' : fr > 0 ? `${Math.round(fr * 100)} % pagado` : 'Sin pagos todavía'}</span>
+      </div>
+      {onCubrir && fr < 1 && n <= 31 && <p className="mt-1 text-[12px] text-ink-3">Toca una noche para registrar el pago que la cubre.</p>}
     </div>
   )
 }
 
 /** Registrar un pago: se arrastra sobre la barra o se elige anticipo / saldo */
-function NuevoPago({ d, onListo }: { d: Detalle; onListo: (d: Detalle | null) => void }) {
+function NuevoPago({ d, inicial, onListo }: { d: Detalle; inicial?: number | null; onListo: (d: Detalle | null) => void }) {
   const falta = saldoDe(d)
   const faltaAnticipo = Math.max(0, d.anticipo - d.pagado)
-  const [monto, setMonto] = useState<number | null>(faltaAnticipo > 0 ? faltaAnticipo : falta)
+  const [monto, setMonto] = useState<number | null>(inicial ?? (faltaAnticipo > 0 ? faltaAnticipo : falta))
   const [metodo, setMetodo] = useState<MetodoPago>('transferencia')
   const [referencia, setReferencia] = useState(d.codigo)
   const [guardando, setGuardando] = useState(false)

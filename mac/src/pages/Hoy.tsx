@@ -2,7 +2,7 @@
 // ocupados encendidos. Abajo de la escena se desliza por las próximas noches.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { ArrowRight, Check, LogIn, LogOut, MailWarning, MessageCircle, Moon, Plus, Users } from 'lucide-react'
+import { Check, LogIn, LogOut, MessageCircle, Plus, Users } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { activa } from '@/lib/estados'
 import { cuando, larga, masDias, noches, plural, rango, venceEn, corta, diaCorto, dia } from '@/lib/fechas'
@@ -13,7 +13,8 @@ import type { Datos, ISODate, Reservacion } from '@/lib/tipos'
 import { fadeRise, stagger } from '@/lib/motion'
 import { Badge, Button, PageHeader, cx } from '@/components/ui'
 import { NightSlab } from '@/components/step1'
-import { RanchoNoche, type CasaEscena } from '@/components/escena'
+import { ListoParaAbrir } from '@/components/Listo'
+import { PlanoRancho, type CasaEscena } from '@/components/plano'
 import { avisarPorWhatsApp, useMenuReservacion } from '@/components/menuReservacion'
 import { ORIGEN } from '@/lib/estados'
 
@@ -29,7 +30,7 @@ function casasDe(d: Datos, noche: ISODate): CasaEscena[] {
       const sale = noches(noche, n.r.salida) === 1 ? 'se va mañana' : `se va ${cuando(n.r.salida, noche)}`
       linea = n.tipo === 'apartada' ? `Solicitud de ${quien} · ${venceEn(n.r.vence)?.texto ?? 'apartada'}` : `${quien} · ${n.r.llegada === noche ? 'llega este día' : sale}`
     } else if (n.tipo === 'cerrada') linea = `Cerrada${n.b.motivo ? `: ${n.b.motivo.toLowerCase()}` : ''}`
-    return { id: c.id, nombre: c.nombre, tipo: c.tipo, estado: n.tipo, linea, llega }
+    return { id: c.id, slug: c.slug, nombre: c.nombre, tipo: c.tipo, estado: n.tipo, linea, llega }
   })
 }
 
@@ -67,39 +68,10 @@ export default function Hoy() {
     <div className="mx-auto max-w-[1180px] px-8 pt-9 pb-16">
       <PageHeader title={<span className="first-letter:uppercase">{larga(d.hoy)}</span>} subtitle={resumen.length ? resumen.join(' · ') : 'Todo al día: nada por atender.'} />
 
-      {!d.ajustes.reservas_web && hayHospedajes && (
-        <Aviso icon={<Moon size={17} />} titulo="La página todavía no recibe reservaciones" texto="Cuando tengas listos los precios, la CLABE y las políticas, enciéndelas en Ajustes." accion="Ir a Ajustes" onClick={() => useApp.getState().ir('ajustes')} />
-      )}
-      {d.avisos_sin_enviar > 0 && <Aviso icon={<MailWarning size={17} />} titulo={plural(d.avisos_sin_enviar, 'correo no se pudo mandar', 'correos no se pudieron mandar')} texto="Revisa que el correo de avisos esté configurado en la nube (Resend). Las solicitudes sí llegaron aquí." />}
+      <ListoParaAbrir />
 
-      {/* El rancho de noche */}
-      <NightSlab className="mb-8" luzSize="clamp(44px, 5vw, 76px)" luzClassName="absolute right-[5%] top-[9%]" scene={<span />}>
-        <div className="px-8 pt-7">
-          <div className="text-[13px] font-medium text-on-night-soft">{noche === d.hoy ? 'Esta noche' : `La noche del ${diaCorto(noche)} ${corta(noche)}`}</div>
-          <div className="mt-1 text-[clamp(1.5rem,1.1rem+1.2vw,2.1rem)] font-semibold tracking-[-0.02em] text-on-night">
-            {hayHospedajes ? (
-              <>
-                {encendidas} de {d.cabanas.length} {d.cabanas.length === 1 ? 'encendida' : 'encendidas'}
-                {apartadas > 0 && <span className="text-on-night-soft"> · {plural(apartadas, 'apartada', 'apartadas')}</span>}
-              </>
-            ) : (
-              'Todavía no hay hospedajes'
-            )}
-          </div>
-        </div>
-        {hayHospedajes ? (
-          <RanchoNoche casas={casas} onPick={elegir} />
-        ) : (
-          <div className="px-8 pt-6 pb-10">
-            <p className="max-w-[46ch] text-[15px] text-on-night-soft">Da de alta tus cabañas, casas y habitaciones para verlas aquí encendidas las noches que tengan huéspedes.</p>
-            <Button variant="luz" className="mt-5" icon={<Plus size={16} />} onClick={() => (useApp.getState().ir('cabanas'), useApp.getState().editarCabana('nueva'))}>
-              Agregar el primer hospedaje
-            </Button>
-          </div>
-        )}
-        {hayHospedajes && <Noches d={d} noche={noche} onNoche={setNoche} />}
-      </NightSlab>
-
+      {porAtender.length > 0 ? (
+        <>
       <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-6">
         <section>
           <h2 className="mb-3 flex items-center gap-2 text-[17px] font-semibold tracking-[-0.02em]">
@@ -128,24 +100,98 @@ export default function Hoy() {
           {semana.length > 0 && <Lista titulo="Esta semana" icon={<Users size={16} />} vacio="" items={semana} d={d} detalle={(r) => `Llega ${cuando(r.llegada, d.hoy)} · ${plural(noches(r.llegada, r.salida), 'noche', 'noches')}`} onMenu={abrirMenu} />}
         </section>
       </div>
-      {menu}
-    </div>
-  )
-}
+      {/* El rancho de noche */}
+      <NightSlab className={porAtender.length > 0 ? 'mt-8' : 'mb-8'} luzSize="clamp(44px, 5vw, 76px)" luzClassName="absolute right-[5%] top-[9%]" scene={<span />}>
+        <div className="px-8 pt-7">
+          <div className="text-[13px] font-medium text-on-night-soft">{noche === d.hoy ? 'Esta noche' : `La noche del ${diaCorto(noche)} ${corta(noche)}`}</div>
+          <div className="mt-1 text-[clamp(1.5rem,1.1rem+1.2vw,2.1rem)] font-semibold tracking-[-0.02em] text-on-night">
+            {hayHospedajes ? (
+              <>
+                {encendidas} de {d.cabanas.length} {d.cabanas.length === 1 ? 'encendida' : 'encendidas'}
+                {apartadas > 0 && <span className="text-on-night-soft"> · {plural(apartadas, 'apartada', 'apartadas')}</span>}
+              </>
+            ) : (
+              'Todavía no hay hospedajes'
+            )}
+          </div>
+        </div>
+        {hayHospedajes ? (
+          <div className="px-8 pt-5 pb-3">
+            <PlanoRancho casas={casas} onPick={elegir} />
+          </div>
+        ) : (
+          <div className="px-8 pt-6 pb-10">
+            <p className="max-w-[46ch] text-[15px] text-on-night-soft">Da de alta tus cabañas, casas y habitaciones para verlas aquí encendidas las noches que tengan huéspedes.</p>
+            <Button variant="luz" className="mt-5" icon={<Plus size={16} />} onClick={() => (useApp.getState().ir('cabanas'), useApp.getState().editarCabana('nueva'))}>
+              Agregar el primer hospedaje
+            </Button>
+          </div>
+        )}
+        {hayHospedajes && <Noches d={d} noche={noche} onNoche={setNoche} />}
+      </NightSlab>
+        </>
+      ) : (
+        <>
+      {/* El rancho de noche */}
+      <NightSlab className={porAtender.length > 0 ? 'mt-8' : 'mb-8'} luzSize="clamp(44px, 5vw, 76px)" luzClassName="absolute right-[5%] top-[9%]" scene={<span />}>
+        <div className="px-8 pt-7">
+          <div className="text-[13px] font-medium text-on-night-soft">{noche === d.hoy ? 'Esta noche' : `La noche del ${diaCorto(noche)} ${corta(noche)}`}</div>
+          <div className="mt-1 text-[clamp(1.5rem,1.1rem+1.2vw,2.1rem)] font-semibold tracking-[-0.02em] text-on-night">
+            {hayHospedajes ? (
+              <>
+                {encendidas} de {d.cabanas.length} {d.cabanas.length === 1 ? 'encendida' : 'encendidas'}
+                {apartadas > 0 && <span className="text-on-night-soft"> · {plural(apartadas, 'apartada', 'apartadas')}</span>}
+              </>
+            ) : (
+              'Todavía no hay hospedajes'
+            )}
+          </div>
+        </div>
+        {hayHospedajes ? (
+          <div className="px-8 pt-5 pb-3">
+            <PlanoRancho casas={casas} onPick={elegir} />
+          </div>
+        ) : (
+          <div className="px-8 pt-6 pb-10">
+            <p className="max-w-[46ch] text-[15px] text-on-night-soft">Da de alta tus cabañas, casas y habitaciones para verlas aquí encendidas las noches que tengan huéspedes.</p>
+            <Button variant="luz" className="mt-5" icon={<Plus size={16} />} onClick={() => (useApp.getState().ir('cabanas'), useApp.getState().editarCabana('nueva'))}>
+              Agregar el primer hospedaje
+            </Button>
+          </div>
+        )}
+        {hayHospedajes && <Noches d={d} noche={noche} onNoche={setNoche} />}
+      </NightSlab>
+      <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-6">
+        <section>
+          <h2 className="mb-3 flex items-center gap-2 text-[17px] font-semibold tracking-[-0.02em]">
+            Por atender
+            {porAtender.length > 0 && <Badge tone="peach">{porAtender.length}</Badge>}
+          </h2>
+          {porAtender.length === 0 ? (
+            <div className="card px-6 py-8 text-center">
+              <p className="text-[15px] font-medium">No hay solicitudes esperando</p>
+              <p className="mt-1 text-[13px] text-ink-soft">Cuando alguien pida fechas en la página, aparece aquí al instante con su cuenta regresiva.</p>
+            </div>
+          ) : (
+            <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-3">
+              {porAtender.map((r) => (
+                <motion.div key={r.id} variants={fadeRise}>
+                  <Solicitud r={r} d={d} onMenu={(e) => abrirMenu(e, r)} />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </section>
 
-function Aviso({ icon, titulo, texto, accion, onClick }: { icon: React.ReactNode; titulo: string; texto: string; accion?: string; onClick?: () => void }) {
-  return (
-    <div className="mb-4 flex items-center gap-3.5 rounded-[14px] bg-butter-soft px-4 py-3">
-      <span className="text-butter-ink">{icon}</span>
-      <div className="min-w-0 flex-1">
-        <div className="text-[14px] font-semibold text-butter-ink">{titulo}</div>
-        <div className="text-[13px] text-ink-soft">{texto}</div>
+        <section className="flex flex-col gap-6">
+          <Lista titulo="Llegan hoy" icon={<LogIn size={16} />} vacio="Nadie llega hoy" items={llegan} d={d} detalle={(r) => `${plural(r.huespedes, 'persona', 'personas')}${r.hora_llegada ? ` · como a las ${r.hora_llegada}` : d.ajustes.hora_llegada ? ` · desde las ${d.ajustes.hora_llegada}` : ''}`} onMenu={abrirMenu} />
+          <Lista titulo="Se van hoy" icon={<LogOut size={16} />} vacio="Nadie se va hoy" items={salen} d={d} detalle={(r) => (r.total - r.pagado > 0 ? `Falta cobrar ${mxn(r.total - r.pagado)}` : 'Todo pagado') + (d.ajustes.hora_salida ? ` · salida a las ${d.ajustes.hora_salida}` : '')} onMenu={abrirMenu} />
+          {semana.length > 0 && <Lista titulo="Esta semana" icon={<Users size={16} />} vacio="" items={semana} d={d} detalle={(r) => `Llega ${cuando(r.llegada, d.hoy)} · ${plural(noches(r.llegada, r.salida), 'noche', 'noches')}`} onMenu={abrirMenu} />}
+        </section>
       </div>
-      {accion && (
-        <Button size="sm" variant="outline" iconRight={<ArrowRight size={14} />} onClick={onClick}>
-          {accion}
-        </Button>
+        </>
       )}
+      {menu}
     </div>
   )
 }

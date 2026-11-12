@@ -1,13 +1,14 @@
 // Entrada de la app: sesión del dueño, barra lateral, tiempo real y atajos de la Mac.
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { LogOut } from 'lucide-react'
-import { nube } from './lib/nube'
-import { useApp, type Vista } from './lib/store'
-import { enMac, ponerMenu, buscarActualizacion, instalarActualizacion, alPedirNuevaReservacion, encenderAbreAlIniciarLaPrimeraVez } from './lib/mac'
+import { nube, sinNubeDelRancho } from './lib/nube'
+import { useApp, esSalidaManual, marcarVencida, type Vista } from './lib/store'
+import { enMac, ponerMenu, buscarActualizacion, instalarActualizacion, alPedirNuevaReservacion, encenderAbreAlIniciarLaPrimeraVez, avisosPermitidos, permisoAvisos } from './lib/mac'
 import { ease } from './lib/motion'
-import { Button, Sheet, Toaster, toast } from './components/ui'
+import { Button, Confirm, Sheet, Toaster, toast } from './components/ui'
+import { Conexion } from './components/Conexion'
 import { LightDots, Luz } from './components/step1'
 import { Barra } from './components/Barra'
 import Entrar from './pages/Entrar'
@@ -45,9 +46,14 @@ const acciones = {
 
 export default function App() {
   const sesion = useApp((s) => s.sesion)
+  if (sinNubeDelRancho) return <SinNube />
   useEffect(() => {
     void nube.auth.getSession().then(({ data }) => useApp.setState({ sesion: data.session }))
-    const { data } = nube.auth.onAuthStateChange((_e, s) => useApp.setState({ sesion: s }))
+    const { data } = nube.auth.onAuthStateChange((e, s) => {
+      // Si la sesión se cerró sola (venció), Entrar lo explica y deja el correo escrito
+      if (e === 'SIGNED_OUT' && !esSalidaManual() && useApp.getState().sesion) marcarVencida(useApp.getState().sesion?.user.email)
+      useApp.setState({ sesion: s })
+    })
     // Desde la pantalla de Entrar, para que el menú de la Mac nunca salga en inglés
     void ponerMenu(acciones)
     return () => data.subscription.unsubscribe()
@@ -69,6 +75,7 @@ export default function App() {
 }
 
 const VISTAS: Vista[] = ['hoy', 'calendario', 'reservaciones', 'cabanas']
+const AVISOS_PREGUNTADO = 'la-joya-mac:avisos-preguntado'
 
 function Marco() {
   const sesion = useApp((s) => s.sesion)!
@@ -78,6 +85,7 @@ function Marco() {
   const abierta = useApp((s) => s.abierta)
   const cargar = useApp((s) => s.cargar)
   const mainRef = useRef<HTMLElement>(null)
+  const [pidiendoAvisos, setPidiendoAvisos] = useState(false)
   // El panel sigue mostrando la última reservación mientras se cierra
   const ultimaAbierta = useRef(abierta)
   if (abierta) ultimaAbierta.current = abierta
@@ -159,6 +167,39 @@ function Marco() {
     void encenderAbreAlIniciarLaPrimeraVez()
   }, [])
 
+  // Avisos de macOS: se revisa si están permitidos y, la primera vez, se explica para qué son antes de que macOS
+  // pregunte (antes el permiso aparecía de la nada cuando llegaba la primera solicitud, y con «No permitir» ya nunca avisaba)
+  useEffect(() => {
+    void useApp.getState().revisarAvisos()
+    const alVolver = () => void useApp.getState().revisarAvisos()
+    window.addEventListener('focus', alVolver)
+    let t: ReturnType<typeof setTimeout> | undefined
+    if (enMac) {
+      t = setTimeout(async () => {
+        let preguntado = false
+        try {
+          preguntado = localStorage.getItem(AVISOS_PREGUNTADO) === '1'
+        } catch {
+          /* sin almacenamiento */
+        }
+        if (!preguntado && !(await avisosPermitidos())) setPidiendoAvisos(true)
+      }, 1500)
+    }
+    return () => {
+      window.removeEventListener('focus', alVolver)
+      clearTimeout(t)
+    }
+  }, [])
+  const cerrarPreguntaAvisos = () => {
+    try {
+      localStorage.setItem(AVISOS_PREGUNTADO, '1')
+    } catch {
+      /* sin almacenamiento */
+    }
+    setPidiendoAvisos(false)
+    void useApp.getState().revisarAvisos()
+  }
+
   // Una vez al día revisa si hay versión nueva de la app. Si no se puede revisar no molesta:
   // volverá a intentar mañana, y en Ajustes se puede buscar a mano y ver qué pasó.
   useEffect(() => {
@@ -229,6 +270,34 @@ function Marco() {
         <NuevaHoja />
         <Buscar />
       </Tropiezo>
+      <Conexion />
+      <Confirm
+        open={pidiendoAvisos}
+        onClose={cerrarPreguntaAvisos}
+        title="¿Quieres que La Joya te avise?"
+        body="Cada vez que llegue una solicitud de la página te sale un aviso, aunque la ventana esté cerrada. macOS te va a pedir permiso: elige «Permitir»."
+        confirmLabel="Sí, activar avisos"
+        onConfirm={async () => {
+          await permisoAvisos()
+          cerrarPreguntaAvisos()
+        }}
+      />
+    </div>
+  )
+}
+
+/** Una app compilada sin la dirección de la nube del rancho no sirve: se dice claro en vez de mostrar «Entrar» */
+function SinNube() {
+  return (
+    <div className="flex h-dvh items-center justify-center bg-paper p-8">
+      <div className="card max-w-md p-8 text-center">
+        <Luz size={44} className="mx-auto" />
+        <h1 className="heading mt-5 text-[1.6rem]">Esta copia no está conectada al rancho</h1>
+        <p className="mt-2 text-[14px] text-ink-soft">
+          Se armó sin la dirección de la nube del rancho, así que no puede mostrar las reservaciones. Instala la versión que sale de GitHub (Actions → App de la Mac) con las variables <span className="font-medium text-ink">SUPABASE_URL</span> y{' '}
+          <span className="font-medium text-ink">SUPABASE_PUBLISHABLE_KEY</span> cargadas.
+        </p>
+      </div>
     </div>
   )
 }

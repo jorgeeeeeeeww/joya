@@ -743,20 +743,6 @@ html.is-dragging * {
   overflow-wrap: break-word;
 }
 
-/* Focos de las luces de un evento: se mecen apenas, como colgados de un cable */
-.foco {
-  animation: foco-vaiven 6s var(--ease-marea) infinite alternate;
-  animation-play-state: var(--ambient);
-}
-@keyframes foco-vaiven {
-  from {
-    transform: rotate(-1.5deg);
-  }
-  to {
-    transform: rotate(1.5deg);
-  }
-}
-
 /* Mapa ilustrado: alguien barriendo y burbujas de jabón */
 .iso-barrer { transform-box: fill-box; transform-origin: 0% 0%; animation: iso-barrer 0.9s var(--ease-marea) infinite alternate; }
 @keyframes iso-barrer { from { transform: rotate(-16deg); } to { transform: rotate(18deg); } }
@@ -800,26 +786,27 @@ body {
 .rayas {
   background-image: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklab, currentColor 12%, transparent) 6px 8px);
 }
-/* Ventanas de las casas encendidas (la noche de hoy) */
-.ventana-encendida {
-  filter: drop-shadow(0 0 6px color-mix(in oklab, var(--luz) 85%, transparent));
+/* Plano del rancho: lo encendido brilla apenas y la solicitud apartada late despacio (todavía no es seguro que lleguen) */
+.plano-encendido {
+  filter: drop-shadow(0 0 1.6px color-mix(in oklab, var(--luz) 70%, transparent));
 }
-/* Solicitud apartada: la ventana late despacio (todavía no es seguro que lleguen) */
-.ventana-apartada {
-  animation: ventana-late 2.8s var(--ease-marea) infinite alternate;
+.plano-late,
+.plano-late-chip {
+  animation: plano-late 2.8s var(--ease-marea) infinite alternate;
 }
-@keyframes ventana-late {
+@keyframes plano-late {
   from {
-    opacity: 0.32;
+    opacity: 0.45;
   }
   to {
-    opacity: 0.85;
+    opacity: 1;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ventana-apartada {
+  .plano-late,
+  .plano-late-chip {
     animation: none;
-    opacity: 0.6;
+    opacity: 0.8;
   }
 }
 /* Arrastre en el calendario */

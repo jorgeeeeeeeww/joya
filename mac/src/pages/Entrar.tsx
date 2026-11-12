@@ -3,23 +3,18 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { KeyRound, Mail, ShieldCheck, FlaskConical } from 'lucide-react'
 import { nube, esNubeLocal, URL_NUBE, LLAVE_PUBLICA } from '@/lib/nube'
+import { correoGuardado, motivoDeEntrada, recordarCorreo } from '@/lib/store'
 import { fadeRise, heroRise, stagger } from '@/lib/motion'
 import { enMac } from '@/lib/mac'
 import { Button } from '@/components/ui'
 import { NightSlab, Sparkle } from '@/components/step1'
 import { Campo } from '@/components/campos'
-import { RanchoNoche, type CasaEscena } from '@/components/escena'
+import { PlanoRancho, type CasaEscena } from '@/components/plano'
+import { HOSPEDAJES } from '@/lib/plano'
 
-const ADORNO: CasaEscena[] = [
-  { id: 'a', nombre: '', tipo: 'cabana', estado: 'reservada', linea: '' },
-  { id: 'b', nombre: '', tipo: 'casa', estado: 'libre', linea: '' },
-  { id: 'h1', nombre: '', tipo: 'habitacion', estado: 'reservada', linea: '' },
-  { id: 'h2', nombre: '', tipo: 'habitacion', estado: 'libre', linea: '' },
-  { id: 'h3', nombre: '', tipo: 'habitacion', estado: 'reservada', linea: '' },
-  { id: 'h4', nombre: '', tipo: 'habitacion', estado: 'apartada', linea: '' },
-  { id: 'c', nombre: '', tipo: 'cabana', estado: 'reservada', linea: '' },
-  { id: 'd', nombre: '', tipo: 'casa', estado: 'reservada', linea: '' },
-]
+// Decoración: el plano del rancho con algunos lugares encendidos
+const ESTADOS: CasaEscena['estado'][] = ['reservada', 'libre', 'reservada', 'reservada', 'apartada', 'libre', 'reservada']
+const ADORNO: CasaEscena[] = HOSPEDAJES.map((p, i) => ({ id: p.id, nombre: p.nombre, tipo: p.tipo as CasaEscena['tipo'], estado: ESTADOS[i % ESTADOS.length]!, linea: '' }))
 
 function explicar(m: string) {
   if (/invalid login|credentials/i.test(m)) return 'El correo o la contraseña no coinciden.'
@@ -42,7 +37,9 @@ async function diagnosticar(e: { name?: string; message: string; status?: number
 }
 
 export default function Entrar() {
-  const [correo, setCorreo] = useState('')
+  // Si la sesión venció, el correo ya está escrito y se explica por qué se llegó aquí
+  const [correo, setCorreo] = useState(() => correoGuardado())
+  const [vencio] = useState(() => motivoDeEntrada() === 'vencio')
   const [clave, setClave] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [detalle, setDetalle] = useState<string | null>(null)
@@ -60,12 +57,13 @@ export default function Entrar() {
       // Si no hubo conexión, se prueba por separado para que quede claro qué falló y dónde
       if (/fetch|network|load failed|conexi/i.test(e.message)) setDetalle(await diagnosticar(e))
     }
+    else recordarCorreo(correo.trim().toLowerCase())
     setEntrando(false)
   }
 
   return (
     <div className="grid h-dvh grid-cols-[1.1fr_1fr] gap-0 bg-paper p-[var(--frame)]">
-      <NightSlab className="flex flex-col justify-between p-12" luzSize="clamp(64px, 6vw, 110px)" luzClassName="absolute right-[12%] bottom-[34%]" scene={<div className="absolute bottom-0 left-1/2 w-[150%] -translate-x-1/2"><RanchoNoche casas={ADORNO} decorativa /></div>}>
+      <NightSlab className="flex flex-col justify-between p-12" luzSize="clamp(64px, 6vw, 110px)" luzClassName="absolute right-[8%] top-[6%]" scene={<div className="absolute inset-x-8 bottom-10 opacity-90"><PlanoRancho casas={ADORNO} decorativa /></div>}>
         <div data-tauri-drag-region className={enMac ? 'pt-6' : ''}>
           <div className="flex items-center gap-2.5 text-on-night">
             <Sparkle className="text-luz" />
@@ -102,9 +100,10 @@ export default function Entrar() {
           <motion.h2 variants={heroRise} className="heading mt-2 text-[2.1rem]">
             Entrar
           </motion.h2>
+          {vencio && <motion.p variants={fadeRise} className="mt-5 rounded-[12px] bg-butter-soft px-4 py-3 text-[13.5px] text-butter-ink">Tu sesión venció. Escribe tu contraseña para volver a entrar.</motion.p>}
           <motion.div variants={fadeRise} className="mt-7 flex flex-col gap-3">
-            <Campo label="Correo" type="email" icon={<Mail />} value={correo} onChange={setCorreo} autoComplete="username" autoFocus ok={correoOk} />
-            <Campo label="Contraseña" type="password" icon={<KeyRound />} value={clave} onChange={setClave} autoComplete="current-password" error={error} onEnter={() => void entrar()} />
+            <Campo label="Correo" type="email" icon={<Mail />} value={correo} onChange={setCorreo} autoComplete="username" autoFocus={!correo} ok={correoOk} />
+            <Campo label="Contraseña" type="password" icon={<KeyRound />} value={clave} onChange={setClave} autoComplete="current-password" autoFocus={!!correo} error={error} onEnter={() => void entrar()} />
           </motion.div>
           <motion.div variants={fadeRise}>
             <Button type="submit" size="lg" className="mt-6 w-full" loading={entrando}>

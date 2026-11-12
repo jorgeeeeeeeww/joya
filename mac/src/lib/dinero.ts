@@ -14,3 +14,12 @@ export function leerMonto(texto: string): number | null {
   const n = Number(limpio)
   return Number.isFinite(n) ? n : null
 }
+
+/** ¿La CLABE de 18 dígitos tiene bien su dígito verificador? */
+export function clabeValida(c: string) {
+  if (!/^\d{18}$/.test(c)) return false
+  const w = [3, 7, 1]
+  let s = 0
+  for (let i = 0; i < 17; i++) s += (Number(c[i]) * w[i % 3]!) % 10
+  return (10 - (s % 10)) % 10 === Number(c[17])
+}

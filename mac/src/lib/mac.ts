@@ -23,6 +23,19 @@ export async function permisoAvisos(): Promise<boolean> {
   }
 }
 
+/** ¿Los avisos están permitidos? Solo revisa, no pregunta nada */
+export async function avisosPermitidos(): Promise<boolean> {
+  try {
+    if (enMac) {
+      const n = await import('@tauri-apps/plugin-notification')
+      return await n.isPermissionGranted()
+    }
+    return 'Notification' in window && Notification.permission === 'granted'
+  } catch {
+    return false
+  }
+}
+
 /** Aviso de macOS (aparece en el Centro de notificaciones) */
 export async function avisar(titulo: string, cuerpo: string) {
   if (!(await permisoAvisos())) return

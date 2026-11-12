@@ -111,8 +111,14 @@ jobs:
 
       - name: Avisar si falta algo por configurar
         run: |
-          [ -n "$VITE_SUPABASE_URL" ] && [ -n "$VITE_SUPABASE_PUBLISHABLE_KEY" ] \
-            || echo "::warning::Faltan las variables SUPABASE_URL o SUPABASE_PUBLISHABLE_KEY: esta app apunta a la nube local y no sirve para el rancho."
+          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
+            # En main esto es un error: una app sin la dirección de la nube del rancho no sirve y no debe salir de aquí
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              echo "::error::Faltan las variables SUPABASE_URL o SUPABASE_PUBLISHABLE_KEY (GitHub: Settings, Secrets and variables, Actions, Variables). Sin ellas la app apuntaría a la nube local y no serviría para el rancho."
+              exit 1
+            fi
+            echo "::warning::Faltan las variables SUPABASE_URL o SUPABASE_PUBLISHABLE_KEY: esta app apunta a la nube local y no sirve para el rancho."
+          fi
           [ -n "$TAURI_SIGNING_PRIVATE_KEY" ] \
             || echo "::notice::Sin el secreto TAURI_SIGNING_PRIVATE_KEY: se compila sin archivos de actualización."
 

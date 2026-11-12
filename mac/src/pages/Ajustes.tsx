@@ -5,7 +5,7 @@ import { motion } from 'motion/react'
 import { Bell, Check, CircleAlert, Download, Globe, Landmark, LogIn, LogOut, Monitor, Moon, Power, Sun } from 'lucide-react'
 import { useApp, recargar } from '@/lib/store'
 import { rpc, URL_NUBE, esNubeLocal } from '@/lib/nube'
-import { mxn } from '@/lib/dinero'
+import { clabeValida, mxn } from '@/lib/dinero'
 import { plural } from '@/lib/fechas'
 import { ATMOSFERAS, useApariencia, type Atmos } from '@/lib/apariencia'
 import { abreAlIniciar, avisar, buscarActualizacion, cambiarAbreAlIniciar, enMac, instalarActualizacion, permisoAvisos } from '@/lib/mac'
@@ -15,22 +15,18 @@ import { Campo, CampoLargo, CampoTelefono, Contador } from '@/components/campos'
 
 // Bancos por los tres primeros dígitos de la CLABE (los más comunes)
 const BANCOS: Record<string, string> = { '002': 'Banamex', '012': 'BBVA', '014': 'Santander', '021': 'HSBC', '030': 'BanBajío', '036': 'Inbursa', '044': 'Scotiabank', '058': 'Banregio', '062': 'Afirme', '072': 'Banorte', '127': 'Banco Azteca', '137': 'BanCoppel', '638': 'Nu México', '646': 'STP', '722': 'Mercado Pago' }
-export function clabeValida(c: string) {
-  if (!/^\d{18}$/.test(c)) return false
-  const w = [3, 7, 1]
-  let s = 0
-  for (let i = 0; i < 17; i++) s += (Number(c[i]) * w[i % 3]!) % 10
-  return (10 - (s % 10)) % 10 === Number(c[17])
-}
 const formatoClabe = (c: string) => c.replace(/(\d{3})(\d{3})(\d{11})(\d)?/, (_, a, b, cc, dd) => [a, b, cc, dd].filter(Boolean).join(' '))
 
 type Campos = Omit<TAjustes, 'noches_fin_semana'> & { noches_fin_semana: number[] }
+const urlValida = (u: string | null) => !u || /^https?:\/\/[^\s/$.?#].[^\s]*$/i.test(u)
+const correoValido = (c: string | null) => !c || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c)
 
 export default function Ajustes() {
   const d = useApp((s) => s.datos)!
   const [f, setF] = useState<Campos>(() => ({ ...d.ajustes }))
-  const [estado, setEstado] = useState<'guardado' | 'pendiente' | 'guardando' | 'error'>('guardado')
+  const [estado, setEstado] = useState<'guardado' | 'pendiente' | 'guardando' | 'incompleto' | 'error'>('guardado')
   const [error, setError] = useState<string | null>(null)
+  const [incompletas, setIncompletas] = useState<string[]>([])
   const sucio = useRef(new Set<keyof Campos>())
   const set = <K extends keyof Campos>(k: K, v: Campos[K]) => {
     sucio.current.add(k)
@@ -49,34 +45,76 @@ export default function Ajustes() {
 
   const clabe = (f.clabe ?? '').replace(/\D/g, '')
   const clabeOk = clabeValida(clabe)
-  const urlOk = !f.url_web || /^https?:\/\/[^\s/$.?#].[^\s]*$/i.test(f.url_web)
-  const correoOk = !f.correo_avisos || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.correo_avisos)
+  const urlOk = urlValida(f.url_web)
+  const correoOk = correoValido(f.correo_avisos)
 
+  // Guardado: manda solo lo que cambió. Lo que ya está completo se guarda aunque otro campo siga a medias (una CLABE
+  // incompleta, por ejemplo), y si se siguió escribiendo mientras se guardaba, se vuelve a mandar: antes esas últimas
+  // letras se daban por guardadas sin haberse mandado.
+  const fRef = useRef(f)
+  fRef.current = f
+  const enCurso = useRef(false)
+  const repetir = useRef(false)
+  const enviarRef = useRef<() => Promise<void>>(async () => {})
+  enviarRef.current = async () => {
+    if (!sucio.current.size) return
+    if (enCurso.current) {
+      repetir.current = true
+      return
+    }
+    const actual = fRef.current
+    const p: Record<string, unknown> = {}
+    for (const k of sucio.current) p[k] = actual[k]
+    const falta: string[] = []
+    const c = (actual.clabe ?? '').replace(/\D/g, '')
+    if ('clabe' in p && c && !clabeValida(c)) (delete p.clabe, falta.push('la CLABE'))
+    if ('url_web' in p && !urlValida(actual.url_web)) (delete p.url_web, falta.push('la dirección de la página'))
+    if ('correo_avisos' in p && !correoValido(actual.correo_avisos)) (delete p.correo_avisos, falta.push('el correo de avisos'))
+    setIncompletas(falta)
+    if (!Object.keys(p).length) {
+      setEstado(falta.length ? 'incompleto' : 'guardado')
+      return
+    }
+    enCurso.current = true
+    setEstado('guardando')
+    try {
+      await rpc('hosp_guardar_ajustes', { p })
+      // Solo se da por guardado lo que sigue igual que lo que se mandó
+      for (const k of Object.keys(p) as (keyof Campos)[]) if (JSON.stringify(fRef.current[k]) === JSON.stringify(p[k])) sucio.current.delete(k)
+      setError(null)
+      setEstado(falta.length ? 'incompleto' : sucio.current.size ? 'pendiente' : 'guardado')
+      void recargar()
+    } catch (e) {
+      setEstado('error')
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      enCurso.current = false
+      if (repetir.current) {
+        repetir.current = false
+        void enviarRef.current()
+      }
+    }
+  }
   useEffect(() => {
     if (!sucio.current.size) return
     setEstado('pendiente')
-    const t = setTimeout(async () => {
-      const p: Record<string, unknown> = {}
-      for (const k of sucio.current) p[k] = f[k]
-      // Lo que todavía está a medias no se manda
-      if ('clabe' in p && clabe && !clabeOk) delete p.clabe
-      if ('url_web' in p && !urlOk) delete p.url_web
-      if ('correo_avisos' in p && !correoOk) delete p.correo_avisos
-      if (!Object.keys(p).length) return
-      setEstado('guardando')
-      try {
-        await rpc('hosp_guardar_ajustes', { p })
-        for (const k of Object.keys(p)) sucio.current.delete(k as keyof Campos)
-        setEstado('guardado')
-        setError(null)
-        void recargar()
-      } catch (e) {
-        setEstado('error')
-        setError(e instanceof Error ? e.message : String(e))
-      }
-    }, 800)
+    const t = setTimeout(() => void enviarRef.current(), 700)
     return () => clearTimeout(t)
-  }, [f]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [f])
+  // Al salir de la pantalla, al cambiar de ventana o al esconder la app, se guarda de inmediato lo que falte
+  useEffect(() => {
+    const ya = () => void enviarRef.current()
+    const alOcultar = () => document.visibilityState === 'hidden' && ya()
+    window.addEventListener('blur', ya)
+    window.addEventListener('pagehide', ya)
+    document.addEventListener('visibilitychange', alOcultar)
+    return () => {
+      window.removeEventListener('blur', ya)
+      window.removeEventListener('pagehide', ya)
+      document.removeEventListener('visibilitychange', alOcultar)
+      ya()
+    }
+  }, [])
 
   const publicadas = d.cabanas.filter((c) => c.publicada)
   const faltan = [
@@ -96,7 +134,7 @@ export default function Ajustes() {
         <div>
           <h1 className="heading text-[30px] leading-[1.1]">Ajustes</h1>
           <p className="mt-1.5 text-[14px] text-ink-soft">
-            {!admin ? 'Solo el dueño puede cambiar estos datos.' : estado === 'guardando' ? 'Guardando…' : estado === 'pendiente' ? 'Cambios por guardar' : estado === 'error' ? '' : 'Todo se guarda solo.'}
+            {!admin ? 'Solo el dueño puede cambiar estos datos.' : estado === 'guardando' ? 'Guardando…' : estado === 'pendiente' ? 'Cambios por guardar' : estado === 'incompleto' ? `Falta terminar ${incompletas.join(' y ')}. Lo demás ya se guardó.` : estado === 'error' ? '' : 'Todo se guarda solo.'}
             {admin && estado === 'guardado' && <Check size={14} className="ml-1 inline text-success" />}
           </p>
           {error && <p className="mt-1 text-[13px] text-danger">{error}</p>}

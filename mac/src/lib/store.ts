@@ -8,7 +8,7 @@ import { nube, rpc } from './nube'
 import { activa } from './estados'
 import { hoyLocal, masDias, plural, rango } from './fechas'
 import { mxn } from './dinero'
-import { avisar, ponerInsignia } from './mac'
+import { avisar, avisosPermitidos, ponerInsignia } from './mac'
 import { toast } from '@/components/ui'
 
 export type Vista = 'hoy' | 'calendario' | 'reservaciones' | 'cabanas' | 'ajustes'
@@ -28,6 +28,9 @@ interface Estado {
   /** Canal de tiempo real conectado */
   enVivo: boolean
   ultimaCarga: number
+  /** Avisos de macOS permitidos (null = todavía no se revisa) */
+  avisos: boolean | null
+  revisarAvisos: () => Promise<void>
   vista: Vista
   abierta: string | null
   nueva: Nueva | null
@@ -49,6 +52,47 @@ interface Estado {
 
 const CACHE = 'la-joya-mac:datos'
 const VISTOS = 'la-joya-mac:vistos'
+const CORREO = 'la-joya-mac:correo'
+const MOTIVO = 'la-joya-mac:motivo'
+
+let saliendo = false
+/** ¿La sesión se cerró porque la persona le dio «Salir»? */
+export const esSalidaManual = () => saliendo
+
+/** Para que Entrar deje el correo escrito la próxima vez */
+export function recordarCorreo(correo?: string | null) {
+  try {
+    if (correo) localStorage.setItem(CORREO, correo)
+  } catch {
+    /* sin almacenamiento */
+  }
+}
+export function correoGuardado() {
+  try {
+    return localStorage.getItem(CORREO) ?? ''
+  } catch {
+    return ''
+  }
+}
+/** La sesión se cerró sola (venció o la nube la rechazó): Entrar lo explica en vez de aparecer sin motivo */
+export function marcarVencida(correo?: string | null) {
+  recordarCorreo(correo)
+  try {
+    localStorage.setItem(MOTIVO, 'vencio')
+  } catch {
+    /* sin almacenamiento */
+  }
+}
+/** Lee (y borra) el motivo por el que se llegó a Entrar */
+export function motivoDeEntrada(): 'vencio' | null {
+  try {
+    const m = localStorage.getItem(MOTIVO)
+    localStorage.removeItem(MOTIVO)
+    return m === 'vencio' ? 'vencio' : null
+  } catch {
+    return null
+  }
+}
 
 function datosGuardados(): Datos | null {
   try {
@@ -68,6 +112,8 @@ export const useApp = create<Estado>((set, get) => ({
   sinPermiso: false,
   enVivo: false,
   ultimaCarga: 0,
+  avisos: null,
+  revisarAvisos: async () => set({ avisos: await avisosPermitidos() }),
   vista: 'hoy',
   abierta: null,
   nueva: null,
@@ -83,6 +129,8 @@ export const useApp = create<Estado>((set, get) => ({
   editarCabana: (cabana) => set({ cabana }),
   setFiltro: (filtro) => set({ filtro }),
   salir: async () => {
+    saliendo = true
+    recordarCorreo(get().sesion?.user.email)
     try {
       localStorage.removeItem(CACHE)
       localStorage.removeItem(VISTOS)
@@ -92,7 +140,11 @@ export const useApp = create<Estado>((set, get) => ({
     set({ datos: null, abierta: null, nueva: null, cabana: null, vista: 'hoy', sinPermiso: false })
     primeraCarga = true
     void ponerInsignia(0)
-    await nube.auth.signOut()
+    try {
+      await nube.auth.signOut()
+    } finally {
+      saliendo = false
+    }
   },
   parchar: (id, p) =>
     set((s) => (s.datos ? { datos: { ...s.datos, reservaciones: s.datos.reservaciones.map((r) => (r.id === id ? { ...r, ...p } : r)) } } : {})),

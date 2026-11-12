@@ -5,6 +5,8 @@ import { createClient } from '@supabase/supabase-js'
 export const URL_NUBE = (import.meta.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54331').replace(/\/$/, '')
 export const LLAVE_PUBLICA = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_local'
 export const esNubeLocal = /127\.0\.0\.1|localhost/.test(URL_NUBE)
+/** Una app compilada para instalar que no trae la dirección de la nube del rancho: no sirve, y la app lo dice en vez de mostrar «Entrar» */
+export const sinNubeDelRancho = import.meta.env.PROD && esNubeLocal && !import.meta.env.VITE_NUBE_LOCAL_OK
 
 export const nube = createClient(URL_NUBE, LLAVE_PUBLICA, {
   auth: { persistSession: true, autoRefreshToken: true, storageKey: 'la-joya-mac:sesion' },

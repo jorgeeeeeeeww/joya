@@ -365,7 +365,8 @@ export const toast = {
   error: (title: string, body?: string) => useToasts.getState().push({ title, body, tone: 'error', duration: 6000 }),
   info: (title: string, body?: string) => useToasts.getState().push({ title, body, tone: 'info' }),
   /** Aviso con «Deshacer»: en lugar de preguntar «¿seguro?» antes de cambiar algo */
-  undo: (title: string, undo: () => void, body?: string) => useToasts.getState().push({ title, body, tone: 'info', action: { label: 'Deshacer', onClick: undo } }),
+  /** `largo`: para lo que mueve dinero o libera fechas (pagos, cancelaciones): el aviso dura 14 s en vez de 7 */
+  undo: (title: string, undo: () => void, body?: string, largo = false) => useToasts.getState().push({ title, body, tone: 'info', action: { label: 'Deshacer', onClick: undo }, ...(largo ? { duration: 14000 } : {}) }),
   action: (title: string, action: { label: string; onClick: () => void }, body?: string) => useToasts.getState().push({ title, body, tone: 'info', action }),
 }
 

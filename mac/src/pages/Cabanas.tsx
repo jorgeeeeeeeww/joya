@@ -111,19 +111,46 @@ function Editor({ original }: { original: Cabana | null }) {
       return
     }
     if (nueva) return
+    pendiente.current = true
     setEstado('pendiente')
     if (!valido) return
     const t = setTimeout(() => void guardar(), 900)
     return () => clearTimeout(t)
   }, [f]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Lo que se está escribiendo se guarda de inmediato al salir de la ficha, al cambiar de ventana o al esconder la app
+  const fRef = useRef(f)
+  fRef.current = f
+  const pendiente = useRef(false)
+  const guardarRef = useRef<() => Promise<void>>(async () => {})
+  useEffect(() => {
+    const ya = () => {
+      if (pendiente.current) void guardarRef.current()
+    }
+    const alOcultar = () => document.visibilityState === 'hidden' && ya()
+    window.addEventListener('blur', ya)
+    window.addEventListener('pagehide', ya)
+    document.addEventListener('visibilitychange', alOcultar)
+    return () => {
+      window.removeEventListener('blur', ya)
+      window.removeEventListener('pagehide', ya)
+      document.removeEventListener('visibilitychange', alOcultar)
+      ya()
+    }
+  }, [])
+
   const guardar = async () => {
     if (!valido) return
+    const enviado = JSON.stringify(f)
     setEstado('guardando')
     try {
       const { id, orden, ...resto } = f
       const r = await rpc<Cabana>('hosp_guardar_cabana', { p: { ...resto, id: id ?? null, ...(orden != null ? { orden } : {}) } })
-      setEstado('guardado')
+      // Si se siguió escribiendo mientras se guardaba, queda pendiente (el guardado automático lo vuelve a mandar)
+      if (JSON.stringify(fRef.current) === enviado) {
+        pendiente.current = false
+        setEstado('guardado')
+      }
       setErrorGuardar(null)
       void recargar()
       if (nueva) {
@@ -135,6 +162,8 @@ function Editor({ original }: { original: Cabana | null }) {
       setErrorGuardar(e instanceof Error ? e.message : String(e))
     }
   }
+
+  guardarRef.current = guardar
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -238,6 +267,7 @@ function Editor({ original }: { original: Cabana | null }) {
               confirmLabel="Borrar"
               onConfirm={async () => {
                 try {
+                  pendiente.current = false
                   await rpc('hosp_borrar_cabana', { p_id: original.id })
                   toast.success(`Borraste ${original.nombre}`)
                   editar(null)
