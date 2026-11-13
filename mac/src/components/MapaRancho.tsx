@@ -1,24 +1,16 @@
-// El mapa del rancho en 3D: la misma maqueta de la página (web/src/scripts/maqueta.ts), con sus edificios y árboles
+// El mapa del rancho en 3D: el mismo plano de la página, con sus edificios y árboles
 // en su lugar, adaptada a los colores de la app. Cada hospedaje se ve distinto según la noche que se elija:
 //   · ocupado   → su techo toma el color de la app
 //   · solicitud → un aro que late alrededor del edificio
 //   · cerrado   → atenuado
 //   · libre     → sus colores de piedra
-// Se arrastra de lado para girarlo; los puntos juntos se agrupan y al tocarlos la cámara se acerca para elegir uno.
+// Vista satelital fija: cada unidad tiene su propio rótulo y se puede seleccionar directamente.
 // Si el equipo no puede dibujar en 3D, se ve el plano plano de siempre.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buscarPieza, HOSPEDAJES, type Pieza } from '@/lib/plano'
 import { crearMaqueta, type Maqueta } from '@/lib/maqueta'
 import { PlanoRancho, type CasaEscena } from './plano'
 import { cx } from './ui'
-
-/** Los grupos a los que se puede acercar la cámara */
-const GRUPOS: { id: string; texto: string }[] = [
-  { id: 'cabanas', texto: 'Cabañas' },
-  { id: 'casas', texto: 'Casas' },
-  { id: 'hilera-11-16', texto: 'Habitaciones 11–16' },
-  { id: 'hilera-1-3', texto: 'Habitaciones 1–3' },
-]
 
 /** El color de una variable de la app (ya resuelto para claro u oscuro) como número 0xRRGGBB */
 function colorDe(variable: string): number {
@@ -36,12 +28,29 @@ const esNoche = () => {
   return t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
 }
 
-/** Las cabañas cercanas también se agrupan; las demás usan su hilera del plano. */
+/** Identifica las hileras para separar las etiquetas cercanas sin ocultar unidades. */
 const GRUPO_DE = new Map<string, string>(HOSPEDAJES.flatMap((p) => {
   const g = p.grupo ?? (p.tipo === 'cabana' ? 'cabanas' : undefined)
-  return g && GRUPOS.some((x) => x.id === g) ? [[p.id, g] as [string, string]] : []
+  return g ? [[p.id, g] as [string, string]] : []
 }))
-const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? p.nombre.replace(/\D+/g, '') : p.tipo === 'casa' ? p.nombre.replace(/^Casa\s+/i, 'C') : p.nombre.replace(/^Cabaña\s+/i, ''))
+const ORDEN_GRUPO = new Map<string, number>()
+const vistosPorGrupo = new Map<string, number>()
+for (const p of HOSPEDAJES) {
+  const grupo = GRUPO_DE.get(p.id)
+  if (!grupo) continue
+  ORDEN_GRUPO.set(p.id, vistosPorGrupo.get(grupo) ?? 0)
+  vistosPorGrupo.set(grupo, (vistosPorGrupo.get(grupo) ?? 0) + 1)
+}
+function ajusteEtiqueta(id: string) {
+  const grupo = GRUPO_DE.get(id)
+  const orden = ORDEN_GRUPO.get(id) ?? 0
+  if (grupo === 'hilera-11-16') return { x: orden % 2 ? 17 : -17, y: 0 }
+  if (grupo === 'hilera-1-3') return { x: 0, y: orden % 2 ? -12 : 12 }
+  if (grupo === 'cabanas' && orden === 1) return { x: 25, y: -5 }
+  if (grupo === 'cabanas' && orden === 2) return { x: -20, y: 5 }
+  return { x: 0, y: 0 }
+}
+const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? `H${p.nombre.replace(/\D+/g, '')}` : p.tipo === 'casa' ? p.nombre.replace(/^Casa\s+/i, 'C') : p.nombre.replace(/^Cabaña\s+/i, ''))
 
 export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; elegida: string | null; onElegir: (id: string) => void }) {
   const caja = useRef<HTMLDivElement>(null)
@@ -50,26 +59,21 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
   const posiciones = useRef(new Map<string, { x: number; y: number; ok: boolean }>())
   const alElegir = useRef(onElegir)
   alElegir.current = onElegir
-  const gruposPines = useRef(new Map<string, HTMLButtonElement>())
-  const capaGrupos = useRef<HTMLDivElement>(null)
-  const juntar = useRef(new Set<string>(GRUPOS.map((g) => g.id))) // los grupos que van juntos en un solo rótulo
   const [sinWebGL, setSinWebGL] = useState(false)
   const [sobre, setSobre] = useState<string | null>(null)
-  const [acercado, setAcercado] = useState<string | null>(null)
 
   // Cada hospedaje de la nube busca su edificio en el plano (por nombre); lo que no se reconoce va aparte
-  const { porPieza, sueltos } = useMemo(() => {
+  const porPieza = useMemo(() => {
     const libres = [...HOSPEDAJES]
     const porPieza = new Map<string, CasaEscena>()
-    const sueltos: CasaEscena[] = []
     for (const c of casas) {
-      const p = buscarPieza(c.slug, c.nombre, libres)
+      const p = buscarPieza(c.slug, c.nombre, libres, c.tipo)
       if (p) {
         porPieza.set(p.id, c)
         libres.splice(libres.indexOf(p), 1)
-      } else sueltos.push(c)
+      }
     }
-    return { porPieza, sueltos }
+    return porPieza
   }, [casas])
   const piezaDe = (casaId: string | null) => (casaId ? ([...porPieza].find(([, c]) => c.id === casaId)?.[0] ?? null) : null)
   const porPiezaRef = useRef(porPieza)
@@ -81,92 +85,22 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
     const m = crearMaqueta(caja.current, {
       reduce,
+      fija: true,
       alMover: (pos) => {
         posiciones.current = pos
         const w = caja.current?.clientWidth ?? 0
         const h = caja.current?.clientHeight ?? 0
-        const familias = new Map<string, { ids: string[]; x: number; y: number }[]>()
         for (const [id, el] of etiquetas.current) {
           const p = pos.get(id)
-          const g = GRUPO_DE.get(id)
           if (!p || !p.ok || p.x <= -48 || p.x >= w + 48 || p.y <= -48 || p.y >= h + 48) {
             el.style.opacity = '0'
             el.style.pointerEvents = 'none'
             continue
           }
-
-          if (!g || !juntar.current.has(g)) {
-            el.style.opacity = '1'
-            el.style.pointerEvents = 'auto'
-            el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -100%)`
-            continue
-          }
-
-          el.style.opacity = '0'
-          el.style.pointerEvents = 'none'
-          const lista = familias.get(g) ?? []
-          // El umbral es el mismo que en la página: 40 px en móvil y 36 px en pantallas anchas.
-          const radio = w < 560 ? 40 : 36
-          const juntaTodaLaHilera = g === 'casas'
-          const cerca = lista.find((x) => juntaTodaLaHilera || Math.hypot(x.x - p.x, x.y - p.y) < radio)
-          if (cerca) {
-            const n = cerca.ids.length
-            cerca.x = (cerca.x * n + p.x) / (n + 1)
-            cerca.y = (cerca.y * n + p.y) / (n + 1)
-            cerca.ids.push(id)
-          } else lista.push({ ids: [id], x: p.x, y: p.y })
-          familias.set(g, lista)
-        }
-        const visibles = new Set<string>()
-        for (const [g, lista] of familias) {
-          lista.forEach((grupo, i) => {
-            if (grupo.ids.length === 1) {
-              const id = grupo.ids[0]!
-              const el = etiquetas.current.get(id)
-              const p = pos.get(id)
-              if (el && p) {
-                el.style.opacity = '1'
-                el.style.pointerEvents = 'auto'
-                el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -100%)`
-              }
-              return
-            }
-
-            const llave = `${g}:${i}`
-            visibles.add(llave)
-            let b = gruposPines.current.get(llave)
-            if (!b) {
-              b = document.createElement('button')
-              b.type = 'button'
-              b.className = 'pressable pointer-events-auto absolute top-0 left-0 inline-flex items-center rounded-full bg-ink px-2.5 py-1 text-[11px] leading-tight font-semibold whitespace-nowrap text-paper shadow-[var(--shadow-1)] transition-opacity'
-              b.addEventListener('click', () => {
-                const familia = b!.dataset.grupo
-                const ids = (b!.dataset.ids ?? '').split(',').filter(Boolean)
-                if (!familia || !ids.length || !maqueta.current) return
-                maqueta.current.acercar(ids, 1.2)
-                setAcercado(familia)
-              })
-              capaGrupos.current?.append(b)
-              gruposPines.current.set(llave, b)
-            }
-            const nombre = g === 'casas' ? 'casas' : g === 'cabanas' ? 'cabañas' : 'habitaciones'
-            const nombres = grupo.ids.map((id) => porPiezaRef.current.get(id)?.nombre).filter(Boolean)
-            const aria = `Acercar a ${nombres.join(', ')}`
-            const texto = `${grupo.ids.length} ${nombre}`
-            b.dataset.grupo = g
-            b.dataset.ids = grupo.ids.join(',')
-            if (b.getAttribute('aria-label') !== aria) b.setAttribute('aria-label', aria)
-            if (b.textContent !== texto) b.textContent = texto
-            b.style.opacity = '1'
-            b.style.pointerEvents = 'auto'
-            b.style.zIndex = '2'
-            b.style.transform = `translate(${grupo.x}px, ${grupo.y}px) translate(-50%, -100%)`
-          })
-        }
-        for (const [llave, b] of gruposPines.current) {
-          if (visibles.has(llave)) continue
-          b.style.opacity = '0'
-          b.style.pointerEvents = 'none'
+          const ajuste = ajusteEtiqueta(id)
+          el.style.opacity = '1'
+          el.style.pointerEvents = 'auto'
+          el.style.transform = `translate(${p.x + ajuste.x}px, ${p.y + ajuste.y}px) translate(-50%, -100%)`
         }
       },
       alPasar: (id) => setSobre(id),
@@ -180,16 +114,15 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
       return
     }
     maqueta.current = m
-    m.ponerAcento(colorDe('--chispa'))
+    m.ponerAcento(colorDe('--map-accent'))
     m.ponerModo(esNoche())
-    m.entrar()
     // Si cambia entre claro y oscuro (o la Mac cambia sola), se ajustan el color y la luz
     const ajustar = () => {
-      m.ponerAcento(colorDe('--chispa'))
+      m.ponerAcento(colorDe('--map-accent'))
       m.ponerModo(esNoche())
     }
     const ob = new MutationObserver(ajustar)
-    ob.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    ob.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-app-design'] })
     const mq = matchMedia('(prefers-color-scheme: dark)')
     mq.addEventListener('change', ajustar)
     return () => {
@@ -216,27 +149,7 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elegida, ids])
 
-  // Cada grupo se ve una por una solo cuando la cámara está acercada a él o una de sus piezas está elegida
-  const piezaElegida = piezaDe(elegida)
-  const grupoElegido = piezaElegida ? GRUPO_DE.get(piezaElegida) : undefined
-  juntar.current = new Set(GRUPOS.map((g) => g.id).filter((g) => g !== acercado && g !== grupoElegido))
-
-  // Acercar la cámara a un grupo (o a las piezas de un rótulo agrupado) o volver a ver todo
-  const acercar = (grupo: string | null) => {
-    const m = maqueta.current
-    if (!m) return
-    if (!grupo || grupo === acercado) {
-      m.volver(1.1)
-      setAcercado(null)
-    } else {
-      const ids = [...porPieza.keys()].filter((id) => GRUPO_DE.get(id) === grupo)
-      if (!ids.length) return
-      m.acercar(ids, 1.2)
-      setAcercado(grupo)
-    }
-  }
-
-  if (sinWebGL) return <PlanoRancho casas={casas} elegida={elegida} onPick={onElegir} />
+  if (sinWebGL) return <PlanoRancho casas={casas} elegida={elegida} onPick={onElegir} mostrarSueltos={false} />
 
   const casaSobre = sobre ? porPieza.get(sobre) : undefined
   const posSobre = sobre ? posiciones.current.get(sobre) : undefined
@@ -245,29 +158,8 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
       <div className="relative h-[clamp(400px,60vh,640px)] w-full overflow-hidden rounded-[var(--r-md)]">
         <div ref={caja} className="absolute inset-0" />
 
-        {/* Filtrar el mapa por grupo y acercarse para elegir cada hospedaje */}
-        <div className="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-1.5">
-          {acercado && (
-            <button type="button" onClick={() => acercar(null)} className="pressable inline-flex h-8 items-center rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary shadow-[var(--shadow-1)]">
-              Ver todo el rancho
-            </button>
-          )}
-          {GRUPOS.map((g) => (
-            <button
-              key={g.id}
-              type="button"
-              aria-pressed={acercado === g.id}
-              onClick={() => acercar(g.id)}
-              className={cx('pressable inline-flex h-8 items-center rounded-full px-3 text-[13px] font-medium shadow-[var(--shadow-1)] ring-1 ring-inset', acercado === g.id ? 'bg-ink text-paper ring-transparent' : 'bg-surface text-ink ring-line-strong hover:bg-wash')}
-            >
-              {g.texto}
-            </button>
-          ))}
-        </div>
-
-        {/* Nombres individuales y puntos agrupados, colocados encima de los edificios */}
+        {/* Etiquetas individuales: cada alojamiento se puede seleccionar directamente. */}
         <div className="pointer-events-none absolute inset-0">
-          <div ref={capaGrupos} className="pointer-events-none absolute inset-0" />
           {[...porPieza].map(([id, c]) => {
             const p = HOSPEDAJES.find((x) => x.id === id)
             if (!p) return null
@@ -286,7 +178,7 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
                 }}
                 style={{ opacity: 0 }}
                 className={cx(
-                  'absolute top-0 left-0 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] leading-tight font-semibold whitespace-nowrap shadow-[var(--shadow-1)] ring-1 ring-inset transition-opacity',
+                  'pointer-events-auto absolute top-0 left-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] leading-tight font-semibold whitespace-nowrap shadow-[var(--shadow-1)] ring-1 ring-inset transition-opacity',
                   c.estado === 'reservada' && 'bg-chispa text-on-chispa ring-transparent',
                   c.estado === 'apartada' && 'bg-surface text-chispa ring-chispa',
                   c.estado === 'cerrada' && 'bg-sunken text-ink-3 ring-line',
@@ -312,21 +204,6 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
         )}
       </div>
 
-      {sueltos.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {sueltos.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => onElegir(c.id)}
-              title={c.linea}
-              className={cx('pressable inline-flex min-h-8 items-center rounded-full px-3 text-[13px] ring-1 ring-inset', c.estado === 'reservada' ? 'bg-chispa text-on-chispa ring-transparent' : 'bg-secondary text-ink ring-line-strong', c.estado === 'apartada' && 'plano-late-chip', elegida === c.id && 'ring-2 ring-ink')}
-            >
-              {c.nombre}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

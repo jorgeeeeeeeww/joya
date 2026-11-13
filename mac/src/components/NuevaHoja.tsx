@@ -176,7 +176,7 @@ function Formulario({ nueva }: { nueva: Nueva }) {
 
         {/* Cotización en vivo */}
         <aside className="flex flex-col">
-          <div className="sticky top-0 flex flex-col overflow-hidden rounded-[16px] bg-night text-on-night">
+          <div className="app-quote-card sticky top-0 flex flex-col overflow-hidden rounded-[16px] bg-night text-on-night">
             <div className="px-5 pt-5 pb-4">
               <div className="flex items-center gap-2 text-[13px] text-on-night-soft">
                 <Moon size={14} />
@@ -226,7 +226,7 @@ function Formulario({ nueva }: { nueva: Nueva }) {
                 <div className="flex items-end justify-between">
                   <span className="text-[13px] text-on-night-soft">Total</span>
                   <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.span key={total ?? 'x'} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-[28px] leading-none font-semibold text-luz tabular">
+                    <motion.span key={total ?? 'x'} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="app-quote-total text-[28px] leading-none font-semibold text-luz tabular">
                       {total != null ? mxn(total) : '—'}
                     </motion.span>
                   </AnimatePresence>

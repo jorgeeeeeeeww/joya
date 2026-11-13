@@ -17,7 +17,7 @@
    1. Fundaciones invariantes (no cambian entre atmósferas)
    -------------------------------------------------------------------------- */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   /* Tipografía — una sola familia: Geist (sin serif ni cursiva). Títulos en semibold con interletra cerrada. */
   --font-display: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -83,8 +83,8 @@
 }
 
 /* Modo de color forzado */
-:root[data-theme="light"] { color-scheme: light; }
-:root[data-theme="dark"]  { color-scheme: dark; }
+:root[data-theme="light"],
+:root[data-theme="dark"] { color-scheme: light; }
 
 /* --------------------------------------------------------------------------
    2. Atmósferas (cada color = light-dark(claro, oscuro))

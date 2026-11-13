@@ -1,18 +1,17 @@
-// Cabañas: cada hospedaje (cabaña, casa o habitación) con sus datos, fotos (se arrastran desde Finder),
-// precios y temporadas. A la derecha, la vista previa de cómo sale en la página, en vivo.
+// Hospedajes: cabañas, casas y habitaciones con sus datos, precios y temporadas.
+// Las fotografías de la página se administran en la web.
 // Se guarda solo mientras escribes, como en las apps de la Mac.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { BedDouble, Bath, Check, Eye, EyeOff, ImagePlus, Plus, Trash2, Users, X, GripVertical } from 'lucide-react'
+import { BedDouble, Bath, Check, Eye, EyeOff, Plus, Trash2, Users } from 'lucide-react'
 import { useApp, recargar } from '@/lib/store'
-import { rpc, nube, urlFoto } from '@/lib/nube'
+import { rpc } from '@/lib/nube'
 import { TIPO } from '@/lib/ocupacion'
 import { corta, masDias, noches, plural, rango } from '@/lib/fechas'
 import { mxn } from '@/lib/dinero'
 import { CMD } from '@/lib/mac'
-import type { Cabana, Foto, ISODate, Temporada, TipoHospedaje } from '@/lib/tipos'
-import { Badge, Button, Segmented, Toggle, cx, toast, Confirm } from '@/components/ui'
-import { LightDots } from '@/components/step1'
+import type { Cabana, ISODate, Temporada, TipoHospedaje } from '@/lib/tipos'
+import { Button, Segmented, Toggle, cx, toast, Confirm } from '@/components/ui'
 import { Campo, CampoDinero, CampoLargo, Contador, Etiquetas, RangoFechas } from '@/components/campos'
 
 const AMENIDADES = ['Wi-Fi', 'Estacionamiento', 'Asador', 'Cocina equipada', 'Aire acondicionado', 'Ventilador', 'Agua caliente', 'TV', 'Terraza', 'Alberca', 'Fogatero', 'Hamacas', 'Se aceptan mascotas', 'Ropa de cama y toallas']
@@ -32,24 +31,47 @@ export default function Cabanas() {
   const d = useApp((s) => s.datos)!
   const sel = useApp((s) => s.cabana)
   const editar = useApp((s) => s.editarCabana)
+  const [filtro, setFiltro] = useState<'todos' | TipoHospedaje>('todos')
   useEffect(() => {
     if (!sel && d.cabanas[0]) editar(d.cabanas[0].id)
     if (!sel && !d.cabanas.length) editar('nueva')
   }, [sel, d.cabanas, editar])
   const actual = sel === 'nueva' ? null : d.cabanas.find((c) => c.id === sel)
+  const conteos = {
+    cabana: d.cabanas.filter((c) => c.tipo === 'cabana').length,
+    casa: d.cabanas.filter((c) => c.tipo === 'casa').length,
+    habitacion: d.cabanas.filter((c) => c.tipo === 'habitacion').length,
+  }
+  const visibles = filtro === 'todos' ? d.cabanas : d.cabanas.filter((c) => c.tipo === filtro)
+  const filtros: ('todos' | TipoHospedaje)[] = ['todos', 'cabana', 'casa', 'habitacion']
 
   return (
-    <div className="flex h-full">
-      <div className="interfaz flex w-[240px] shrink-0 flex-col border-r border-line">
-        <div className="flex items-end justify-between px-4 pt-8 pb-4">
-          <h1 className="heading text-[26px]">Cabañas</h1>
+    <div className="app-cabanas flex h-full">
+      <div className="app-cabanas-list interfaz flex w-[240px] shrink-0 flex-col border-r border-line">
+        <div className="app-cabanas-list-header flex items-end justify-between gap-2 px-4 pt-6 pb-3">
+          <div className="min-w-0">
+            <h1 className="heading text-[22px]">Hospedajes</h1>
+            <p className="mt-1 text-[12px] text-ink-soft">{d.cabanas.length} en total</p>
+          </div>
           <Button size="sm" variant="secondary" icon={<Plus size={15} />} onClick={() => editar('nueva')}>
             Agregar
           </Button>
         </div>
+        <div className="app-cabanas-filters" aria-label="Filtrar por tipo de hospedaje">
+          {filtros.map((t) => {
+            const n = t === 'todos' ? d.cabanas.length : conteos[t]
+            const texto = t === 'todos' ? 'Todos' : TIPO[t].varios
+            return (
+              <button key={t} type="button" aria-pressed={filtro === t} onClick={() => setFiltro(t)} className="app-cabanas-filter">
+                <span>{texto}</span>
+                <span>{n}</span>
+              </button>
+            )
+          })}
+        </div>
         <div className="scroll-area min-h-0 flex-1 overflow-y-auto px-2.5 pb-6">
-          {d.cabanas.map((c) => (
-            <button key={c.id} onClick={() => editar(c.id)} className={cx('flex w-full items-center gap-3 rounded-[12px] p-2 text-left transition-colors', sel === c.id ? 'bg-[color-mix(in_oklab,var(--primary)_13%,var(--surface))]' : 'hover:bg-wash')}>
+          {visibles.map((c) => (
+            <button key={c.id} onClick={() => editar(c.id)} className={cx('app-cabana-item flex w-full items-center gap-3 rounded-[12px] p-2 text-left transition-colors', sel === c.id ? 'is-active bg-[color-mix(in_oklab,var(--primary)_13%,var(--surface))]' : 'hover:bg-wash')}>
               <Miniatura c={c} />
               <span className="min-w-0 flex-1">
                 <span className="block text-[14px] leading-tight font-semibold">{c.nombre}</span>
@@ -61,29 +83,46 @@ export default function Cabanas() {
             </button>
           ))}
           {sel === 'nueva' && (
-            <div className="flex items-center gap-3 rounded-[12px] bg-[color-mix(in_oklab,var(--primary)_13%,var(--surface))] p-2">
-              <span className="flex h-11 w-14 items-center justify-center rounded-[8px] bg-sunken text-ink-3">
-                <Plus size={16} />
-              </span>
+            <div className="app-cabana-item is-active flex items-center gap-3 rounded-[12px] bg-[color-mix(in_oklab,var(--primary)_13%,var(--surface))] p-2">
+              <IlustracionHospedaje tipo="cabana" />
               <span className="text-[14px] font-semibold">Nuevo hospedaje</span>
             </div>
           )}
+          {visibles.length === 0 && sel !== 'nueva' && <p className="px-3 py-6 text-center text-[12px] text-ink-soft">No hay hospedajes de este tipo.</p>}
         </div>
       </div>
-      <div className="scroll-area min-w-0 flex-1 overflow-y-auto">{sel && <Editor key={sel} original={actual ?? null} />}</div>
+      <div className="app-cabanas-editor scroll-area min-w-0 flex-1 overflow-y-auto">{sel && <Editor key={sel} original={actual ?? null} />}</div>
     </div>
   )
 }
 
-function Miniatura({ c }: { c: Pick<Cabana, 'fotos' | 'tipo'> }) {
-  const f = c.fotos[0]
-  return f ? <img src={urlFoto(f.ruta)} alt="" className="h-11 w-14 shrink-0 rounded-[8px] object-cover" /> : <span className="flex h-11 w-14 shrink-0 items-center justify-center rounded-[8px] bg-night text-luz"><CasaIcono tipo={c.tipo} /></span>
+function Miniatura({ c }: { c: Pick<Cabana, 'tipo'> }) {
+  return <IlustracionHospedaje tipo={c.tipo} />
 }
 function CasaIcono({ tipo, size = 22 }: { tipo: TipoHospedaje; size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden>
       {tipo === 'cabana' ? <path d="M3 20 12 4l9 16Z M10 20v-5h4v5" /> : tipo === 'casa' ? <path d="M3 11 12 4l9 7 M5 10v10h14V10 M10 20v-5h4v5" /> : <path d="M5 20V5h14v15 M9 9h2M13 9h2M9 13h2M13 13h2 M11 20v-3h2v3" />}
     </svg>
+  )
+}
+
+function IlustracionHospedaje({ tipo, grande = false }: { tipo: TipoHospedaje; grande?: boolean }) {
+  const dibujo: Record<TipoHospedaje, string> = {
+    cabana: 'M4 40 32 10l28 30H4Zm22 0V28h12v12',
+    casa: 'M6 26 32 8l26 18M12 22v18h40V22M26 40V30h12v10M44 14V8h6v10',
+    habitacion: 'M6 12v32M6 34h52v10M12 26h14v8H12M28 34v-8h20a8 8 0 0 1 8 8',
+  }
+  return (
+    <span className={cx('app-hospedaje-ilustracion', `is-${tipo}`, grande && 'is-large')} aria-hidden="true">
+      <svg viewBox="0 0 64 48" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d={dibujo[tipo]} />
+        {tipo === 'casa' && <path d="M18 26h9v8h-9zM37 26h9v8h-9z" />}
+        {tipo === 'habitacion' && <path d="M12 16h40v10H12zM18 16v-4h12v4M34 16v-4h12v4" />}
+        {tipo === 'cabana' && <path d="M9 35h46M18 25l14-15 14 15" />}
+      </svg>
+      {grande && <span>Ilustración · {TIPO[tipo].uno}</span>}
+    </span>
   )
 }
 
@@ -154,7 +193,7 @@ function Editor({ original }: { original: Cabana | null }) {
       setErrorGuardar(null)
       void recargar()
       if (nueva) {
-        toast.success(`${r.nombre} quedó guardada`, 'Ya puedes subir sus fotos')
+        toast.success(`${r.nombre} quedó guardada`, 'Tú subes las fotos desde la web.')
         editar(r.id)
       }
     } catch (e) {
@@ -186,7 +225,7 @@ function Editor({ original }: { original: Cabana | null }) {
           <div className="min-w-0">
             <h2 className="heading text-[28px] leading-tight">{f.nombre.trim() || 'Nuevo hospedaje'}</h2>
             <p className="mt-1 text-[13px] text-ink-3">
-              {nueva ? 'Escribe el nombre y para cuántas personas es; luego podrás subir fotos.' : estado === 'guardando' ? 'Guardando…' : estado === 'pendiente' ? (valido ? 'Cambios por guardar' : 'Falta el nombre o la capacidad') : estado === 'error' ? '' : `Se guarda solo · ${CMD}S`}
+              {nueva ? 'Completa los datos del hospedaje. Tú subes la foto desde la web.' : estado === 'guardando' ? 'Guardando…' : estado === 'pendiente' ? (valido ? 'Cambios por guardar' : 'Falta el nombre o la capacidad') : estado === 'error' ? '' : `Se guarda solo · ${CMD}S`}
               {estado === 'guardado' && !nueva && <Check size={13} className="ml-1 inline text-success" />}
             </p>
             {errorGuardar && <p className="mt-1 text-[13px] text-danger">{errorGuardar}</p>}
@@ -200,6 +239,14 @@ function Editor({ original }: { original: Cabana | null }) {
               <Toggle checked={f.publicada} onChange={(v) => set('publicada', v)} label={f.publicada ? 'Sale en la página' : 'No sale en la página'} description={!f.publicada ? 'Apagado: no sale en la página' : !f.precio_noche ? 'Sin precio: en la página se pregunta por WhatsApp (ponle el precio en «Editar datos y precios»)' : undefined} />
             </div>
           )}
+        </div>
+
+        <div className="app-cabana-illustration-banner">
+          <IlustracionHospedaje tipo={f.tipo} grande />
+          <div>
+            <strong>{TIPO[f.tipo].uno}</strong>
+            <p>Aquí solo va la ilustración. Tú agregas y administras las fotos en la web.</p>
+          </div>
         </div>
 
         <Bloque titulo="Datos">
@@ -226,10 +273,6 @@ function Editor({ original }: { original: Cabana | null }) {
           <div className="mt-4">
             <Etiquetas label="Lo que incluye" value={f.amenidades} onChange={(v) => set('amenidades', v)} sugerencias={AMENIDADES} />
           </div>
-        </Bloque>
-
-        <Bloque titulo="Fotos" detalle="Arrastra fotos desde Finder. La primera es la portada; arrástralas para cambiar el orden.">
-          {original ? <Fotos cabana={original} fotos={f.fotos} onChange={(v) => set('fotos', v)} /> : <p className="text-[13px] text-ink-3">Primero crea el hospedaje y luego subes sus fotos.</p>}
         </Bloque>
 
         <Bloque titulo="Precios" detalle="Los precios los decide el rancho. Sin precio, la página muestra «Pregunta por WhatsApp».">
@@ -285,8 +328,9 @@ function Editor({ original }: { original: Cabana | null }) {
       <aside className="hidden min-[1280px]:block">
         <div className="sticky top-8">
           <div className="mb-2 flex items-center gap-1.5 text-[13px] font-medium text-ink-3">
-            {f.publicada ? <Eye size={14} /> : <EyeOff size={14} />} Así se ve en la página{f.publicada ? '' : ' (todavía oculta)'}
+            {f.publicada ? <Eye size={14} /> : <EyeOff size={14} />} Vista orientativa{f.publicada ? '' : ' · oculta'}
           </div>
+          <p className="mb-2 text-[12px] text-ink-soft">Tú subes las fotos desde la web.</p>
           <VistaPrevia f={f} minimoGeneral={d.ajustes.noches_minimas} />
         </div>
       </aside>
@@ -302,7 +346,7 @@ function nochesFinde(n: number[]) {
 
 function Bloque({ titulo, detalle, children }: { titulo: string; detalle?: string; children: React.ReactNode }) {
   return (
-    <section className="mt-9 first-of-type:mt-0">
+    <section className="app-cabana-block mt-9 first-of-type:mt-0">
       <h3 className="text-[16px] font-semibold tracking-[-0.015em]">{titulo}</h3>
       {detalle && <p className="mt-0.5 text-[13px] text-ink-soft">{detalle}</p>}
       <div className="mt-3.5">{children}</div>
@@ -327,134 +371,6 @@ function Ejemplo({ f }: { f: Forma }) {
         </span>
       )}
       <span className="text-ink-soft">.</span>
-    </div>
-  )
-}
-
-// ── Fotos ──────────────────────────────────────────────────
-async function prepararFoto(file: File): Promise<{ blob: Blob; ancho: number; alto: number; tipo: string }> {
-  const bmp = await createImageBitmap(file)
-  const max = 1800
-  const k = Math.min(1, max / Math.max(bmp.width, bmp.height))
-  const ancho = Math.round(bmp.width * k)
-  const alto = Math.round(bmp.height * k)
-  const canvas = document.createElement('canvas')
-  canvas.width = ancho
-  canvas.height = alto
-  canvas.getContext('2d')!.drawImage(bmp, 0, 0, ancho, alto)
-  bmp.close()
-  const aBlob = (tipo: string, q: number) => new Promise<Blob | null>((res) => canvas.toBlob(res, tipo, q))
-  // Safari no siempre sabe hacer WebP: entonces JPEG
-  let blob = await aBlob('image/webp', 0.84)
-  if (!blob || blob.type !== 'image/webp') blob = await aBlob('image/jpeg', 0.84)
-  if (!blob) throw new Error('No se pudo leer la foto')
-  return { blob, ancho, alto, tipo: blob.type }
-}
-
-function Fotos({ cabana, fotos, onChange }: { cabana: Cabana; fotos: Foto[]; onChange: (f: Foto[]) => void }) {
-  const [subiendo, setSubiendo] = useState(0)
-  const [encima, setEncima] = useState(false)
-  const [arrastrada, setArrastrada] = useState<number | null>(null)
-  const input = useRef<HTMLInputElement>(null)
-  const actuales = useRef(fotos)
-  actuales.current = fotos
-
-  const subir = async (files: File[]) => {
-    const imgs = files.filter((x) => /^image\//.test(x.type) || /\.(heic|jpe?g|png|webp)$/i.test(x.name))
-    if (!imgs.length) return toast.error('Eso no parece una foto', 'Usa JPG, PNG, WebP o HEIC')
-    setSubiendo((n) => n + imgs.length)
-    for (const file of imgs) {
-      try {
-        const { blob, ancho, alto, tipo } = await prepararFoto(file)
-        const ext = tipo === 'image/webp' ? 'webp' : 'jpg'
-        const ruta = `${cabana.slug}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`
-        const { error } = await nube.storage.from('cabanas').upload(ruta, blob, { contentType: tipo, cacheControl: '31536000', upsert: false })
-        if (error) throw new Error(error.message)
-        onChange([...actuales.current, { ruta, ancho, alto, alt: cabana.nombre }])
-      } catch (e) {
-        toast.error(`No se pudo subir ${file.name}`, e instanceof Error ? e.message : String(e))
-      } finally {
-        setSubiendo((n) => n - 1)
-      }
-    }
-  }
-
-  const quitar = (i: number) => {
-    const f = fotos[i]!
-    const antes = fotos
-    onChange(fotos.filter((_, j) => j !== i))
-    let deshecho = false
-    toast.undo('Quitaste una foto', () => {
-      deshecho = true
-      onChange(antes)
-    })
-    // Si no se deshizo, se borra también de la nube
-    setTimeout(() => {
-      if (!deshecho) void nube.storage.from('cabanas').remove([f.ruta])
-    }, 8000)
-  }
-
-  return (
-    <div
-      onDragOver={(e) => {
-        if (!e.dataTransfer.types.includes('Files')) return
-        e.preventDefault()
-        setEncima(true)
-      }}
-      onDragLeave={() => setEncima(false)}
-      onDrop={(e) => {
-        if (!e.dataTransfer.files.length) return
-        e.preventDefault()
-        setEncima(false)
-        void subir([...e.dataTransfer.files])
-      }}
-      className={cx('rounded-[16px] p-3 ring-1 transition-[box-shadow,background-color] duration-[var(--dur-2)]', encima ? 'bg-[color-mix(in_oklab,var(--luz)_14%,var(--surface))] ring-2 ring-primary shadow-[0_0_30px_color-mix(in_oklab,var(--luz)_45%,transparent)]' : 'ring-line')}
-    >
-      <div className="grid grid-cols-3 gap-2.5">
-        {fotos.map((f, i) => (
-          <div
-            key={f.ruta}
-            draggable
-            onDragStart={(e) => {
-              setArrastrada(i)
-              e.dataTransfer.effectAllowed = 'move'
-            }}
-            onDragOver={(e) => {
-              if (arrastrada === null || arrastrada === i) return
-              e.preventDefault()
-              const nuevo = [...fotos]
-              const [x] = nuevo.splice(arrastrada, 1)
-              nuevo.splice(i, 0, x!)
-              setArrastrada(i)
-              onChange(nuevo)
-            }}
-            onDragEnd={() => setArrastrada(null)}
-            className={cx('group relative aspect-[4/3] cursor-grab overflow-hidden rounded-[10px] bg-sunken', arrastrada === i && 'opacity-60')}
-          >
-            <img src={urlFoto(f.ruta)} alt={f.alt ?? ''} className="h-full w-full object-cover" draggable={false} />
-            {i === 0 && <Badge tone="butter" className="absolute top-2 left-2">Portada</Badge>}
-            <span className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--night)_70%,transparent)] text-on-night">
-                <GripVertical size={14} />
-              </span>
-              <button onClick={() => quitar(i)} aria-label="Quitar foto" className="flex h-7 w-7 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--night)_70%,transparent)] text-on-night hover:bg-danger">
-                <X size={14} />
-              </button>
-            </span>
-          </div>
-        ))}
-        {Array.from({ length: subiendo }, (_, i) => (
-          <div key={`s${i}`} className="flex aspect-[4/3] items-center justify-center rounded-[10px] bg-sunken">
-            <LightDots />
-          </div>
-        ))}
-        <button onClick={() => input.current?.click()} className="flex aspect-[4/3] flex-col items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-line-strong text-[13px] text-ink-soft hover:bg-wash hover:text-ink">
-          <ImagePlus size={20} strokeWidth={1.6} />
-          {fotos.length ? 'Agregar más' : 'Elegir fotos'}
-        </button>
-      </div>
-      <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => (void subir([...(e.target.files ?? [])]), (e.target.value = ''))} />
-      <p className="mt-2.5 text-[12px] text-ink-3">Se achican solas para que la página cargue rápido (máximo 1800 px).</p>
     </div>
   )
 }
@@ -555,22 +471,13 @@ function Temporadas({ cabana, lista }: { cabana: Cabana; lista: Temporada[] }) {
 
 /** Tarjeta como la de la página pública, con lo que se va escribiendo */
 function VistaPrevia({ f, minimoGeneral }: { f: Forma; minimoGeneral: number }) {
-  const portada = f.fotos[0]
   const desde = f.precio_noche && f.precio_fin_semana ? Math.min(f.precio_noche, f.precio_fin_semana) : (f.precio_noche ?? f.precio_fin_semana)
   const minimo = f.noches_minimas ?? minimoGeneral
   return (
-    <motion.article layout className="overflow-hidden rounded-[22px] bg-surface shadow-[var(--shadow-2)] ring-1 ring-line">
-      <div className="relative aspect-[4/3] bg-night">
-        {portada ? (
-          <img src={urlFoto(portada.ruta)} alt={portada.alt ?? ''} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-luz">
-            <CasaIcono tipo={f.tipo} size={44} />
-            <span className="text-[12px] text-on-night-soft">Aquí va la portada</span>
-          </div>
-        )}
+    <motion.article layout className="app-cabana-preview overflow-hidden rounded-[22px] bg-surface shadow-[var(--shadow-2)] ring-1 ring-line">
+      <div className="app-cabana-preview-image relative aspect-[4/3] bg-night">
+        <IlustracionHospedaje tipo={f.tipo} grande />
         <span className="absolute top-3 left-3 rounded-full bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] px-2.5 py-1 text-[12px] font-semibold backdrop-blur">{TIPO[f.tipo].uno}</span>
-        {f.fotos.length > 1 && <span className="absolute right-3 bottom-3 rounded-full bg-[color-mix(in_oklab,var(--night)_70%,transparent)] px-2 py-0.5 text-[11px] text-on-night">{f.fotos.length} fotos</span>}
       </div>
       <div className="p-5">
         <h4 className="text-[19px] leading-tight font-semibold tracking-[-0.02em]">

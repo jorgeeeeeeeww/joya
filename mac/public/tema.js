@@ -1,7 +1,4 @@
-// Atmósfera y tema antes de pintar (sin destello del color equivocado).
-// Va en un archivo aparte porque la app de la Mac no permite código dentro del HTML.
-try {
-  var p = JSON.parse(localStorage.getItem('la-joya-mac:apariencia') || '{}')
-  document.documentElement.setAttribute('data-atmos', 'lajoya')
-  if (p.tema === 'light' || p.tema === 'dark') document.documentElement.setAttribute('data-theme', p.tema)
-} catch (e) {}
+// Apariencia fija para que la app de Reservaciones no cambie con el tema de macOS.
+document.documentElement.setAttribute('data-atmos', 'lajoya')
+document.documentElement.setAttribute('data-theme', 'light')
+document.documentElement.setAttribute('data-app-design', 'reservations')

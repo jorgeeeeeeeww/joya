@@ -1,0 +1,602 @@
+/* La Joya Reservaciones: panel claro, compacto y ordenado como el perfil de referencia.
+   Todo se limita a las vistas internas y a la entrada. El mapa conserva su hoja de estilos. */
+:root[data-app-design='reservations'] {
+  color-scheme: light;
+  --map-accent: #2f6256;
+  --map-accent-soft: #729b8d;
+  --font-sans: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --paper: #e9edf3;
+  --surface: #ffffff;
+  --sunken: #f5f7fa;
+  --ink: #202631;
+  --ink-soft: #667180;
+  --ink-faint: #98a2af;
+  --line: #e6eaf0;
+  --line-strong: #d7dee8;
+  --wash: #f6f8fb;
+  --bruma: rgb(255 255 255 / 94%);
+  --primary: #4e82e6;
+  --primary-hover: #3f70d4;
+  --on-primary: #ffffff;
+  --secondary: #edf3fd;
+  --matiz: #b4c6df;
+  --matiz-ink: #748298;
+  --chispa: #4e82e6;
+  --chispa-soft: #769ae8;
+  --on-chispa: #ffffff;
+  --luz: #d9e6fb;
+  --night: #263347;
+  --on-night: #f8fafc;
+  --on-night-soft: #c4ccd7;
+  --shade: #607087;
+  --success: #19866d;
+  --warning: #a76b16;
+  --danger: #c64e5b;
+  --info: #3475ce;
+  --data-1: #4e82e6;
+  --data-2: #ce7b72;
+  --data-3: #d1a14d;
+  --data-4: #19866d;
+  --data-5: #7788ad;
+  --data-6: #7e9c77;
+  --tx-detail: #788391;
+  --tx-key: #3d74d2;
+  --ink-3: #788391;
+  --r-xs: 5px;
+  --r-sm: 7px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-xl: 12px;
+  --r-slab: 12px;
+  --frame: 14px;
+  --section: 24px;
+  --gutter: 20px;
+  --control-h: 36px;
+  --control-h-sm: 30px;
+  --card-pad: 16px;
+  --leading-body: 1.45;
+  --display-weight: 600;
+  --display-tracking: -0.025em;
+  --grain-opacity: 0;
+  --shadow-1: 0 1px 2px rgb(30 46 67 / 4%), 0 3px 10px rgb(30 46 67 / 3%);
+  --shadow-2: 0 3px 8px rgb(30 46 67 / 7%), 0 12px 28px rgb(30 46 67 / 8%);
+  --shadow-3: 0 8px 22px rgb(30 46 67 / 12%), 0 24px 48px rgb(30 46 67 / 12%);
+}
+
+:root[data-app-design='reservations'] :where(*) { font-style: normal; }
+
+:root[data-app-design='reservations'] body {
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+:root[data-app-design='reservations'] body::after {
+  display: none;
+}
+
+.app-shell:not([data-vista='mapa']) {
+  position: fixed;
+  inset: 14px;
+  z-index: 0;
+  box-sizing: border-box;
+  width: auto;
+  height: auto !important;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 30px rgb(38 53 73 / 8%);
+}
+
+.app-shell:not([data-vista='mapa']) > main {
+  min-width: 0;
+  background: #f8f9fb;
+  container-name: app-main;
+  container-type: inline-size;
+}
+
+.app-login {
+  position: fixed;
+  inset: 14px;
+  z-index: 0;
+  box-sizing: border-box;
+  width: auto;
+  height: auto !important;
+  margin: 0;
+  padding: 14px;
+  gap: 14px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 30px rgb(38 53 73 / 8%);
+}
+
+.app-login-hero {
+  border-radius: 10px;
+  background: var(--sunken);
+  color: var(--ink);
+  padding: 30px;
+}
+
+.app-login-hero .text-on-night { color: var(--ink); }
+.app-login-hero .text-on-night-soft { color: var(--ink-soft); }
+.app-login-hero h1 { max-width: 19ch; font-size: clamp(1.8rem, 1.5rem + 1.25vw, 2.6rem) !important; }
+.app-login-hero p { max-width: 42ch; font-size: 14px; }
+.app-login-panel { border-radius: 10px; background: var(--surface); padding: 28px; }
+.app-login-form h2 { font-size: 24px !important; }
+
+.app-shell:not([data-vista='mapa']) button:not([role='switch']) {
+  border-radius: 7px;
+  font-family: var(--font-sans);
+}
+.app-shell:not([data-vista='mapa']) button.bg-ink {
+  background-color: var(--primary);
+  color: var(--on-primary);
+  --tw-ring-color: var(--primary);
+}
+.app-shell:not([data-vista='mapa']) button.bg-ink:hover { background-color: var(--primary-hover); }
+
+.app-shell:not([data-vista='mapa']) button:focus-visible,
+.app-login button:focus-visible,
+.app-login input:focus-visible,
+.app-shell:not([data-vista='mapa']) input:focus-visible,
+.app-shell:not([data-vista='mapa']) textarea:focus-visible,
+.app-shell:not([data-vista='mapa']) select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  outline-offset: 2px;
+}
+
+.app-shell .app-sidebar {
+  width: 208px;
+  padding: 0;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.app-shell .app-sidebar > div {
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: none;
+  --tw-ring-shadow: 0 0 #0000;
+}
+
+.app-shell .app-sidebar-titlebar { height: 20px; min-height: 20px; padding: 0; }
+.app-shell .app-sidebar-brand { min-height: 53px; padding: 14px 15px 13px; }
+.app-shell .app-sidebar nav { padding-right: 9px; padding-left: 9px; }
+.app-shell .app-sidebar nav button { height: 34px; border-radius: 7px; }
+.app-shell [class*='left-[236px]'] { left: 208px; }
+.app-shell .app-sidebar-new-reservation {
+  min-height: 36px;
+  height: auto;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  white-space: normal;
+  text-align: left;
+}
+.app-shell .app-sidebar-new-reservation > span:first-child {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+.app-shell .app-sidebar-new-reservation > span:first-child svg { flex: 0 0 auto; }
+.app-shell .app-sidebar-new-reservation-label { min-width: 0; line-height: 1.15; text-align: left; white-space: normal; }
+.app-shell .app-sidebar-account-email {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.app-shell .app-sidebar-account-email > span { white-space: nowrap; }
+.app-shell .app-sidebar-account-status {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.25;
+}
+.app-shell:not([data-vista='mapa']) .app-sidebar [class*='rounded-[20px]'] { border-radius: 0; }
+.app-shell:not([data-vista='mapa']) .app-sidebar button[aria-current='page'] { color: var(--ink); }
+.app-shell:not([data-vista='mapa']) .app-sidebar button[aria-current='page'] > span:first-of-type { background: #edf2f8; }
+.app-shell:not([data-vista='mapa']) .app-sidebar button[aria-current='page'] > span:nth-of-type(2) { display: none; }
+.app-shell:not([data-vista='mapa']) .app-sidebar [class*='bg-primary'] { box-shadow: 0 1px 2px rgb(45 89 158 / 12%); }
+.app-shell:not([data-vista='mapa']) .app-sidebar .tecla { border-radius: 4px; }
+
+.app-shell:not([data-vista='mapa']) main h1.heading {
+  color: var(--ink);
+  font-size: 21px !important;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.app-shell:not([data-vista='mapa']) .card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.app-shell:not([data-vista='mapa']) .card.lift:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-2);
+}
+
+.app-shell:not([data-vista='mapa']) input:not([type='range']),
+.app-shell:not([data-vista='mapa']) textarea,
+.app-shell:not([data-vista='mapa']) select,
+.app-login input:not([type='range']),
+.app-login textarea,
+.app-login select {
+  border-radius: 6px;
+  border-color: var(--line-strong);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px !important;
+}
+
+.app-shell:not([data-vista='mapa']) .app-home-page { max-width: 1440px; padding: 22px 20px 32px; }
+.app-shell:not([data-vista='mapa']) .app-settings-page { max-width: 1320px; padding: 22px 20px 32px; }
+.app-shell:not([data-vista='mapa']) .app-settings-page > div:first-child h1 { font-size: 21px !important; }
+.app-shell:not([data-vista='mapa']) .app-settings-block,
+.app-shell:not([data-vista='mapa']) .app-cabana-block {
+  margin-top: 12px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+.app-shell:not([data-vista='mapa']) .app-settings-block h2,
+.app-shell:not([data-vista='mapa']) .app-cabana-block h3 { font-size: 14px; letter-spacing: -0.01em; }
+.app-shell:not([data-vista='mapa']) .app-settings-block > div:last-child,
+.app-shell:not([data-vista='mapa']) .app-cabana-block > div:last-child { margin-top: 10px; }
+.app-shell:not([data-vista='mapa']) .app-settings-block .card { padding: 0; border: 0; background: transparent; box-shadow: none; }
+.app-shell:not([data-vista='mapa']) .app-cabanas-list { width: 246px; flex: 0 0 246px; border-color: var(--line); background: #fafbfc; }
+.app-shell:not([data-vista='mapa']) .app-cabanas-list-header { min-height: 69px; padding-top: 16px; }
+.app-shell:not([data-vista='mapa']) .app-cabanas-list-header button { min-height: 30px; padding-inline: 10px; }
+.app-shell:not([data-vista='mapa']) .app-cabanas-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 0 10px 11px; }
+.app-shell:not([data-vista='mapa']) .app-cabanas-filter { display: flex; min-width: 0; min-height: 30px; align-items: center; justify-content: space-between; gap: 5px; padding: 4px 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink-soft); font-size: 10px; text-align: left; }
+.app-shell:not([data-vista='mapa']) .app-cabanas-filter span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell:not([data-vista='mapa']) .app-cabanas-filter span:last-child { color: var(--ink); font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.app-shell:not([data-vista='mapa']) .app-cabanas-filter[aria-pressed='true'] { border-color: #cad9ee; background: #edf3fc; color: var(--primary); }
+.app-shell:not([data-vista='mapa']) .app-cabana-item { border-radius: 7px; }
+.app-shell:not([data-vista='mapa']) .app-cabana-item.is-active { background: #edf2f8; }
+.app-shell:not([data-vista='mapa']) .app-cabanas-editor { background: var(--surface); }
+.app-shell:not([data-vista='mapa']) .app-cabanas-editor h2.heading { font-size: 21px !important; letter-spacing: -0.025em; }
+.app-shell:not([data-vista='mapa']) .app-cabana-preview { border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-1); }
+.app-shell:not([data-vista='mapa']) .app-cabana-preview-image { background: #e9edf3; color: var(--ink-soft); }
+.app-shell:not([data-vista='mapa']) .app-cabana-preview h4 { font-size: 16px; letter-spacing: -0.015em; }
+.app-shell:not([data-vista='mapa']) .app-cabana-preview > div:last-child { padding: 14px; }
+.app-shell:not([data-vista='mapa']) .app-hospedaje-ilustracion { display: flex; width: 56px; height: 44px; flex: 0 0 56px; flex-direction: column; align-items: center; justify-content: center; gap: 4px; overflow: hidden; border: 1px solid rgb(54 90 73 / 0.12); border-radius: 8px; color: #395a4a; }
+.app-shell:not([data-vista='mapa']) .app-hospedaje-ilustracion.is-cabana { background: linear-gradient(145deg, #e5ede4, #c7d8c8); }
+.app-shell:not([data-vista='mapa']) .app-hospedaje-ilustracion.is-casa { background: linear-gradient(145deg, #f1ebdf, #dfd4bd); color: #725d3f; }
+.app-shell:not([data-vista='mapa']) .app-hospedaje-ilustracion.is-habitacion { background: linear-gradient(145deg, #e7edf2, #cfdde5); color: #476276; }
+.app-shell:not([data-vista='mapa']) .app-hospedaje-ilustracion svg { width: 36px; height: 27px; flex: 0 0 auto; }
+.app-shell:not([data-vista='mapa']) .app-hospedaje-ilustracion.is-large { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: inherit; }
+.app-shell:not([data-vista='mapa']) .app-hospedaje-ilustracion.is-large svg { width: min(42%, 112px); height: auto; }
+.app-shell:not([data-vista='mapa']) .app-hospedaje-ilustracion.is-large > span { color: currentColor; font-size: 11px; font-weight: 600; letter-spacing: 0.025em; }
+.app-shell:not([data-vista='mapa']) .app-cabana-illustration-banner { display: flex; min-height: 82px; align-items: center; gap: 14px; margin: -8px 0 24px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 10px; background: #f8faf8; }
+.app-shell:not([data-vista='mapa']) .app-cabana-illustration-banner .app-hospedaje-ilustracion.is-large { position: relative; inset: auto; width: 98px; height: 62px; flex: 0 0 98px; border: 1px solid rgb(54 90 73 / 0.12); border-radius: 8px; }
+.app-shell:not([data-vista='mapa']) .app-cabana-illustration-banner .app-hospedaje-ilustracion.is-large svg { width: 48px; }
+.app-shell:not([data-vista='mapa']) .app-cabana-illustration-banner .app-hospedaje-ilustracion.is-large > span { display: none; }
+.app-shell:not([data-vista='mapa']) .app-cabana-illustration-banner strong { color: var(--ink); font-size: 13px; font-weight: 600; }
+.app-shell:not([data-vista='mapa']) .app-cabana-illustration-banner p { margin: 3px 0 0; color: var(--ink-soft); font-size: 12px; line-height: 1.4; }
+
+/* Inicio y tareas */
+.app-shell:not([data-vista='mapa']) .app-home-grid { gap: 18px; }
+.app-shell:not([data-vista='mapa']) .app-home-page h2 { letter-spacing: -0.015em; }
+.app-shell:not([data-vista='mapa']) .app-home-page .card { border-radius: 10px; }
+
+/* Índice de reservaciones */
+.app-shell:not([data-vista='mapa']) .app-reservations { min-width: 0; background: #f8f9fb; }
+.app-shell:not([data-vista='mapa']) .app-reservations-index { padding: 0; background: #f8f9fb; }
+.app-shell:not([data-vista='mapa']) .app-reservations-index-content { max-width: 1440px; padding: 22px 20px 32px; }
+.app-shell:not([data-vista='mapa']) .app-reservations-index-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.app-shell:not([data-vista='mapa']) .app-eyebrow {
+  margin: 0 0 6px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.app-shell:not([data-vista='mapa']) .app-reservations-index-header h1 { margin: 0; font-size: 22px !important; }
+.app-shell:not([data-vista='mapa']) .app-page-subtitle { margin: 5px 0 0; color: var(--ink-soft); font-size: 13px; }
+.app-shell:not([data-vista='mapa']) .app-reservations-total { color: var(--ink-soft); font-size: 12px; }
+.app-shell:not([data-vista='mapa']) .app-reservations-total span { color: var(--ink); font-size: 16px; font-weight: 600; }
+.app-shell:not([data-vista='mapa']) .app-reservations-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.app-shell:not([data-vista='mapa']) .app-reservations-filters { width: fit-content; border-radius: 7px; padding: 3px; }
+.app-shell:not([data-vista='mapa']) .app-reservations-filters [role='tab'] { min-height: 29px; padding-right: 10px; padding-left: 10px; border-radius: 5px; font-size: 12px; }
+.app-shell:not([data-vista='mapa']) .app-reservations-search {
+  display: flex;
+  width: min(100%, 310px);
+  height: 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink-faint);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.app-shell:not([data-vista='mapa']) .app-reservations-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent); }
+.app-shell:not([data-vista='mapa']) .app-reservations-search input { width: 100%; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 12px !important; }
+.app-shell:not([data-vista='mapa']) .app-reservations-search input:focus-visible { outline: 0; }
+.app-shell:not([data-vista='mapa']) .app-reservations-search button { display: grid; width: 24px; height: 24px; flex: 0 0 24px; place-items: center; padding: 0; color: var(--ink-soft); }
+.app-shell:not([data-vista='mapa']) .app-reservations-table { overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow-1); }
+.app-shell:not([data-vista='mapa']) .app-reservations-table-head,
+.app-shell:not([data-vista='mapa']) .app-reservation-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.25fr) minmax(150px, 0.9fr) minmax(170px, 1fr) minmax(90px, 0.45fr);
+  align-items: center;
+  gap: 16px;
+}
+.app-shell:not([data-vista='mapa']) .app-reservations-table-head {
+  min-height: 36px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+  background: #fafbfc;
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.app-shell:not([data-vista='mapa']) .app-reservation-row {
+  width: 100%;
+  min-height: 62px;
+  padding: 9px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+.app-shell:not([data-vista='mapa']) .app-reservation-row:last-child { border-bottom: 0; }
+.app-shell:not([data-vista='mapa']) .app-reservation-row:hover { background: #f8faff; }
+.app-shell:not([data-vista='mapa']) .app-reservation-row:focus-visible { position: relative; z-index: 1; outline: 2px solid var(--primary); outline-offset: -2px; }
+.app-shell:not([data-vista='mapa']) .app-reservation-row.is-selected { background: var(--secondary); }
+.app-shell:not([data-vista='mapa']) .app-reservation-row-guest { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.app-shell:not([data-vista='mapa']) .app-reservation-state-dot { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; }
+.app-shell:not([data-vista='mapa']) .app-reservation-row-guest strong { display: block; overflow: hidden; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell:not([data-vista='mapa']) .app-reservation-row-guest small { display: block; margin-top: 3px; color: var(--ink-soft); font-size: 11px; }
+.app-shell:not([data-vista='mapa']) .app-reservation-row-guest small.is-urgent { color: var(--primary); font-weight: 600; }
+.app-shell:not([data-vista='mapa']) .app-reservation-row-property,
+.app-shell:not([data-vista='mapa']) .app-reservation-row-dates { overflow: hidden; color: var(--ink-soft); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell:not([data-vista='mapa']) .app-reservation-row-total { color: var(--ink); font-size: 13px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.app-shell:not([data-vista='mapa']) .app-reservations-month { padding: 13px 18px 6px; border-bottom: 1px solid var(--line); background: #fafbfc; color: var(--ink-soft); font-size: 11px; font-weight: 600; text-transform: capitalize; }
+.app-shell:not([data-vista='mapa']) .app-reservations-empty { display: flex; min-height: 280px; flex-direction: column; align-items: center; justify-content: center; padding: 28px; color: var(--ink); text-align: center; }
+
+/* Perfil del huésped: dos columnas arriba y dos abajo, como la ficha de referencia. */
+.app-shell:not([data-vista='mapa']) .app-reservations-detail-view { background: #f8f9fb; }
+.app-shell:not([data-vista='mapa']) .app-reservation-profile-page { max-width: 1440px; }
+.app-shell:not([data-vista='mapa']) .app-reservation-detail { gap: 0; padding: 20px 20px 30px; }
+.app-shell:not([data-vista='mapa']) .app-reservation-topbar { min-width: 0; gap: 10px; }
+.app-shell:not([data-vista='mapa']) .app-reservation-title { min-width: 180px; }
+.app-shell:not([data-vista='mapa']) .app-reservation-title h2 { margin-top: 6px; font-size: 20px; letter-spacing: -0.025em; }
+.app-shell:not([data-vista='mapa']) .app-reservation-title p { margin-top: 4px; }
+.app-shell:not([data-vista='mapa']) .app-reservation-actions { flex: 0 0 auto; justify-content: flex-end; gap: 7px; }
+.app-shell:not([data-vista='mapa']) .app-reservation-actions > button { min-height: 34px; }
+.app-shell:not([data-vista='mapa']) .app-reservation-alert { min-height: 30px; margin-top: 12px !important; padding: 5px 11px; border: 1px solid #e5eaf1; border-radius: 7px; font-size: 12px !important; }
+.app-shell:not([data-vista='mapa']) .app-reservation-tabs { width: fit-content; max-width: 100%; gap: 2px; margin-top: 13px; padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: #f5f7fa; }
+.app-shell:not([data-vista='mapa']) .app-reservation-tab { display: inline-flex; min-height: 27px; align-items: center; padding: 4px 10px; border: 1px solid transparent; border-radius: 5px; color: var(--ink-soft); font-size: 12px; text-decoration: none; white-space: nowrap; }
+.app-shell:not([data-vista='mapa']) .app-reservation-tab:hover { color: var(--ink); background: rgb(255 255 255 / 55%); }
+.app-shell:not([data-vista='mapa']) .app-reservation-tab[aria-current='page'] { border-color: var(--line); background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(30 46 67 / 5%); }
+.app-shell:not([data-vista='mapa']) .app-reservation-grid { display: flex; align-items: stretch; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.app-shell:not([data-vista='mapa']) .app-detail-section { display: flex; min-width: 0; flex-direction: column; margin: 0; padding: 13px; scroll-margin-top: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow-1); }
+.app-shell:not([data-vista='mapa']) .app-detail-profile { flex: 0 0 calc(40% - 6px); }
+.app-shell:not([data-vista='mapa']) .app-detail-booking { flex: 0 0 calc(60% - 6px); }
+.app-shell:not([data-vista='mapa']) .app-detail-payments { flex: 0 0 calc(57% - 6px); }
+.app-shell:not([data-vista='mapa']) .app-detail-notes { flex: 0 0 calc(43% - 6px); }
+.app-shell:not([data-vista='mapa']) .app-detail-section > div:first-child { margin-bottom: 10px; }
+.app-shell:not([data-vista='mapa']) .app-detail-section h3 { font-size: 14px; letter-spacing: -0.01em; }
+.app-shell:not([data-vista='mapa']) .app-detail-section .rounded-\[14px\],
+.app-shell:not([data-vista='mapa']) .app-detail-section .rounded-\[10px\] { border-radius: 8px; }
+.app-shell:not([data-vista='mapa']) .app-detail-section .ring-1.ring-line { --tw-ring-color: var(--line); }
+.app-shell:not([data-vista='mapa']) .app-guest-identity { margin-bottom: 12px; }
+.app-shell:not([data-vista='mapa']) .app-detail-profile input { font-size: 11px !important; }
+.app-shell:not([data-vista='mapa']) .app-detail-booking-preview { display: flex; min-height: 92px; align-items: stretch; justify-content: space-between; gap: 12px; margin-bottom: 12px; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--sunken); }
+.app-shell:not([data-vista='mapa']) .app-detail-booking-preview { min-height: 78px; }
+.app-shell:not([data-vista='mapa']) .app-detail-booking-description { display: flex; min-width: 0; flex: 1; flex-direction: column; justify-content: center; padding: 12px; }
+.app-shell:not([data-vista='mapa']) .app-detail-booking-description span { color: var(--ink-soft); font-size: 11px; }
+.app-shell:not([data-vista='mapa']) .app-detail-booking-description strong { margin-top: 3px; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell:not([data-vista='mapa']) .app-detail-booking-description small { margin-top: 4px; color: var(--ink-soft); font-size: 11px; }
+.app-shell:not([data-vista='mapa']) .app-detail-booking-preview img { width: 42%; max-width: 190px; min-width: 120px; object-fit: cover; }
+.app-shell:not([data-vista='mapa']) .app-detail-booking-placeholder { display: flex; width: 42%; max-width: 190px; min-width: 120px; align-items: center; justify-content: center; background: linear-gradient(135deg, #e7edf5, #f5f7fa); color: #8090a5; }
+.app-shell:not([data-vista='mapa']) .app-detail-section > .grid > div { padding: 9px 11px; }
+.app-shell:not([data-vista='mapa']) .app-detail-section > .grid > div > .text-\[15px\] { font-size: 13px; line-height: 1.25; }
+.app-shell:not([data-vista='mapa']) .app-detail-history { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
+.app-shell:not([data-vista='mapa']) .app-detail-history h4 { margin: 0 0 10px; color: var(--ink-soft); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.app-shell:not([data-vista='mapa']) .app-detail-history ol { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.app-shell:not([data-vista='mapa']) .app-detail-history li { display: flex; align-items: flex-start; gap: 9px; color: var(--ink); font-size: 12px; }
+.app-shell:not([data-vista='mapa']) .app-detail-history li small { display: block; margin-top: 3px; color: var(--ink-soft); font-size: 10px; }
+.app-shell:not([data-vista='mapa']) .app-detail-history-dot { width: 7px; height: 7px; flex: 0 0 7px; margin-top: 4px; border-radius: 50%; background: var(--line-strong); }
+.app-shell:not([data-vista='mapa']) .app-detail-history-dot.is-current { background: var(--primary); }
+.app-shell:not([data-vista='mapa']) .app-detail-notes .app-detail-history { flex: 1; }
+
+/* Cabañas y formularios conservan sus controles, con el mismo ritmo visual. */
+.app-shell:not([data-vista='mapa']) .app-cabanas-list button { border-radius: 7px; }
+.app-shell:not([data-vista='mapa']) .app-cabana-block h3 { font-size: 14px; letter-spacing: -0.01em; }
+
+/* Calendario: misma superficie y densidad que las fichas, manteniendo la cuadrícula operativa. */
+.app-shell:not([data-vista='mapa']) .app-calendar-page { padding: 24px 22px 16px; background: #f7f9fc; }
+.app-shell:not([data-vista='mapa']) .app-calendar-page > div:first-child { min-height: 48px; margin-bottom: 16px; align-items: center; }
+.app-shell:not([data-vista='mapa']) .app-calendar-page > div:first-child h1 { font-size: 24px !important; letter-spacing: -0.03em; }
+.app-shell:not([data-vista='mapa']) .app-calendar-actions { flex-wrap: wrap; justify-content: flex-end; }
+.app-shell:not([data-vista='mapa']) .app-calendar-hint { flex-basis: 100%; margin: 0; text-align: right; }
+.app-shell:not([data-vista='mapa']) .app-calendar-grid { border-radius: 11px; box-shadow: var(--shadow-1); scrollbar-color: var(--line-strong) transparent; }
+.app-shell:not([data-vista='mapa']) .app-calendar-grid > div:first-child { min-height: 52px; background: #f7f9fc; }
+.app-shell:not([data-vista='mapa']) .app-calendar-grid > div:first-child > div:first-child { background: #f7f9fc; }
+.app-shell:not([data-vista='mapa']) .app-calendar-grid > div:first-child > div:not(:first-child) { min-height: 52px; }
+.app-shell:not([data-vista='mapa']) .app-calendar-grid > div:first-child > div:not(:first-child) > div { min-height: 52px; }
+.app-shell:not([data-vista='mapa']) .app-calendar-grid > div.flex > div.sticky.left-0 { background: var(--surface); }
+.app-shell:not([data-vista='mapa']) .app-calendar-grid > div.flex > div.sticky.left-0 button { border-radius: 0; padding-right: 13px; padding-left: 15px; }
+.app-shell:not([data-vista='mapa']) .app-calendar-grid > div.flex > div.sticky.left-0 button span:first-child { font-size: 13px; }
+.app-shell:not([data-vista='mapa']) .app-calendar-legend { min-height: 38px; margin-top: 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: var(--shadow-1); line-height: 1.35; }
+.app-shell:not([data-vista='mapa']) .app-calendar-legend > span:last-child { color: var(--ink-soft); }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming { min-height: 238px; flex: 0 0 auto; margin-top: 10px; padding: 14px; overflow: hidden; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); box-shadow: var(--shadow-1); }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-heading { display: flex; min-height: 40px; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 11px; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-heading h2 { margin: 0; color: var(--ink); font-size: 15px; font-weight: 650; letter-spacing: -0.015em; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-heading p { margin: 3px 0 0; color: var(--ink-soft); font-size: 12px; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-track { display: grid; height: 158px; grid-auto-columns: minmax(300px, 360px); grid-auto-flow: column; gap: 12px; overflow-x: auto; overflow-y: hidden; padding: 1px 1px 5px; scrollbar-color: var(--line-strong) transparent; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-card { display: flex; height: 150px; min-width: 0; flex-direction: column; gap: 6px; padding: 13px 15px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); text-align: left; box-shadow: 0 1px 3px rgb(30 46 67 / 5%); transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-card:hover { border-color: #c6d7ee; background: #fbfcff; box-shadow: var(--shadow-1); }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-card:focus-visible { outline: 3px solid color-mix(in srgb, var(--primary) 25%, transparent); outline-offset: 2px; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-card.is-next { border-color: #b9ccef; border-left: 3px solid var(--primary); background: linear-gradient(110deg, #f3f7ff, #ffffff 72%); box-shadow: 0 2px 7px rgb(55 93 155 / 8%); }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-top { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-order { overflow: hidden; color: var(--primary); font-size: 11px; font-weight: 650; letter-spacing: 0.015em; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-status { flex: 0 0 auto; padding: 3px 8px; border-radius: 999px; background: #e7eef9; color: #476a9c; font-size: 10px; font-weight: 600; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-status.is-solicitud { background: #fff3d9; color: #8a6421; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-status.is-pagada { background: #e7f2ec; color: #396c51; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-guest { overflow: hidden; font-size: 15px; font-weight: 650; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-property { overflow: hidden; color: var(--ink-soft); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-date { display: flex; min-width: 0; align-items: center; gap: 7px; color: var(--ink); font-size: 12px; white-space: nowrap; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-date svg { flex: 0 0 auto; color: var(--primary); }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-bottom { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 5px; margin-top: auto; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-bottom > span { display: flex; min-width: 0; align-items: center; gap: 5px; overflow: hidden; color: var(--ink-soft); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-bottom > span svg { flex: 0 0 auto; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-bottom strong { flex: 0 0 auto; color: var(--primary); font-size: 14px; font-variant-numeric: tabular-nums; }
+.app-shell:not([data-vista='mapa']) .app-calendar-upcoming-empty { display: flex; height: 130px; align-items: center; justify-content: center; border: 1px dashed var(--line-strong); border-radius: 9px; background: #fafbfd; color: var(--ink-soft); font-size: 13px; }
+
+/* El resumen de la nueva reservación también usa la tarjeta clara del panel de huésped. */
+:root[data-app-design='reservations'] .app-quote-card {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+:root[data-app-design='reservations'] .app-quote-card .text-on-night,
+:root[data-app-design='reservations'] .app-quote-card .text-on-night-soft { color: var(--ink-soft); }
+:root[data-app-design='reservations'] .app-quote-card > div + div { border-color: var(--line); }
+:root[data-app-design='reservations'] .app-quote-card .app-quote-total { color: var(--primary); }
+:root[data-app-design='reservations'] .app-quote-card .text-chispa-soft { color: var(--primary); }
+
+@container app-main (max-width: 780px) {
+  .app-shell:not([data-vista='mapa']) .app-home-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .app-shell:not([data-vista='mapa']) .app-detail-profile,
+  .app-shell:not([data-vista='mapa']) .app-detail-booking,
+  .app-shell:not([data-vista='mapa']) .app-detail-payments,
+  .app-shell:not([data-vista='mapa']) .app-detail-notes { flex-basis: 100%; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-topbar { flex-wrap: wrap; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-actions { margin-left: auto; }
+  .app-shell:not([data-vista='mapa']) .app-reservations-table-head,
+  .app-shell:not([data-vista='mapa']) .app-reservation-row { grid-template-columns: minmax(150px, 1.2fr) minmax(110px, 0.9fr) minmax(105px, 0.8fr) 76px; gap: 10px; padding-right: 12px; padding-left: 12px; }
+}
+
+@media (max-width: 920px) {
+  .app-shell:not([data-vista='mapa']) { inset: 8px; border-radius: 10px; }
+  .app-shell .app-sidebar { width: 188px; }
+  .app-shell [class*='left-[236px]'] { left: 188px; }
+  .app-shell .app-sidebar-account-email { font-size: 11px; }
+  .app-shell .app-sidebar-account-status { font-size: 10px; }
+  .app-shell:not([data-vista='mapa']) .app-calendar-page { padding: 20px 16px 12px; }
+  .app-shell:not([data-vista='mapa']) .app-reservations-index-content { padding: 22px 20px 30px; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-detail { padding: 20px; }
+}
+
+@media (max-width: 700px) {
+  .app-shell:not([data-vista='mapa']) { inset: 0; border: 0; border-radius: 0; box-shadow: none; }
+  .app-shell:not([data-vista='mapa']) .app-reservations-toolbar { align-items: stretch; flex-direction: column; }
+  .app-shell:not([data-vista='mapa']) .app-reservations-filters { width: 100%; overflow-x: auto; }
+  .app-shell:not([data-vista='mapa']) .app-reservations-search { width: 100%; }
+  .app-shell:not([data-vista='mapa']) .app-reservations-table-head { display: none; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-row { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 12px; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-row-guest { grid-column: 1; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-row-property { grid-column: 1; padding-left: 18px; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-row-dates { grid-column: 1; padding-left: 18px; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-row-total { grid-column: 2; grid-row: 1; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-topbar { align-items: flex-start; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-title { flex-basis: calc(100% - 50px); }
+  .app-shell:not([data-vista='mapa']) .app-reservation-actions { width: 100%; margin-left: 0; justify-content: flex-start; }
+  .app-shell:not([data-vista='mapa']) .app-reservation-detail { padding: 18px 14px 24px; }
+  .app-shell:not([data-vista='mapa']) .app-detail-booking-preview img,
+  .app-shell:not([data-vista='mapa']) .app-detail-booking-placeholder { width: 34%; min-width: 95px; }
+  .app-login { inset: 0; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 8px; border: 0; border-radius: 0; box-shadow: none; }
+  .app-login-hero { min-height: 36vh; padding: 18px; }
+  .app-login-hero img { max-height: 18vh; object-fit: contain; }
+  .app-login-panel { min-height: 50vh; padding: 18px; }
+}
+
+/* Mapa y calendario: controles claros, texto completo y lectura consistente con la ficha de huésped. */
+.app-shell[data-vista='mapa'] > main { background: #f7f9fc; }
+.app-shell[data-vista='mapa'] .app-map-page { width: 100%; max-width: 1440px; padding: 22px 22px 30px; }
+.app-shell[data-vista='mapa'] .app-map-page > div:first-child { margin-bottom: 16px; align-items: center; }
+.app-shell[data-vista='mapa'] .app-map-page h1 { margin: 0; color: var(--ink); font-size: 24px !important; letter-spacing: -0.03em; }
+.app-shell[data-vista='mapa'] .app-map-page > div:first-child p { margin-top: 5px; color: var(--ink-soft); font-size: 13px; line-height: 1.45; }
+.app-shell[data-vista='mapa'] .app-map-panel { padding: 15px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); box-shadow: var(--shadow-1); }
+.app-shell[data-vista='mapa'] .app-map-summary { min-height: 54px; align-items: center; padding: 2px 4px 12px; border-bottom: 1px solid var(--line); }
+.app-shell[data-vista='mapa'] .app-map-date-label { margin-bottom: 3px; font-weight: 500; }
+.app-shell[data-vista='mapa'] .app-map-occupancy { font-size: 22px; letter-spacing: -0.03em; }
+.app-shell[data-vista='mapa'] .app-map-legend { gap: 8px 14px; }
+.app-shell[data-vista='mapa'] .app-map-legend > span { white-space: nowrap; }
+.app-shell[data-vista='mapa'] .app-map-legend > span > span:first-child { width: 12px; height: 12px; border-radius: 4px; }
+.app-shell[data-vista='mapa'] .app-map-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 280px); gap: 13px; margin-top: 14px; align-items: stretch; }
+.app-shell[data-vista='mapa'] .app-map-visual { min-width: 0; overflow: hidden; padding: 7px; border: 1px solid #d8e4db; border-radius: 10px; background: #eaf1eb; }
+.app-shell[data-vista='mapa'] .app-map-visual > div > div:first-child { height: clamp(360px, 56vh, 590px) !important; min-height: 360px; border-radius: 7px; background: #eaf1eb; }
+.app-shell[data-vista='mapa'] .app-map-visual button { font-family: var(--font-sans); font-style: normal; }
+.app-shell[data-vista='mapa'] .app-map-lodgings { display: flex; min-width: 0; height: clamp(360px, 56vh, 590px); flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.app-shell[data-vista='mapa'] .app-map-lodgings-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 13px 11px; border-bottom: 1px solid var(--line); background: #fafbfc; }
+.app-shell[data-vista='mapa'] .app-map-lodgings-heading h2 { margin: 0; color: var(--ink); font-size: 14px; font-weight: 600; }
+.app-shell[data-vista='mapa'] .app-map-lodgings-heading p { margin: 3px 0 0; color: var(--ink-soft); font-size: 11px; line-height: 1.3; }
+.app-shell[data-vista='mapa'] .app-map-lodgings-count { display: grid; width: 24px; height: 24px; flex: 0 0 24px; place-items: center; border-radius: 7px; background: #edf3fd; color: var(--primary); font-size: 12px; font-weight: 600; }
+.app-shell[data-vista='mapa'] .app-map-lodgings-list { min-height: 0; flex: 1; overflow-y: auto; padding: 5px; scrollbar-color: var(--line-strong) transparent; }
+.app-shell[data-vista='mapa'] .app-map-lodging { display: flex; width: 100%; min-height: 47px; align-items: center; gap: 9px; padding: 7px 8px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--ink); text-align: left; }
+.app-shell[data-vista='mapa'] .app-map-lodging:hover { background: #f6f8fb; }
+.app-shell[data-vista='mapa'] .app-map-lodging[aria-pressed='true'] { border-color: #d9e5f7; background: #f0f5fd; }
+.app-shell[data-vista='mapa'] .app-map-lodging-dot { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: var(--success); }
+.app-shell[data-vista='mapa'] .app-map-lodging-dot.is-reserved { background: var(--primary); }
+.app-shell[data-vista='mapa'] .app-map-lodging-dot.is-request { background: #d29b42; }
+.app-shell[data-vista='mapa'] .app-map-lodging-dot.is-closed { background: #909baa; }
+.app-shell[data-vista='mapa'] .app-map-lodging-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }
+.app-shell[data-vista='mapa'] .app-map-lodging-copy strong { color: var(--ink); font-size: 12px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.app-shell[data-vista='mapa'] .app-map-lodging-copy small { color: var(--ink-soft); font-size: 10px; line-height: 1.25; }
+.app-shell[data-vista='mapa'] .app-map-lodging-arrow { flex: 0 0 auto; color: #9aa5b2; font-size: 19px; line-height: 1; }
+.app-shell[data-vista='mapa'] .app-map-nights { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: #fafbfd; }
+.app-shell[data-vista='mapa'] .app-map-nights > * { min-width: 0; }
+
+@media (max-width: 1100px) {
+  .app-shell[data-vista='mapa'] .app-map-workspace { grid-template-columns: minmax(0, 1fr) minmax(210px, 240px); gap: 10px; }
+}
+
+@media (max-width: 760px) {
+  .app-shell[data-vista='mapa'] .app-map-page { padding: 18px 12px 24px; }
+  .app-shell[data-vista='mapa'] .app-map-panel { padding: 10px; }
+  .app-shell[data-vista='mapa'] .app-map-workspace { grid-template-columns: minmax(0, 1fr); }
+  .app-shell[data-vista='mapa'] .app-map-visual > div > div:first-child { height: clamp(300px, 48vh, 440px) !important; min-height: 300px; }
+  .app-shell[data-vista='mapa'] .app-map-lodgings { height: 238px; }
+  .app-shell[data-vista='mapa'] .app-map-legend { width: 100%; }
+  .app-shell[data-vista='mapa'] .app-calendar-page { padding: 18px 12px 12px; }
+  .app-shell:not([data-vista='mapa']) .app-calendar-actions { justify-content: flex-start; }
+  .app-shell:not([data-vista='mapa']) .app-calendar-hint { display: none; }
+}

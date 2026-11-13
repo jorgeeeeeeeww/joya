@@ -1,16 +1,15 @@
 // Ajustes: horarios (se arrastran sobre el día), anticipo y apartado, datos para transferir, contacto,
-// textos legales, apariencia y lo propio de esta Mac. Todo se guarda solo.
+// textos legales y lo propio de esta Mac. Todo se guarda solo.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { Bell, Check, CircleAlert, Download, Globe, Landmark, LogIn, LogOut, Monitor, Moon, Power, Sun } from 'lucide-react'
+import { Bell, Check, CircleAlert, Download, Globe, Landmark, LogIn, LogOut, Power } from 'lucide-react'
 import { useApp, recargar } from '@/lib/store'
 import { rpc, URL_NUBE, esNubeLocal } from '@/lib/nube'
 import { clabeValida, mxn } from '@/lib/dinero'
 import { plural } from '@/lib/fechas'
-import { useApariencia } from '@/lib/apariencia'
 import { abreAlIniciar, avisar, buscarActualizacion, cambiarAbreAlIniciar, enMac, instalarActualizacion, permisoAvisos } from '@/lib/mac'
 import type { Ajustes as TAjustes } from '@/lib/tipos'
-import { Button, Segmented, Toggle, cx, toast } from '@/components/ui'
+import { Button, Toggle, cx, toast } from '@/components/ui'
 import { Campo, CampoLargo, CampoTelefono, Contador } from '@/components/campos'
 
 // Bancos por los tres primeros dígitos de la CLABE (los más comunes)
@@ -129,7 +128,7 @@ export default function Ajustes() {
 
   const ejemplo = d.cabanas.find((c) => c.precio_noche)
   return (
-    <div className="mx-auto max-w-[860px] px-8 pt-9 pb-20">
+    <div className="app-settings-page mx-auto max-w-[860px] px-8 pt-9 pb-20">
       <div className="mb-7 flex items-end justify-between gap-4">
         <div>
           <h1 className="heading text-[30px] leading-[1.1]">Ajustes</h1>
@@ -243,7 +242,6 @@ export default function Ajustes() {
         </Bloque>
       </fieldset>
 
-      <Apariencia />
       <EstaMac />
     </div>
   )
@@ -285,7 +283,7 @@ function ProbarAviso() {
 
 function Bloque({ titulo, detalle, children }: { titulo: string; detalle?: string; children: ReactNode }) {
   return (
-    <section className="mt-11">
+    <section className="app-settings-block mt-11">
       <h2 className="text-[17px] font-semibold tracking-[-0.02em]">{titulo}</h2>
       {detalle && <p className="mt-0.5 text-[13px] text-ink-soft">{detalle}</p>}
       <div className="mt-4">{children}</div>
@@ -350,7 +348,7 @@ function Reloj({ salida, llegada, onSalida, onLlegada }: { salida: string | null
         }}
       >
         {/* El cielo del día: de la mañana a la noche */}
-        <div className="absolute inset-x-0 top-[34px] h-6 overflow-hidden rounded-full" style={{ background: 'linear-gradient(90deg, var(--sky-4), var(--sky-3) 30%, color-mix(in oklab, var(--luz) 50%, var(--sky-3)) 70%, var(--night))' }} />
+        <div className="absolute inset-x-0 top-[34px] h-6 overflow-hidden rounded-full" style={{ background: 'linear-gradient(90deg, #edf2f8, #dce7f6 54%, #e7edf5)' }} />
         {/* Tiempo para dejar todo listo */}
         <motion.div className="absolute top-[34px] h-6 rounded-[6px] bg-[color-mix(in_oklab,var(--surface)_70%,transparent)] ring-1 ring-[color-mix(in_oklab,var(--ink)_15%,transparent)] ring-inset" animate={{ left: x(s), width: `calc(${x(l)} - ${x(s)})` }} transition={{ duration: 0.15 }}>
           {/* Las marcas tapan las orillas: el texto largo solo sale si de verdad cabe entre las dos */}
@@ -390,24 +388,6 @@ function Marca({ x, etiqueta, hora, icon, activa, definida, abajo }: { x: string
         <span className="text-[13px] font-semibold">{hora}</span>
       </div>
     </motion.div>
-  )
-}
-
-// ── Apariencia (en esta Mac) ───────────────────────────────
-function Apariencia() {
-  const { tema, cambiar } = useApariencia()
-  return (
-    <Bloque titulo="Apariencia" detalle="Solo cambia en esta Mac.">
-      <Segmented
-        value={tema}
-        onChange={(t) => cambiar({ tema: t })}
-        options={[
-          { value: 'auto', label: <><Monitor size={13} /> Como la Mac</> },
-          { value: 'light', label: <><Sun size={13} /> Claro</> },
-          { value: 'dark', label: <><Moon size={13} /> Oscuro</> },
-        ]}
-      />
-    </Bloque>
   )
 }
 

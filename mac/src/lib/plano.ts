@@ -134,6 +134,16 @@ export const UBICACION: Record<string, string> = {
   'casa-5': 'casa-5',
   'casa-6': 'casa-6',
   'casa-7': 'casa-7',
+  // Claves oficiales de las cabañas del rancho.
+  sabas: 'sabas',
+  'cabana-sabas': 'sabas',
+  'cabana-san-miguel': 'cabana-san-miguel',
+  'cabana-elena': 'cabana-elena',
+  // Lugares de la nube local de prueba.
+  'cabana-de-prueba-a': 'cabana-san-miguel',
+  'cabana-de-prueba-b': 'cabana-elena',
+  'casa-de-prueba': 'casa-1',
+  'habitacion-de-prueba': 'habitacion-1',
 }
 
 const limpio = (t: string) =>
@@ -154,18 +164,19 @@ const clave = (t: string) =>
  * El edificio de un hospedaje de la nube: primero lo capturado en UBICACION, luego el mismo nombre
  * («Cabaña Elena», «Habitación 11»), luego lo que distingue al nombre («Elena», «11», «Sabas»).
  */
-export function buscarPieza(slug: string | null | undefined, nombre: string, libres: Pieza[] = HOSPEDAJES): Pieza | null {
+export function buscarPieza(slug: string | null | undefined, nombre: string, libres: Pieza[] = HOSPEDAJES, tipo?: 'cabana' | 'casa' | 'habitacion'): Pieza | null {
+  const candidatas = tipo ? libres.filter((p) => p.tipo === tipo) : libres
   // Las claves de la nube son las mismas que los edificios del plano (sabas, cabana-elena, habitacion-11, casa-3…)
-  const directo = slug ? libres.find((p) => p.id === slug) : undefined
+  const directo = slug ? candidatas.find((p) => p.id === slug) : undefined
   if (directo) return directo
   const fijo = slug ? UBICACION[slug] : undefined
-  if (fijo) return libres.find((p) => p.id === fijo) ?? null
+  if (fijo) return candidatas.find((p) => p.id === fijo) ?? null
   const n = limpio(nombre)
-  const igual = libres.find((p) => limpio(p.nombre) === n)
+  const igual = candidatas.find((p) => limpio(p.nombre) === n)
   if (igual) return igual
   const k = clave(nombre)
   if (!k) return null
-  return libres.find((p) => clave(p.nombre) === k) ?? null
+  return candidatas.find((p) => clave(p.nombre) === k) ?? null
 }
 
 /** Andadores (polilíneas con ancho en metros) */
@@ -228,30 +239,3 @@ function arboles(): Arbol[] {
 }
 
 export const ARBOLES = arboles()
-
-/** Paradas del recorrido (de la entrada al jardín) */
-export interface Parada {
-  id: string
-  titulo: string
-  texto: string
-  x: number
-  z: number
-  /** ancho visible en metros */
-  w: number
-  /** piezas que se iluminan */
-  luz: string[]
-}
-
-export const PARADAS: Parada[] = [
-  { id: 'llegada', titulo: 'Llegas por la calle Crisantemo', texto: 'La entrada da al estacionamiento: tu coche se queda adentro, frente a las habitaciones 1, 2 y 3.', x: -18, z: 62, w: 62, luz: ['entrada', 'parking', 'habitacion-1', 'habitacion-2', 'habitacion-3'] },
-  { id: 'habitaciones', titulo: 'Las habitaciones', texto: 'Del 11 al 16, en hilera frente al andador, entre enredaderas.', x: -8, z: 20, w: 52, luz: hilera.map((p) => p.id) },
-  { id: 'cabanas', titulo: 'Las cabañas', texto: 'San Miguel y Elena, junto al andador.', x: -9, z: 40, w: 48, luz: ['cabana-san-miguel', 'cabana-elena'] },
-  { id: 'salon', titulo: 'El salón', texto: 'En el centro de los jardines, entre palmeras. Aquí se hacen las fiestas.', x: -6, z: -2, w: 60, luz: ['salon'] },
-  { id: 'jardin', titulo: 'El jardín y la fuente', texto: 'Palmeras alrededor de la glorieta y una fuente de cantera al centro.', x: -2, z: -45, w: 70, luz: ['jardin', 'glorieta'] },
-  { id: 'sabas', titulo: 'Sabas', texto: 'Al fondo, entre pinos: dos pisos de ladrillo con su cúpula.', x: -4, z: -72, w: 50, luz: ['sabas'] },
-]
-
-/** Ruta que dibuja el hilo del recorrido */
-export const RUTA: [number, number][] = [
-  [-29, 69], [-20, 64], [-8, 60], [-1, 58], [-1, 44], [-1, 30], [-1, 18], [-1, 8], [-2, -14], [-2, -30], [-2, -35],
-]

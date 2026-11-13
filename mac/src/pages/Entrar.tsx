@@ -63,8 +63,8 @@ export default function Entrar() {
   }
 
   return (
-    <div className="grid h-dvh grid-cols-[1.1fr_1fr] gap-0 bg-paper p-[var(--frame)]">
-      <section className="relative isolate flex flex-col justify-between overflow-hidden rounded-[var(--r-slab)] bg-night p-12 text-on-night">
+    <div className="app-login grid h-dvh grid-cols-[1.1fr_1fr] gap-0 bg-paper p-[var(--frame)]">
+      <section className="app-login-hero relative isolate flex flex-col justify-between overflow-hidden rounded-[var(--r-slab)] bg-night p-12 text-on-night">
         <div data-tauri-drag-region className={enMac ? 'pt-6' : ''}>
           <Marca tamano={40} hueco="var(--night)" className="text-on-night" />
         </div>
@@ -82,12 +82,12 @@ export default function Entrar() {
         </div>
       </section>
 
-      <div className="relative flex flex-col justify-center px-[clamp(24px,5vw,72px)]">
+      <div className="app-login-panel relative flex flex-col justify-center px-[clamp(24px,5vw,72px)]">
         <motion.form
           variants={stagger}
           initial="hidden"
           animate="show"
-          className="mx-auto w-full max-w-[400px]"
+          className="app-login-form mx-auto w-full max-w-[400px]"
           onSubmit={(e) => {
             e.preventDefault()
             void entrar()

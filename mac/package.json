@@ -1,7 +1,7 @@
 {
   "name": "la-joya-mac",
   "private": true,
-  "version": "0.3.10",
+  "version": "0.3.11",
   "type": "module",
   "description": "La Joya · Reservaciones: la app del dueño para la Mac (Tauri). Se conecta a la misma nube que la web.",
   "scripts": {

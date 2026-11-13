@@ -3,7 +3,7 @@
 // como en Mail) y como panel a la derecha en las demás pantallas.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Ban, CalendarRange, Check, ChevronDown, Copy, Link2, MessageCircle, MoreHorizontal, RotateCcw, Trash2, Undo2, Wallet, X } from 'lucide-react'
+import { ArrowLeft, Ban, BedDouble, CalendarRange, Check, ChevronDown, Copy, Link2, MessageCircle, MoreHorizontal, RotateCcw, Trash2, Undo2, Wallet, X } from 'lucide-react'
 import type { Detalle, MetodoPago } from '@/lib/tipos'
 import { rpc } from '@/lib/nube'
 import { useApp } from '@/lib/store'
@@ -59,11 +59,13 @@ export function DetalleReservacion({ id, enPanel, onCerrar }: { id: string; enPa
 function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detalle) => void; enPanel?: boolean; onCerrar?: () => void }) {
   const datos = useApp((s) => s.datos)!
   const aj = datos.ajustes
+  const hospedaje = datos.cabanas.find((c) => c.id === d.cabana_id)
   const e = ESTADO[d.estado]
   const n = contarNoches(d.llegada, d.salida)
   const falta = saldoDe(d)
   const [editando, setEditando] = useState(false)
   const [pagando, setPagando] = useState(false)
+  const [seccionActiva, setSeccionActiva] = useState('perfil')
   // Si el pago se empezó tocando una noche de la tira, el monto ya viene con lo que hace falta para cubrir hasta ahí
   const [montoInicial, setMontoInicial] = useState<number | null>(null)
   const masRef = useRef<HTMLButtonElement>(null)
@@ -86,10 +88,14 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
     ) : null
 
   return (
-    <div className={cx('flex flex-col', enPanel ? 'pt-6' : 'px-8 pt-8 pb-12')}>
-      {/* Encabezado */}
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
+    <div className={cx('app-reservation-detail flex flex-col', enPanel ? 'pt-6' : 'px-8 pt-7 pb-12')}>
+      <div className="app-reservation-topbar flex items-center gap-3">
+        {onCerrar && !enPanel && (
+          <Button variant="ghost" size="icon-sm" onClick={onCerrar} aria-label="Volver a la lista" title="Volver a la lista">
+            <ArrowLeft size={18} strokeWidth={1.8} />
+          </Button>
+        )}
+        <div className="app-reservation-title min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={e.tono} dot>
               {e.label}
@@ -102,136 +108,156 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
               {ORIGEN[d.origen]} · {hace(d.creada)}
             </span>
           </div>
-          <h2 className="heading mt-2.5 text-[1.75rem] leading-tight">{d.nombre}</h2>
-          <p className="mt-1 text-[14px] text-ink-soft">
-            {d.cabana} · {plural(n, 'noche', 'noches')} · {plural(d.huespedes, 'persona', 'personas')}
-          </p>
+          <h2 className="heading mt-2 text-[1.4rem] leading-tight">Perfil del huésped</h2>
+          <p className="mt-1 text-[13px] text-ink-soft">{d.nombre} · {d.cabana} · {plural(n, 'noche', 'noches')} · {plural(d.huespedes, 'persona', 'personas')}</p>
         </div>
-        {enPanel && (
-          <Button variant="ghost" size="icon-sm" onClick={onCerrar} aria-label="Cerrar (Esc)" title="Cerrar (Esc)">
-            <X size={18} strokeWidth={1.6} />
+        <div className="app-reservation-actions flex flex-wrap items-center gap-2">
+          {principal}
+          <WhatsApp d={d} />
+          <Button ref={masRef} variant="ghost" size="icon-sm" aria-label="Más acciones" onClick={() => setMas((o) => !o)}>
+            <MoreHorizontal size={18} />
           </Button>
-        )}
+          {enPanel && onCerrar && (
+            <Button variant="ghost" size="icon-sm" onClick={onCerrar} aria-label="Cerrar (Esc)" title="Cerrar (Esc)">
+              <X size={18} strokeWidth={1.6} />
+            </Button>
+          )}
+          <Popover open={mas} onClose={() => setMas(false)} anchor={masRef} width={260} label="Más acciones">
+            <MenuList
+              onPick={() => setMas(false)}
+              items={[
+                { label: 'Cambiar fechas o cabaña', icon: <CalendarRange />, onClick: () => setEditando(true), hidden: d.estado === 'cancelada' },
+                { label: 'Registrar pago', icon: <Wallet />, onClick: () => setPagando(true), hidden: d.estado === 'cancelada' || d.estado === 'confirmada' },
+                { label: 'Volver a solicitud', icon: <Undo2 />, hint: `Se aparta otra vez ${aj.horas_apartado} h`, onClick: async () => setD((await cambiarEstado(d, 'solicitud')) ?? d), hidden: d.estado !== 'confirmada' || d.pagado > 0 },
+                { label: 'Copiar liga «Mi reservación»', icon: <Link2 />, onClick: () => void copiar(d.liga!).then(() => toast.success('Copiaste la liga del huésped')), hidden: !d.liga },
+                { label: 'Cancelar reservación', icon: <Ban />, danger: true, separado: true, onClick: async () => setD((await cambiarEstado(d, 'cancelada', 'rancho')) ?? d), hidden: d.estado === 'cancelada' },
+              ]}
+            />
+          </Popover>
+        </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        {principal}
-        <WhatsApp d={d} />
-        <Button ref={masRef} variant="ghost" size="icon" aria-label="Más acciones" onClick={() => setMas((o) => !o)}>
-          <MoreHorizontal size={18} />
-        </Button>
-        <Popover open={mas} onClose={() => setMas(false)} anchor={masRef} width={260} label="Más acciones">
-          <MenuList
-            onPick={() => setMas(false)}
-            items={[
-              { label: 'Cambiar fechas o cabaña', icon: <CalendarRange />, onClick: () => setEditando(true), hidden: d.estado === 'cancelada' },
-              { label: 'Registrar pago', icon: <Wallet />, onClick: () => setPagando(true), hidden: d.estado === 'cancelada' || d.estado === 'confirmada' },
-              { label: 'Volver a solicitud', icon: <Undo2 />, hint: `Se aparta otra vez ${aj.horas_apartado} h`, onClick: async () => setD((await cambiarEstado(d, 'solicitud')) ?? d), hidden: d.estado !== 'confirmada' || d.pagado > 0 },
-              { label: 'Copiar liga «Mi reservación»', icon: <Link2 />, onClick: () => void copiar(d.liga!).then(() => toast.success('Copiaste la liga del huésped')), hidden: !d.liga },
-              { label: 'Cancelar reservación', icon: <Ban />, danger: true, separado: true, onClick: async () => setD((await cambiarEstado(d, 'cancelada', 'rancho')) ?? d), hidden: d.estado === 'cancelada' },
-            ]}
-          />
-        </Popover>
-      </div>
+      <nav className="app-reservation-tabs mt-4 flex flex-wrap items-center gap-1" aria-label="Secciones de la reservación">
+        <a href={`#perfil-${d.id}`} className="app-reservation-tab" aria-label="Sobre el huésped" aria-current={seccionActiva === 'perfil' ? 'page' : undefined} onClick={() => setSeccionActiva('perfil')}>Sobre el huésped</a>
+        <a href={`#estancia-${d.id}`} className="app-reservation-tab" aria-current={seccionActiva === 'estancia' ? 'page' : undefined} onClick={() => setSeccionActiva('estancia')}>Estancia</a>
+        <a href={`#pagos-${d.id}`} className="app-reservation-tab" aria-current={seccionActiva === 'pagos' ? 'page' : undefined} onClick={() => setSeccionActiva('pagos')}>Pagos</a>
+        <a href={`#notas-${d.id}`} className="app-reservation-tab" aria-current={seccionActiva === 'notas' ? 'page' : undefined} onClick={() => setSeccionActiva('notas')}>Notas</a>
+      </nav>
 
       {v && (
-        <div className={cx('mt-5 flex items-center gap-3 rounded-[14px] px-4 py-3 text-[14px]', v.urgente ? 'bg-[color-mix(in_oklab,var(--chispa)_12%,var(--surface))]' : 'bg-peach-soft')}>
+        <div className={cx('app-reservation-alert mt-5 flex items-center gap-3 rounded-[14px] px-4 py-3 text-[14px]', v.urgente ? 'bg-[color-mix(in_oklab,var(--chispa)_12%,var(--surface))]' : 'bg-peach-soft')}>
           <span className={cx('font-semibold', v.urgente ? 'text-chispa' : 'text-peach-ink')}>Apartada: {v.texto}</span>
           <span className="text-ink-soft">Si no la confirmas, las fechas se liberan solas.</span>
         </div>
       )}
       {d.estado === 'cancelada' && (
-        <div className="mt-5 rounded-[14px] bg-rose-soft px-4 py-3 text-[14px] text-rose-ink">
+        <div className="app-reservation-alert mt-5 rounded-[14px] bg-rose-soft px-4 py-3 text-[14px] text-rose-ink">
           Cancelada{d.motivo_cancelacion ? `: ${MOTIVO[d.motivo_cancelacion]}` : ''}
           {d.cancelada_en ? ` · ${hace(d.cancelada_en)}` : ''}. Las fechas quedaron libres.
         </div>
       )}
 
-      {/* Estancia */}
-      <Seccion titulo="Estancia" accion={d.estado !== 'cancelada' && !editando ? <Enlace onClick={() => setEditando(true)}>Cambiar</Enlace> : undefined}>
-        {editando ? (
-          <EditarEstancia d={d} onListo={(x) => (x && setD(x), setEditando(false))} />
-        ) : (
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[14px] bg-line ring-1 ring-line">
-            <Dato etiqueta="Llega" valor={<span className="first-letter:uppercase">{larga(d.llegada)}</span>} detalle={d.hora_llegada ? `Dijo que como a las ${d.hora_llegada}` : aj.hora_llegada ? `Desde las ${aj.hora_llegada}` : undefined} />
-            <Dato etiqueta="Se va" valor={<span className="first-letter:uppercase">{larga(d.salida)}</span>} detalle={aj.hora_salida ? `A las ${aj.hora_salida}` : undefined} />
+      <div className="app-reservation-grid mt-4">
+        <Seccion id={`perfil-${d.id}`} className="app-detail-profile" titulo="Perfil">
+          <div className="app-guest-identity mb-4 flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-[15px] font-semibold text-primary">{d.nombre.trim().charAt(0).toUpperCase()}</span>
+            <span className="min-w-0">
+              <span className="block text-[14px] font-semibold">{d.nombre}</span>
+              <span className="mt-0.5 block text-[12px] text-ink-3">{d.correo || d.telefono || 'Datos de contacto'}</span>
+            </span>
           </div>
-        )}
-      </Seccion>
+          <Huesped d={d} setD={setD} />
+        </Seccion>
 
-      {/* Dinero */}
-      <Seccion titulo="Dinero">
-        <TiraNoches d={d} onCubrir={d.estado === 'cancelada' ? undefined : (m) => (setMontoInicial(m), setPagando(true))} />
-        <div className="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-[14px] bg-line ring-1 ring-line">
-          <Dato etiqueta="Total" valor={mxn(d.total)} />
-          <Dato etiqueta="Pagado" valor={mxn(d.pagado)} detalle={d.anticipo > 0 ? `Anticipo: ${mxn(d.anticipo)}` : undefined} />
-          <Dato etiqueta="Falta" valor={<span className={falta > 0 ? 'text-key' : 'text-success'}>{falta > 0 ? mxn(falta) : 'Nada'}</span>} />
-        </div>
-        <AnimatePresence initial={false}>
-          {pagando && d.estado !== 'cancelada' && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-              <NuevoPago key={montoInicial ?? 'sugerido'} d={d} inicial={montoInicial} onListo={(x) => (x && setD(x), setPagando(false), setMontoInicial(null))} />
-            </motion.div>
+        <Seccion id={`estancia-${d.id}`} className="app-detail-booking" titulo="Información de la reservación" accion={d.estado !== 'cancelada' && !editando ? <Enlace onClick={() => setEditando(true)}>Cambiar</Enlace> : undefined}>
+          {editando ? (
+            <EditarEstancia d={d} onListo={(x) => (x && setD(x), setEditando(false))} />
+          ) : (
+            <>
+              <div className="app-detail-booking-preview">
+                <div className="app-detail-booking-description">
+                  <span>{hospedaje?.tipo === 'habitacion' ? 'Habitación' : hospedaje?.tipo === 'casa' ? 'Casa' : 'Cabaña'}</span>
+                  <strong>{d.cabana}</strong>
+                  <small>{plural(d.huespedes, 'huésped', 'huéspedes')} · {plural(n, 'noche', 'noches')}</small>
+                </div>
+                <span className="app-detail-booking-placeholder" aria-label="Ilustración del hospedaje"><BedDouble size={20} strokeWidth={1.5} /></span>
+              </div>
+              <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[10px] bg-line ring-1 ring-line">
+                <Dato etiqueta="Llega" valor={<span className="first-letter:uppercase">{larga(d.llegada)}</span>} detalle={d.hora_llegada ? `Dijo que como a las ${d.hora_llegada}` : aj.hora_llegada ? `Desde las ${aj.hora_llegada}` : undefined} />
+                <Dato etiqueta="Se va" valor={<span className="first-letter:uppercase">{larga(d.salida)}</span>} detalle={aj.hora_salida ? `A las ${aj.hora_salida}` : undefined} />
+              </div>
+            </>
           )}
-        </AnimatePresence>
-        {!pagando && d.estado !== 'cancelada' && falta > 0 && (
-          <Button variant="soft" tone="sage" size="sm" className="mt-3" icon={<Wallet size={15} />} onClick={() => setPagando(true)}>
-            Registrar pago
-          </Button>
-        )}
-        {d.pagos.length > 0 && (
-          <div className="mt-4 divide-y divide-line rounded-[14px] ring-1 ring-line">
-            {d.pagos.map((p) => (
-              <div key={p.id} className="group flex items-center gap-3 px-4 py-2.5 text-[14px]">
-                <span className="w-20 font-semibold tabular">{mxn(p.monto)}</span>
-                <span className="min-w-0 flex-1 text-ink-soft">
-                  {METODO[p.metodo]} · {diaCorto(p.fecha)} {corta(p.fecha)}
-                  {p.referencia ? ` · ${p.referencia}` : ''}
-                </span>
-                <button
-                  title="Quitar este pago"
-                  aria-label={`Quitar el pago de ${mxn(p.monto)}`}
-                  onClick={async () => {
-                    const x = await borrarPago(p.id, p.monto)
-                    if (x) setD(x)
-                  }}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-wash hover:text-danger focus-visible:opacity-100"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
+        </Seccion>
+
+        <Seccion id={`pagos-${d.id}`} className="app-detail-payments" titulo="Pagos">
+          <TiraNoches d={d} onCubrir={d.estado === 'cancelada' ? undefined : (m) => (setMontoInicial(m), setPagando(true))} />
+          <div className="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-[14px] bg-line ring-1 ring-line">
+            <Dato etiqueta="Total" valor={mxn(d.total)} />
+            <Dato etiqueta="Pagado" valor={mxn(d.pagado)} detalle={d.anticipo > 0 ? `Anticipo: ${mxn(d.anticipo)}` : undefined} />
+            <Dato etiqueta="Falta" valor={<span className={falta > 0 ? 'text-key' : 'text-success'}>{falta > 0 ? mxn(falta) : 'Nada'}</span>} />
           </div>
-        )}
-        <Desglose d={d} />
-      </Seccion>
+          <AnimatePresence initial={false}>
+            {pagando && d.estado !== 'cancelada' && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <NuevoPago key={montoInicial ?? 'sugerido'} d={d} inicial={montoInicial} onListo={(x) => (x && setD(x), setPagando(false), setMontoInicial(null))} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {!pagando && d.estado !== 'cancelada' && falta > 0 && (
+            <Button variant="primary" size="sm" className="mt-3" icon={<Wallet size={15} />} onClick={() => setPagando(true)}>
+              Registrar pago
+            </Button>
+          )}
+          {d.pagos.length > 0 && (
+            <div className="mt-4 divide-y divide-line rounded-[14px] ring-1 ring-line">
+              {d.pagos.map((p) => (
+                <div key={p.id} className="group flex items-center gap-3 px-4 py-2.5 text-[14px]">
+                  <span className="w-20 font-semibold tabular">{mxn(p.monto)}</span>
+                  <span className="min-w-0 flex-1 text-ink-soft">
+                    {METODO[p.metodo]} · {diaCorto(p.fecha)} {corta(p.fecha)}
+                    {p.referencia ? ` · ${p.referencia}` : ''}
+                  </span>
+                  <button
+                    title="Quitar este pago"
+                    aria-label={`Quitar el pago de ${mxn(p.monto)}`}
+                    onClick={async () => {
+                      const x = await borrarPago(p.id, p.monto)
+                      if (x) setD(x)
+                    }}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-wash hover:text-danger focus-visible:opacity-100"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <Desglose d={d} />
+        </Seccion>
 
-      {/* Huésped */}
-      <Seccion titulo="Huésped">
-        <Huesped d={d} setD={setD} />
-      </Seccion>
-
-      {/* Historia */}
-      <Seccion titulo="Historia">
-        <ol className="relative ml-1.5 border-l border-line pl-5">
-          {d.eventos.map((ev, i) => (
-            <li key={i} className="relative pb-3.5 last:pb-0">
-              <span className={cx('absolute top-1.5 -left-[25px] h-2 w-2 rounded-full ring-4 ring-surface', i === d.eventos.length - 1 ? 'bg-chispa-soft shadow-[0_0_8px_var(--luz)]' : 'bg-line-strong')} />
-              <div className="text-[14px]">{ev.detalle}</div>
-              <div className="text-[12px] text-ink-3">
-                {corta(diaLocal(ev.creado))} · {hora(ev.creado)}
-              </div>
-            </li>
-          ))}
-        </ol>
-      </Seccion>
+        <Seccion id={`notas-${d.id}`} className="app-detail-notes" titulo="Notas">
+          <Notas d={d} setD={setD} />
+          <div className="app-detail-history">
+            <h4>Actividad reciente</h4>
+            <ol>
+              {d.eventos.map((ev, i) => (
+                <li key={i}>
+                  <span className={cx('app-detail-history-dot', i === d.eventos.length - 1 && 'is-current')} />
+                  <div>{ev.detalle}<small>{corta(diaLocal(ev.creado))} · {hora(ev.creado)}</small></div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </Seccion>
+      </div>
     </div>
   )
 }
 
-function Seccion({ titulo, accion, children }: { titulo: string; accion?: ReactNode; children: ReactNode }) {
+function Seccion({ id, className, titulo, accion, children }: { id?: string; className?: string; titulo: string; accion?: ReactNode; children: ReactNode }) {
   return (
-    <section className="mt-8">
+    <section id={id} className={cx('app-detail-section mt-8', className)}>
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-[15px] font-semibold tracking-[-0.015em]">{titulo}</h3>
         {accion}
@@ -446,10 +472,10 @@ function Desglose({ d }: { d: Detalle }) {
 
 /** Datos del huésped: se editan en su lugar y se guardan al salir del campo */
 function Huesped({ d, setD }: { d: Detalle; setD: (d: Detalle) => void }) {
-  const [f, setF] = useState({ nombre: d.nombre, telefono: d.telefono ?? '', correo: d.correo ?? '', hora_llegada: d.hora_llegada ?? '', notas: d.notas ?? '' })
-  useEffect(() => setF({ nombre: d.nombre, telefono: d.telefono ?? '', correo: d.correo ?? '', hora_llegada: d.hora_llegada ?? '', notas: d.notas ?? '' }), [d.nombre, d.telefono, d.correo, d.hora_llegada, d.notas])
+  const [f, setF] = useState({ nombre: d.nombre, telefono: d.telefono ?? '', correo: d.correo ?? '', hora_llegada: d.hora_llegada ?? '' })
+  useEffect(() => setF({ nombre: d.nombre, telefono: d.telefono ?? '', correo: d.correo ?? '', hora_llegada: d.hora_llegada ?? '' }), [d.nombre, d.telefono, d.correo, d.hora_llegada])
   const guardar = async (k: keyof typeof f) => {
-    const antes = k === 'nombre' ? d.nombre : (d[k] ?? '')
+    const antes = d[k] ?? ''
     if (f[k].trim() === String(antes).trim()) return
     if (k === 'nombre' && f.nombre.trim().length < 2) return setF((x) => ({ ...x, nombre: d.nombre }))
     if (k === 'telefono' && f.telefono && f.telefono.length < 10) return
@@ -469,14 +495,31 @@ function Huesped({ d, setD }: { d: Detalle; setD: (d: Detalle) => void }) {
         <Campo label="Correo" type="email" value={f.correo} onChange={(v) => setF((x) => ({ ...x, correo: v }))} onBlur={() => void guardar('correo')} />
         <Campo label="Hora de llegada" value={f.hora_llegada} onChange={(v) => setF((x) => ({ ...x, hora_llegada: v }))} onBlur={() => void guardar('hora_llegada')} hint="Lo que dijo el huésped" />
       </div>
+    </div>
+  )
+}
+
+function Notas({ d, setD }: { d: Detalle; setD: (d: Detalle) => void }) {
+  const [nota, setNota] = useState(d.notas ?? '')
+  useEffect(() => setNota(d.notas ?? ''), [d.notas])
+  const guardar = async () => {
+    if (nota.trim() === (d.notas ?? '').trim()) return
+    const x = await actualizarReservacion(d.id, { notas: nota })
+    if (x) {
+      setD(x)
+      toast.success('Guardado')
+    }
+  }
+  return (
+    <div className="flex flex-col gap-3">
       {d.comentarios && (
-        <div className="rounded-[14px] bg-sunken px-4 py-3 text-[14px]">
+        <article className="rounded-[10px] bg-sunken px-3.5 py-3 text-[13px]">
           <div className="kicker mb-1">Comentarios del huésped</div>
           <p className="whitespace-pre-line">{d.comentarios}</p>
-        </div>
+        </article>
       )}
-      <div onBlur={() => void guardar('notas')}>
-        <CampoLargo label="Notas internas" value={f.notas} onChange={(v) => setF((x) => ({ ...x, notas: v }))} hint="Solo las ve el rancho" maxLength={2000} minRows={2} />
+      <div onBlur={() => void guardar()}>
+        <CampoLargo label="Notas internas" value={nota} onChange={setNota} hint="Solo las ve el rancho" maxLength={2000} minRows={3} />
       </div>
     </div>
   )

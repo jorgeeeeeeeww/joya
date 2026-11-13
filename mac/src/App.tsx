@@ -1,5 +1,5 @@
 // Entrada de la app: sesión del dueño, barra lateral, tiempo real y atajos de la Mac.
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { LogOut } from 'lucide-react'
@@ -88,6 +88,9 @@ function Marco() {
   const cargar = useApp((s) => s.cargar)
   const mainRef = useRef<HTMLElement>(null)
   const [pidiendoAvisos, setPidiendoAvisos] = useState(false)
+  useLayoutEffect(() => {
+    document.documentElement.dataset.appDesign = 'reservations'
+  }, [vista])
   // El panel sigue mostrando la última reservación mientras se cierra
   const ultimaAbierta = useRef(abierta)
   if (abierta) ultimaAbierta.current = abierta
@@ -230,7 +233,7 @@ function Marco() {
 
   const llena = vista === 'calendario' || vista === 'reservaciones' || vista === 'cabanas'
   return (
-    <div className="flex h-dvh overflow-hidden bg-paper">
+    <div className="app-shell flex h-dvh overflow-hidden bg-paper" data-vista={vista}>
       <Barra />
       <main ref={mainRef} id="contenido" className={llena ? 'relative min-w-0 flex-1 overflow-hidden' : 'scroll-area relative min-w-0 flex-1 overflow-y-auto'}>
         {enMac && <div data-tauri-drag-region className="absolute inset-x-0 top-0 z-20 h-3" />}

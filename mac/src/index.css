@@ -7,18 +7,7 @@
 
 @import 'tailwindcss';
 @import './styles/step1.css' layer(base);
-
-/* Variante dark: sigue al sistema y respeta data-theme forzado */
-@custom-variant dark {
-  &:where([data-theme='dark'], [data-theme='dark'] *) {
-    @slot;
-  }
-  @media (prefers-color-scheme: dark) {
-    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
-      @slot;
-    }
-  }
-}
+@import './styles/reservations.css';
 
 /* --------------------------------------------------------------------------
    Alias de compatibilidad: los módulos usan nombres "pastel" como tonos
@@ -38,7 +27,7 @@
      · Texto normal:           --ink-soft (gris neutro)
      · Detalle (fechas, horas, notas, etiquetas): --tx-detail, el matiz pastel (salvia en Flor)
      · Importante (pendientes, montos por cobrar, lo de hoy): --tx-key, la chispa apagada (terracota en Flor)
-     Todos pasan AA sobre papel y superficie, en claro y en oscuro. */
+     La app de la Mac fija estos contrastes para su apariencia clara. */
   --tx-detail: light-dark(color-mix(in oklab, var(--matiz-ink) 86%, var(--paper)), color-mix(in oklab, var(--matiz-ink) 74%, var(--paper)));
   --tx-key: color-mix(in oklab, var(--chispa) 85%, var(--ink));
   --ink-3: var(--tx-detail);
@@ -729,12 +718,6 @@ html.is-dragging * {
   color: var(--chispa);
   --tw-ring-color: var(--chispa);
 }
-.fx:has(.fx-value:focus-visible) {
-  box-shadow:
-    inset 0 0 0 1.5px var(--primary),
-    0 0 0 4px color-mix(in oklab, var(--primary) 14%, transparent);
-}
-
 /* ── Regla de La Joya: ningún texto se corta con «…». Si no cabe, baja de línea.
    Solo las barras del calendario de hospedaje y la miga de pan conservan el recorte (.keep-truncate). */
 .truncate:not(.keep-truncate) {

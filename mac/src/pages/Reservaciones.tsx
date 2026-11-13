@@ -1,7 +1,7 @@
 // Reservaciones: lista y detalle lado a lado, como en Mail. ↑ ↓ cambian de reservación y el clic
 // derecho tiene las acciones.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Inbox, Search, X } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { activa, saldo, ESTADO } from '@/lib/estados'
 import { masDias, mesLargo, rango, venceEn } from '@/lib/fechas'
@@ -43,12 +43,6 @@ export default function Reservaciones() {
     return base.filter((r) => sinAcentos(`${r.nombre} ${r.codigo} ${r.correo ?? ''} ${nombreDe(d, r.cabana_id)}`).includes(t) || (dig.length >= 4 && (r.telefono ?? '').includes(dig)))
   }, [grupos, filtro, texto, d])
 
-  // Al llegar sin nada abierto, abre la primera. Se revisa la vista porque esta pantalla sigue viva un
-  // instante mientras se va: sin esto, la siguiente pantalla aparecía con un panel abierto sin pedirlo.
-  useEffect(() => {
-    if (!abierta && lista[0] && useApp.getState().vista === 'reservaciones') abrir(lista[0].id)
-  }, [abierta, lista, abrir])
-
   // ↑ ↓ para moverse por la lista (como en Mail)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -70,69 +64,74 @@ export default function Reservaciones() {
 
   let mesAnterior = ''
   return (
-    <div className="flex h-full">
-      <div className="interfaz flex w-[380px] shrink-0 flex-col border-r border-line">
-        <div className="px-5 pt-8 pb-3">
-          <h1 className="heading text-[26px]">Reservaciones</h1>
-          <Segmented
-            size="sm"
-            className="mt-4 w-full"
-            value={filtro}
-            onChange={setFiltro}
-            options={[
-              { value: 'atender', label: <>Por atender {grupos.atender.length > 0 && <span className="text-chispa tabular">{grupos.atender.length}</span>}</> },
-              { value: 'proximas', label: 'Próximas' },
-              { value: 'todas', label: 'Todas' },
-              { value: 'canceladas', label: 'Canceladas' },
-            ]}
-          />
-          <label className="mt-3 flex h-9 items-center gap-2 rounded-[10px] bg-sunken px-3 text-[13px] ring-1 ring-line ring-inset focus-within:ring-primary">
-            <Search size={15} className="text-ink-3" />
-            <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Filtrar por nombre, código o WhatsApp" className="campo-libre min-w-0 flex-1 bg-transparent placeholder:text-ink-3" />
-            {texto && (
-              <button onClick={() => setTexto('')} aria-label="Borrar filtro" className="text-ink-3 hover:text-ink">
-                <X size={14} />
-              </button>
-            )}
-          </label>
+    <div className="app-reservations h-full">
+      {abierta ? (
+        <div className="app-reservations-detail-view scroll-area h-full min-w-0 overflow-y-auto">
+          <div className="app-reservation-profile-page mx-auto max-w-[1160px]">
+            <DetalleReservacion id={abierta} onCerrar={() => abrir(null)} />
+          </div>
         </div>
-        <div ref={listaRef} className="scroll-area min-h-0 flex-1 overflow-y-auto px-2.5 pb-6">
-          {lista.length === 0 && (
-            <div className="px-4 py-14 text-center">
-              <Loto size={44} hueco="var(--surface)" className="mx-auto opacity-60" />
-              <p className="mt-4 text-[14px] font-medium">{texto ? 'Nada coincide con el filtro' : filtro === 'atender' ? 'Nada por atender' : 'Sin reservaciones aquí'}</p>
-              <p className="mt-1 text-[13px] text-ink-3">{filtro === 'atender' && !texto ? 'Las solicitudes nuevas y los saldos por cobrar de esta semana aparecen aquí.' : ''}</p>
-            </div>
-          )}
-          {lista.map((r) => {
-            const mes = r.llegada.slice(0, 7)
-            const encabezado = filtro !== 'atender' && mes !== mesAnterior
-            mesAnterior = mes
-            return (
-              <div key={r.id}>
-                {encabezado && (
-                  <div className="px-3 pt-4 pb-1.5 text-[12px] font-medium text-ink-3 first-letter:uppercase">
-                    {mesLargo(r.llegada)} {r.llegada.slice(0, 4)}
-                  </div>
-                )}
-                <Renglon r={r} cabana={nombreDe(d, r.cabana_id)} activo={r.id === abierta} onClick={() => abrir(r.id)} onMenu={(e) => abrirMenu(e, r)} />
+      ) : (
+        <div className="app-reservations-index scroll-area h-full min-w-0 overflow-y-auto">
+          <div className="app-reservations-index-content mx-auto max-w-[1240px]">
+            <header className="app-reservations-index-header">
+              <div>
+                <p className="app-eyebrow">La Joya · Hospedaje</p>
+                <h1 className="heading">Reservaciones</h1>
+                <p className="app-page-subtitle">Solicitudes, estancias y pagos en un solo lugar.</p>
               </div>
-            )
-          })}
+              <div className="app-reservations-total"><span>{d.reservaciones.length}</span> registros</div>
+            </header>
+            <div className="app-reservations-toolbar">
+              <Segmented
+                size="sm"
+                className="app-reservations-filters"
+                value={filtro}
+                onChange={setFiltro}
+                options={[
+                  { value: 'atender', label: <>Por atender {grupos.atender.length > 0 && <span className="tabular">{grupos.atender.length}</span>}</> },
+                  { value: 'proximas', label: 'Próximas' },
+                  { value: 'todas', label: 'Todas' },
+                  { value: 'canceladas', label: 'Canceladas' },
+                ]}
+              />
+              <label className="app-reservations-search">
+                <Search size={15} />
+                <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Buscar huésped, código o WhatsApp" />
+                {texto && (
+                  <button type="button" onClick={() => setTexto('')} aria-label="Borrar búsqueda">
+                    <X size={14} />
+                  </button>
+                )}
+              </label>
+            </div>
+            <div className="app-reservations-table">
+              <div className="app-reservations-table-head" aria-hidden="true">
+                <span>Huésped</span><span>Hospedaje</span><span>Estancia</span><span className="text-right">Total</span>
+              </div>
+              <div ref={listaRef}>
+                {lista.length === 0 ? (
+                  <div className="app-reservations-empty">
+                    <Loto size={42} hueco="var(--surface)" className="opacity-70" />
+                    <p className="mt-3 text-[14px] font-semibold">{texto ? 'No encontramos coincidencias' : filtro === 'atender' ? 'Nada por atender' : 'No hay reservaciones en esta vista'}</p>
+                    <p className="mt-1 max-w-[42ch] text-[13px] text-ink-soft">{filtro === 'atender' && !texto ? 'Las solicitudes nuevas y los saldos por cobrar de esta semana aparecerán aquí.' : 'Prueba otro filtro o busca por el nombre del huésped.'}</p>
+                  </div>
+                ) : lista.map((r) => {
+                  const mes = r.llegada.slice(0, 7)
+                  const encabezado = filtro !== 'atender' && mes !== mesAnterior
+                  mesAnterior = mes
+                  return (
+                    <div key={r.id}>
+                      {encabezado && <div className="app-reservations-month">{mesLargo(r.llegada)} {r.llegada.slice(0, 4)}</div>}
+                      <Renglon r={r} cabana={nombreDe(d, r.cabana_id)} activo={r.id === abierta} onClick={() => abrir(r.id)} onMenu={(e) => abrirMenu(e, r)} />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="scroll-area min-w-0 flex-1 overflow-y-auto">
-        {abierta ? (
-          <div className="mx-auto max-w-[760px]">
-            <DetalleReservacion id={abierta} />
-          </div>
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center text-center text-ink-3">
-            <Inbox size={28} strokeWidth={1.4} />
-            <p className="mt-3 text-[14px]">Elige una reservación de la lista</p>
-          </div>
-        )}
-      </div>
+      )}
       {menu}
     </div>
   )
@@ -143,20 +142,14 @@ function Renglon({ r, cabana, activo, onClick, onMenu }: { r: Reservacion; caban
   const v = r.estado === 'solicitud' && activa(r) ? venceEn(r.vence) : null
   const falta = saldo(r)
   return (
-    <button data-id={r.id} onClick={onClick} onContextMenu={onMenu} className={cx('relative flex w-full items-start gap-3 rounded-[12px] px-3 py-2.5 text-left transition-colors duration-[var(--dur-1)]', activo ? 'bg-[color-mix(in_oklab,var(--primary)_13%,var(--surface))]' : 'hover:bg-wash')}>
-      <span className={cx('mt-[7px] h-2 w-2 shrink-0 rounded-full', TONE[e.tono].solid)} title={e.label} />
-      <span className="min-w-0 flex-1">
-        <span className="flex items-baseline justify-between gap-2">
-          <span className="text-[14px] font-semibold">{r.nombre}</span>
-          <span className="shrink-0 text-[13px] font-medium text-key tabular">{mxn(r.total)}</span>
-        </span>
-        <span className="block text-[13px] text-ink-soft">
-          {cabana} · {rango(r.llegada, r.salida)}
-        </span>
-        <span className={cx('block text-[12px]', v?.urgente ? 'font-medium text-chispa' : 'text-ink-3')}>
-          {v ? `Solicitud · ${v.texto}` : activa(r) ? (falta > 0 ? `${e.label} · falta ${mxn(falta)}` : e.label) : r.estado === 'solicitud' ? 'Venció el apartado' : e.label}
-        </span>
+    <button data-id={r.id} onClick={onClick} onContextMenu={onMenu} className={cx('app-reservation-row', activo && 'is-selected')}>
+      <span className="app-reservation-row-guest">
+        <span className={cx('app-reservation-state-dot', TONE[e.tono].solid)} title={e.label} />
+        <span className="min-w-0"><strong>{r.nombre}</strong><small className={v?.urgente ? 'is-urgent' : ''}>{v ? `Solicitud · ${v.texto}` : activa(r) ? (falta > 0 ? `${e.label} · falta ${mxn(falta)}` : e.label) : r.estado === 'solicitud' ? 'Venció el apartado' : e.label}</small></span>
       </span>
+      <span className="app-reservation-row-property">{cabana}</span>
+      <span className="app-reservation-row-dates">{rango(r.llegada, r.salida)}</span>
+      <span className="app-reservation-row-total">{mxn(r.total)}</span>
     </button>
   )
 }

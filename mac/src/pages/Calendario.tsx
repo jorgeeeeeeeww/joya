@@ -2,7 +2,7 @@
 // cerrar fechas, se arrastra una reservación para moverla (a otras fechas o a otro hospedaje) y su
 // orilla derecha para alargarla. El trackpad desliza los días de lado.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Lock, LockOpen, Plus } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Lock, LockOpen, Plus, Users } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { activa } from '@/lib/estados'
 import { corta, dia, diaCorto, diaSemana, masDias, mesLargo, noches, plural, rango } from '@/lib/fechas'
@@ -48,6 +48,7 @@ export default function Calendario() {
   const tabla = useRef<HTMLDivElement>(null)
   const encabezado = useRef<HTMLDivElement>(null)
   const leyenda = useRef<HTMLDivElement>(null)
+  const proximasRef = useRef<HTMLElement>(null)
   const ruedita = useRef(0)
   const arr = useRef<Arrastre | null>(null)
   arr.current = arrastre
@@ -65,15 +66,16 @@ export default function Calendario() {
     if (!el) return
     const medir = () => {
       setCuantos(Math.max(7, Math.floor((el.clientWidth - NOMBRES - 24) / CELDA)))
-      if (!nCabanas || !tabla.current || !encabezado.current || !leyenda.current) return
+      if (!nCabanas || !tabla.current || !encabezado.current || !leyenda.current || !proximasRef.current) return
       const inicioTabla = tabla.current.getBoundingClientRect().top - el.getBoundingClientRect().top
-      const abajo = leyenda.current.offsetHeight + 12 + 16 // la leyenda, su margen y el del marco
-      const orillas = tabla.current.offsetHeight - tabla.current.clientHeight
-      const libre = el.clientHeight - inicioTabla - abajo - encabezado.current.offsetHeight - orillas
+      const abajo = leyenda.current.offsetHeight + proximasRef.current.offsetHeight + 28 // leyenda, próximas reservas y separaciones
+      const libre = el.clientHeight - inicioTabla - abajo - encabezado.current.offsetHeight
       setFila(Math.max(FILA_MIN, Math.min(FILA_MAX, Math.floor(libre / nCabanas))))
     }
     const ro = new ResizeObserver(medir)
     ro.observe(el)
+    if (proximasRef.current) ro.observe(proximasRef.current)
+    if (leyenda.current) ro.observe(leyenda.current)
     return () => ro.disconnect()
   }, [nCabanas])
 
@@ -81,6 +83,10 @@ export default function Calendario() {
   const fin = masDias(inicio, cuantos)
   const cabanas = d.cabanas
   const reservas = useMemo(() => d.reservaciones.filter((r) => activa(r) && r.salida > inicio && r.llegada < fin), [d, inicio, fin])
+  const proximas = useMemo(
+    () => d.reservaciones.filter((r) => activa(r) && r.llegada >= d.hoy).sort((a, b) => a.llegada.localeCompare(b.llegada)),
+    [d.reservaciones, d.hoy],
+  )
   const cierres = useMemo(() => d.bloqueos.filter((b) => b.fin > inicio && b.inicio < fin), [d, inicio, fin])
 
   const posicion = (clientX: number, clientY: number) => {
@@ -181,14 +187,14 @@ export default function Calendario() {
   }
 
   return (
-    <div ref={marco} className="interfaz flex h-full flex-col px-6 pt-8 pb-4">
+    <div ref={marco} className="app-calendar-page interfaz flex h-full flex-col px-6 pt-8 pb-4">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="heading text-[30px] leading-[1.1]">Calendario</h1>
-          <p className="mt-1.5 text-[14px] text-ink-soft first-letter:uppercase">{meses.join(' – ')}</p>
+          <h1 className="heading text-[30px] leading-[1.1]">Calendario de hospedajes</h1>
+          <p className="mt-1.5 text-[14px] text-ink-soft first-letter:uppercase">{meses.join(' – ')} · disponibilidad por unidad</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="mr-2 hidden text-[13px] text-ink-3 xl:inline">Arrastra sobre los días libres para reservar o cerrar</span>
+        <div className="app-calendar-actions flex items-center gap-2">
+          <span className="app-calendar-hint mr-2 hidden text-[13px] text-ink-3 xl:inline">Arrastra sobre los días libres para reservar o cerrar</span>
           <Button variant="outline" size="icon-sm" aria-label="Dos semanas antes" onClick={() => setInicio(masDias(inicio, -14))}>
             <ChevronLeft size={17} />
           </Button>
@@ -206,7 +212,7 @@ export default function Calendario() {
 
       <div
         ref={tabla}
-        className="card relative min-h-0 overflow-y-auto overflow-x-hidden"
+        className="app-calendar-grid card relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
         onWheel={(e) => {
           const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.shiftKey ? e.deltaY : 0
           if (!dx) return
@@ -239,7 +245,7 @@ export default function Calendario() {
           {/* Nombres */}
           <div className="sticky left-0 z-10 shrink-0 border-r border-line bg-surface" style={{ width: NOMBRES }}>
             {cabanas.map((c) => (
-              <button key={c.id} onClick={() => (useApp.getState().ir('cabanas'), useApp.getState().editarCabana(c.id))} className="flex w-full flex-col justify-center border-b border-line px-4 text-left hover:bg-wash" style={{ height: FILA }} title="Abrir en Cabañas">
+              <button key={c.id} onClick={() => (useApp.getState().ir('cabanas'), useApp.getState().editarCabana(c.id))} className="flex w-full flex-col justify-center border-b border-line px-4 text-left hover:bg-wash" style={{ height: FILA }} title="Abrir en Hospedajes">
                 <span className="text-[14px] leading-tight font-semibold">{c.nombre}</span>
                 <span className="text-[12px] text-ink-3">
                   {TIPO[c.tipo].uno} · {plural(c.capacidad, 'persona', 'personas')}
@@ -320,7 +326,7 @@ export default function Calendario() {
               const p = barra(llegada, salida)
               const choca = a && a.movio && !libre(d, cabanas[fila]!.id, llegada, salida, r.id)
               const tono = r.estado === 'solicitud' ? 'barra-solicitud rayas' : r.estado === 'pagada' ? 'barra-pagada' : 'barra-confirmada'
-              const nombre = p.width >= 130 ? r.nombre : p.width >= 64 ? r.nombre.split(' ')[0] : r.nombre.split(' ').map((x) => x[0]).slice(0, 2).join('')
+              const nombre = p.cortadaIzq || p.cortadaDer ? '' : p.width >= 130 ? r.nombre : p.width >= 64 ? r.nombre.split(' ')[0] : p.width >= 48 ? r.nombre.split(' ').map((x) => x[0]).slice(0, 2).join('') : ''
               return (
                 <div
                   key={r.id}
@@ -335,7 +341,7 @@ export default function Calendario() {
                   className={cx('absolute z-[3] flex cursor-grab flex-col justify-center overflow-hidden rounded-[10px] px-2.5 ring-1 ring-inset transition-shadow', tono, a && a.movio && 'z-[6] cursor-grabbing shadow-[var(--shadow-3)]', choca && 'ring-2 ring-danger')}
                   style={{ top: fila * FILA + 7, height: FILA - 14, left: p.left, width: p.width, borderTopLeftRadius: p.cortadaIzq ? 0 : undefined, borderBottomLeftRadius: p.cortadaIzq ? 0 : undefined, borderTopRightRadius: p.cortadaDer ? 0 : undefined, borderBottomRightRadius: p.cortadaDer ? 0 : undefined }}
                 >
-                  <span className="text-[13px] leading-tight font-semibold whitespace-nowrap">{nombre}</span>
+                  {nombre && <span className="text-[13px] leading-tight font-semibold whitespace-nowrap">{nombre}</span>}
                   {p.width >= 110 && <span className="text-[11px] leading-tight whitespace-nowrap opacity-80">{a && a.movio ? rango(llegada, salida) : r.estado === 'solicitud' ? 'Solicitud' : `${plural(r.huespedes, 'persona', 'personas')}`}</span>}
                   <Orilla onDown={(e) => setArrastre({ tipo: 'alargar', r, x0: e.clientX, dd: 0, movio: false })} />
                 </div>
@@ -345,13 +351,54 @@ export default function Calendario() {
         </div>
       </div>
 
-      <div ref={leyenda} className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px] text-ink-3">
+      <div ref={leyenda} className="app-calendar-legend mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px] text-ink-3">
         <Leyenda clase="barra-confirmada">Confirmada</Leyenda>
         <Leyenda clase="barra-pagada">Pagada</Leyenda>
         <Leyenda clase="barra-solicitud rayas">Solicitud apartada</Leyenda>
         <Leyenda clase="rayas bg-sunken text-ink-3 ring-line-strong">Cerrada</Leyenda>
         <span className="ml-auto">Arrastra una reservación para moverla · su orilla derecha para alargarla · clic derecho para más</span>
       </div>
+
+      <section ref={proximasRef} className="app-calendar-upcoming" aria-label="Próximas reservaciones">
+        <div className="app-calendar-upcoming-heading">
+          <div>
+            <h2>Próximas reservaciones</h2>
+            <p>{proximas.length ? `${proximas.length} por llegar · primero la más cercana` : 'Las nuevas reservaciones aparecerán aquí'}</p>
+          </div>
+          {proximas.length > 4 && (
+            <Button size="sm" variant="outline" onClick={() => useApp.getState().ir('reservaciones')}>
+              Ver todas
+            </Button>
+          )}
+        </div>
+        {proximas.length ? (
+          <div className="app-calendar-upcoming-track">
+            {proximas.map((r, i) => {
+              const hospedaje = d.cabanas.find((c) => c.id === r.cabana_id)
+              const dias = noches(d.hoy, r.llegada)
+              const falta = dias === 0 ? 'Llega hoy' : dias === 1 ? 'Llega mañana' : `Llega en ${plural(dias, 'día', 'días')}`
+              const estado = r.estado === 'solicitud' ? 'Solicitud' : r.estado === 'pagada' ? 'Pagada' : 'Confirmada'
+              return (
+                <button key={r.id} type="button" onClick={() => useApp.getState().abrir(r.id)} className={cx('app-calendar-upcoming-card', i === 0 && 'is-next')}>
+                  <span className="app-calendar-upcoming-top">
+                    <span className="app-calendar-upcoming-order">{i === 0 ? 'La que sigue' : `Después · ${i + 1}`}</span>
+                    <span className={cx('app-calendar-upcoming-status', `is-${r.estado}`)}>{estado}</span>
+                  </span>
+                  <strong className="app-calendar-upcoming-guest">{r.nombre}</strong>
+                  <span className="app-calendar-upcoming-property">{hospedaje?.nombre ?? 'Hospedaje'} · {TIPO[hospedaje?.tipo ?? 'cabana'].uno}</span>
+                  <span className="app-calendar-upcoming-date"><CalendarDays size={14} /> {rango(r.llegada, r.salida)} · {plural(noches(r.llegada, r.salida), 'noche', 'noches')}</span>
+                  <span className="app-calendar-upcoming-bottom">
+                    <span><Users size={13} /> {plural(r.huespedes, 'persona', 'personas')} · {falta}</span>
+                    <strong>{mxn(r.total)}</strong>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="app-calendar-upcoming-empty">No hay próximas reservaciones.</div>
+        )}
+      </section>
 
       <Popover open={!!eleccion} onClose={() => setEleccion(null)} anchor={eleccion ? { x: eleccion.x, y: eleccion.y } : { x: 0, y: 0 }} width={260} label="Fechas elegidas" title={eleccion ? `${cabanas.find((c) => c.id === eleccion.cabana)?.nombre} · ${rango(eleccion.llegada, eleccion.salida)}` : undefined}>
         {eleccion && (

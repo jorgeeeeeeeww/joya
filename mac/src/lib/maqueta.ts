@@ -69,15 +69,6 @@ export interface Maqueta {
   /** Solo estos edificios quedan iluminados y tocables (null = todos los hospedajes) */
   filtrar: (ids: string[] | null) => void
   resaltar: (id: string | null) => void
-  volarA: (id: string, duracion: number) => void
-  /** Acerca la cámara a un grupo de edificios (sigue pudiéndose girar y tocar) */
-  acercar: (ids: string[], duracion: number, forzar?: boolean) => void
-  /** ¿La cámara está acercada a un grupo? */
-  acercada: () => boolean
-  /** ¿La cámara está en la vista de todo el rancho (ni acercada a un grupo ni sobre un edificio)? */
-  enGeneral: () => boolean
-  volver: (duracion: number) => void
-  entrar: () => void
   pausar: (si: boolean) => void
   /** Estado de cada hospedaje esa noche (por id de pieza del plano) */
   ponerEstados: (m: Map<string, 'ocupada' | 'apartada' | 'cerrada' | 'libre'>) => void
@@ -96,7 +87,7 @@ interface Opciones {
   reduce: boolean
   /** Corre la escena a la derecha (px) si algo tapa su orilla izquierda (el diseño anterior); por omisión, nada */
   corrimiento?: () => number
-  /** Mapa quieto: no se gira al arrastrar (la cámara solo se mueve si se le pide) */
+  /** Vista fija: los arrastres no cambian el ángulo de la cámara */
   fija?: boolean
 }
 
@@ -722,7 +713,7 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
     const { g, alto } = construir(p, tintes)
     mundo.add(g)
     // Caja invisible para que sea fácil tocar el edificio (en una hilera, sin tapar a la de junto)
-    const holgura = p.grupo ? 0.3 : 3
+    const holgura = p.grupo || p.tipo === 'cabana' ? 0.35 : 3
     const toque = new THREE.Mesh(new THREE.BoxGeometry(p.w + holgura, alto + 5, p.d + holgura), new THREE.MeshBasicMaterial({ visible: false }))
     toque.position.set(p.x, 1.2 + alto / 2 + 2, p.z)
     toque.userData.id = p.id
@@ -793,12 +784,8 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
     }
   }
 
-  // ── Cámara: se mueve sobre una órbita alrededor de un punto ──
+  // ── Vista general fija, desde arriba, con giro manual ──
   const est = { th: 0, ph: 0.72, d: 300, x: 0, y: 0, z: 0, thAjuste: 0, thMeta: 0 }
-  const base = { th: 0, d: 300, ph: 0.72, x: 0, y: 0, z: 0 }
-  let enVuelo = false
-  let cerca = false
-  let zoom = false // acercada a un grupo de edificios
   const tan = Math.tan((camara.fov / 2) * (Math.PI / 180))
   // Las esquinas del terreno, abajo (zócalo) y arriba (copa de los árboles): lo que debe caber en la caja
   const ESQUINAS = LOTE.flatMap(([x, z]) => [new THREE.Vector3(x, -ZOCALO, z), new THREE.Vector3(x, 11, z)])
@@ -844,12 +831,9 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
     if (of) camara.setViewOffset(w, h, -of, 0, w, h)
     else camara.clearViewOffset()
     camara.updateProjectionMatrix()
-    // En una caja alta (celular) se mira de frente, hacia el fondo; en una ancha, de lado; en medio, en diagonal
-    const t = Math.min(1, Math.max(0, (camara.aspect - 0.8) / 0.9))
-    const s = t * t * (3 - 2 * t)
-    const e = encuadrar(0.18 + s * (Math.PI / 2 - 0.52), 0.86 - s * 0.3, camara.aspect)
-    Object.assign(base, e)
-    if (!enVuelo && !cerca && !zoom) Object.assign(est, e)
+    // Ángulo casi cenital: el terreno y sus edificios se leen como un plano satelital.
+    const e = encuadrar(0.18, 1.46, camara.aspect)
+    Object.assign(est, e)
   }
   function colocarCamara() {
     const th = est.th + est.thAjuste
@@ -873,13 +857,16 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
     return h.length ? (h[0].object.userData.id as string) : null
   }
   let x0: number | null = null
+  let punteroActivo: number | null = null
   let th0 = 0
   let movio = false
   elEl.addEventListener('pointerdown', (e) => {
-    if (cerca) return
+    if (e.button !== 0) return
     x0 = e.clientX
+    punteroActivo = e.pointerId
     th0 = est.thMeta
     movio = false
+    try { elEl.setPointerCapture(e.pointerId) } catch { /* Algunos motores no permiten capturar el puntero */ }
   })
   addEventListener('pointermove', (e) => {
     if (x0 !== null) {
@@ -891,18 +878,21 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
     }
   }, { signal: fin.signal })
   addEventListener('pointerup', (e) => {
-    if (x0 === null) return
+    if (x0 === null || (punteroActivo !== null && e.pointerId !== punteroActivo)) return
     x0 = null
-    if (!movio && e.target === elEl) {
+    punteroActivo = null
+    const r = elEl.getBoundingClientRect()
+    const dentro = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom
+    if (!movio && dentro) {
       const id = tomar(e)
       if (id) o.alElegir(id)
     }
   }, { signal: fin.signal })
   // Si el navegador toma el gesto (la página empezó a bajar), se suelta la maqueta
-  addEventListener('pointercancel', () => (x0 = null), { signal: fin.signal })
+  addEventListener('pointercancel', () => { x0 = null; punteroActivo = null }, { signal: fin.signal })
   let ultimo: string | null = null
   elEl.addEventListener('pointermove', (e) => {
-    if (e.pointerType !== 'mouse' || x0 !== null || cerca) return
+    if (e.pointerType !== 'mouse' || x0 !== null) return
     const id = tomar(e)
     if (id !== ultimo) {
       ultimo = id
@@ -977,7 +967,7 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
       const p = piezaPorId.get(id)
       if (!p) return
       pv.set(p.x, 1.2 + (edificios.get(id)?.alto ?? 0) + dy, p.z).project(camara)
-      // z > 1: el punto quedó detrás de la cámara (al volar cerca de un edificio)
+      // z > 1: el punto quedó detrás de la cámara.
       pos.set(id, { x: (pv.x * 0.5 + 0.5) * w, y: (-pv.y * 0.5 + 0.5) * h, ok: pv.z < 1 })
     }
     for (const id of unidades) proyectar(id, 4.2)
@@ -1056,113 +1046,10 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
       for (const u of unidades) {
         const e = edificios.get(u)
         if (!e) continue
-        const y = u === id ? 2.1 : 1.2
-        if (o.reduce) {
-          e.g.position.y = y
-          sombraSucia = true
-        } else gsap.to(e.g.position, { y, duration: 0.7, ease: 'power3.out', overwrite: true, onUpdate: ensuciar })
+        e.g.position.y = u === id ? 2.1 : 1.2
       }
-    },
-    volarA(id, duracion) {
-      const e = edificios.get(id)
-      if (!e) return
-      // De frente a su puerta, igual que al acercarse a un grupo: una habitación se ve con toda su hilera
-      // (ella resaltada) y una cabaña sola, centrada
-      const p = e.pieza
-      const ps = p.grupo ? PIEZAS.filter((q) => q.grupo === p.grupo) : [p]
-      const x0 = Math.min(...ps.map((q) => q.x - q.w / 2))
-      const x1 = Math.max(...ps.map((q) => q.x + q.w / 2))
-      const z0 = Math.min(...ps.map((q) => q.z - q.d / 2))
-      const z1 = Math.max(...ps.map((q) => q.z + q.d / 2))
-      const tramo = Math.max(x1 - x0, z1 - z0) + 8
-      const f = p.frente ?? 's'
-      const giro = f === 's' ? 0 : f === 'e' ? Math.PI / 2 : f === 'o' ? -Math.PI / 2 : Math.PI
-      enVuelo = true
-      cerca = true
-      gsap.killTweensOf(est) // el último viaje manda (también sobre la entrada)
-      gsap.to(est, {
-        x: (x0 + x1) / 2,
-        y: ps.length === 1 ? 1.2 + e.alto * 0.6 : 2,
-        z: (z0 + z1) / 2,
-        // Una construcción sola (Sabas, de dos pisos con cúpula) se mira a media altura: queda al centro con su punto a la vista
-        d: Math.max(ps.length === 1 ? 62 : 44, camara.aspect < 1 ? (tramo + 4) * (tramo > 50 ? 3.9 : 2.9) : tramo * 2.2),
-        ph: 0.62,
-        th: giro,
-        thAjuste: 0,
-        thMeta: 0,
-        duration: o.reduce ? 0 : duracion,
-        ease: 'power3.inOut',
-        onComplete: () => void (enVuelo = false),
-      })
-      if (o.reduce) requestAnimationFrame(cuadro)
-    },
-    acercar(ids, duracion, forzar) {
-      if (o.fija && !forzar) return
-      const ps = ids.flatMap((id) => piezaPorId.get(id) ?? [])
-      if (!ps.length) return
-      const x0 = Math.min(...ps.map((p) => p.x - p.w / 2))
-      const x1 = Math.max(...ps.map((p) => p.x + p.w / 2))
-      const z0 = Math.min(...ps.map((p) => p.z - p.d / 2))
-      const z1 = Math.max(...ps.map((p) => p.z + p.d / 2))
-      const tramo = Math.max(x1 - x0, z1 - z0) + 8
-      // Se mira de frente a las puertas: así una hilera se ve a lo largo y cada punto queda sobre su cuarto
-      const f = ps[0].frente ?? 's'
-      const giro = f === 's' ? 0 : f === 'e' ? Math.PI / 2 : f === 'o' ? -Math.PI / 2 : Math.PI
-      enVuelo = true
-      zoom = true
-      gsap.to(est, {
-        x: (x0 + x1) / 2,
-        y: 2,
-        z: (z0 + z1) / 2,
-        // Una hilera muy larga (las siete casas) en pantalla angosta pide la cámara más lejos para que quepa toda
-        d: Math.max(50, camara.aspect < 1 ? (tramo + 4) * (tramo > 50 ? 3.9 : 2.9) : tramo * 2.2),
-        ph: 0.62,
-        th: giro,
-        thAjuste: 0,
-        thMeta: 0,
-        duration: o.reduce ? 0 : duracion,
-        ease: 'power3.inOut',
-        onComplete: () => void (enVuelo = false),
-      })
-      if (o.reduce) requestAnimationFrame(cuadro)
-    },
-    acercada: () => zoom,
-    enGeneral: () => !zoom && !cerca,
-    volver(duracion) {
-      zoom = false
-      enVuelo = true
-      gsap.to(est, {
-        x: base.x,
-        y: base.y,
-        z: base.z,
-        d: base.d,
-        ph: base.ph,
-        th: base.th,
-        duration: o.reduce ? 0 : duracion,
-        ease: 'power3.inOut',
-        onComplete: () => {
-          enVuelo = false
-          cerca = false
-        },
-      })
-      if (o.reduce) requestAnimationFrame(cuadro)
-    },
-    entrar() {
-      if (o.reduce) {
-        requestAnimationFrame(cuadro)
-        return
-      }
-      // La cámara baja y gira hasta su lugar mientras los edificios y árboles crecen
-      gsap.fromTo(est, { ph: base.ph + 0.5, d: base.d * 1.35, th: base.th - 0.5 }, { ph: base.ph, d: base.d, th: base.th, duration: 2.6, ease: 'power3.out' })
-      gsap.fromTo(renderer.domElement, { opacity: 0 }, { opacity: 1, duration: 1.1 })
-      const gs = [...edificios.values()].map((e) => e.g)
-      gs.forEach((g) => g.scale.set(1, 0.001, 1))
-      gsap.to(
-        gs.map((g) => g.scale),
-        { y: 1, duration: 1.3, stagger: 0.07, delay: 0.5, ease: 'expo.out', onUpdate: ensuciar },
-      )
-      grupoArboles.scale.y = 0.001
-      gsap.to(grupoArboles.scale, { y: 1, duration: 1.8, delay: 0.3, ease: 'expo.out', onUpdate: ensuciar })
+      sombraSucia = true
+      despertar()
     },
     pausar(si) {
       pausado = si

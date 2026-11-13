@@ -39,7 +39,7 @@ export default function Hoy() {
   const resumen = [porAtender.length ? plural(porAtender.length, 'solicitud por atender', 'solicitudes por atender') : null, llegan.length ? plural(llegan.length, 'llegada', 'llegadas') : null, salen.length ? plural(salen.length, 'salida', 'salidas') : null].filter(Boolean)
 
   return (
-    <div className="mx-auto max-w-[1180px] px-8 pt-8 pb-16">
+    <div className="app-home-page mx-auto max-w-[1180px] px-8 pt-8 pb-16">
       <PageHeader title={<span className="first-letter:uppercase">{larga(d.hoy)}</span>} subtitle={resumen.length ? resumen.join(' · ') : 'Todo al día: nada por atender.'} />
 
       <ListoParaAbrir />
@@ -69,7 +69,7 @@ export default function Hoy() {
         </span>
       </button>
 
-      <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-6">
+      <div className="app-home-grid grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-6">
         <section>
           <h2 className="mb-3 flex items-center gap-2 text-[17px] font-semibold tracking-[-0.02em]">
             Por atender

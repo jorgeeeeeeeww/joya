@@ -40,7 +40,7 @@ const TONOS: Record<'claro' | 'oscuro', CSSProperties> = {
     '--pl-otro-linea': 'color-mix(in oklab, var(--ink) 16%, transparent)',
     '--pl-libre': 'var(--secondary)',
     '--pl-libre-linea': 'color-mix(in oklab, var(--primary) 55%, transparent)',
-    '--pl-ocupada': 'var(--chispa)',
+    '--pl-ocupada': 'var(--map-accent, var(--chispa))',
     '--pl-texto': 'var(--ink-soft)',
     '--pl-texto-fuerte': 'var(--ink)',
     '--pl-sobre-ocupada': 'var(--on-chispa)',
@@ -56,7 +56,7 @@ const TONOS: Record<'claro' | 'oscuro', CSSProperties> = {
     '--pl-otro-linea': 'color-mix(in oklab, var(--on-night) 16%, transparent)',
     '--pl-libre': 'color-mix(in oklab, var(--on-night) 10%, transparent)',
     '--pl-libre-linea': 'color-mix(in oklab, var(--on-night) 40%, transparent)',
-    '--pl-ocupada': 'var(--chispa-soft)',
+    '--pl-ocupada': 'var(--map-accent-soft, var(--chispa-soft))',
     '--pl-texto': 'var(--on-night-soft)',
     '--pl-texto-fuerte': 'var(--on-night)',
     '--pl-sobre-ocupada': 'var(--night)',
@@ -67,7 +67,7 @@ const TONOS: Record<'claro' | 'oscuro', CSSProperties> = {
 
 /** Etiquetas que van fuera del edificio (arriba o abajo) para que no se encimen con la de al lado */
 const ETIQUETA_FUERA: Record<string, 'arriba' | 'abajo'> = { sabas: 'abajo', 'cabana-san-miguel': 'abajo', 'cabana-elena': 'arriba' }
-const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? p.nombre.replace(/\D+/g, '') : p.tipo === 'casa' ? p.nombre.replace(/^Casa\s+/i, 'C') : p.nombre.replace(/^Cabaña\s+/i, ''))
+const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? `H${p.nombre.replace(/\D+/g, '')}` : p.tipo === 'casa' ? p.nombre.replace(/^Casa\s+/i, 'C') : p.nombre.replace(/^Cabaña\s+/i, ''))
 
 function Edificio({ p, c, sobre, elegida, rayas, onSobre, onPick, decorativa }: { p: Pieza; c?: CasaEscena; sobre: boolean; elegida: boolean; rayas: string; onSobre: (on: boolean) => void; onPick: () => void; decorativa?: boolean }) {
   const estado = c?.estado ?? 'libre'
@@ -149,7 +149,7 @@ function Suelto({ c, onPick, decorativa, elegida }: { c: CasaEscena; onPick: () 
  * El plano completo. `casas` viene ya calculado con el estado de la noche que se está viendo. Con `decorativa`
  * no hay clics ni globo (pantalla de entrada). `elegida` marca el hospedaje que se está viendo aparte.
  */
-export function PlanoRancho({ casas, onPick, decorativa, tono = 'claro', elegida }: { casas: CasaEscena[]; onPick?: (id: string) => void; decorativa?: boolean; tono?: 'claro' | 'oscuro'; elegida?: string | null }) {
+export function PlanoRancho({ casas, onPick, decorativa, tono = 'claro', elegida, mostrarSueltos = true }: { casas: CasaEscena[]; onPick?: (id: string) => void; decorativa?: boolean; tono?: 'claro' | 'oscuro'; elegida?: string | null; mostrarSueltos?: boolean }) {
   const [sobre, setSobre] = useState<string | null>(null)
   const rayas = `plano-rayas-${useId().replace(/:/g, '')}`
 
@@ -159,7 +159,7 @@ export function PlanoRancho({ casas, onPick, decorativa, tono = 'claro', elegida
     const porPieza = new Map<string, CasaEscena>()
     const sueltos: CasaEscena[] = []
     for (const c of casas) {
-      const p = buscarPieza(c.slug, c.nombre, libres)
+      const p = buscarPieza(c.slug, c.nombre, libres, c.tipo)
       if (p) {
         porPieza.set(p.id, c)
         libres.splice(libres.indexOf(p), 1)
@@ -234,7 +234,7 @@ export function PlanoRancho({ casas, onPick, decorativa, tono = 'claro', elegida
         )}
       </div>
 
-      {sueltos.length > 0 && (
+      {mostrarSueltos && sueltos.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {sueltos.map((c) => (
             <Suelto key={c.id} c={c} decorativa={decorativa} elegida={elegida === c.id} onPick={() => onPick?.(c.id)} />

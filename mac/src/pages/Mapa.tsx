@@ -7,7 +7,6 @@ import { activa } from '@/lib/estados'
 import { corta, diaCorto, larga, noches, plural, rango } from '@/lib/fechas'
 import { mxn } from '@/lib/dinero'
 import { nocheDe, TIPO } from '@/lib/ocupacion'
-import { urlFoto } from '@/lib/nube'
 import type { Cabana, ISODate } from '@/lib/tipos'
 import { Button, PageHeader, Sheet, cx } from '@/components/ui'
 import type { CasaEscena } from '@/components/plano'
@@ -24,34 +23,36 @@ export default function Mapa() {
 
   const casas = useMemo(() => casasDe(d, noche), [d, noche])
   const cuenta = (e: CasaEscena['estado']) => casas.filter((c) => c.estado === e).length
+  const cuentaTipo = (tipo: Cabana['tipo']) => casas.filter((c) => c.tipo === tipo).length
   const cabana = d.cabanas.find((c) => c.id === elegida) ?? null
   const hayHospedajes = d.cabanas.length > 0
+  const elegirHospedaje = (id: string) => setElegida(id)
 
   return (
-    <div className="mx-auto max-w-[1180px] px-8 pt-8 pb-16">
+    <div className="app-map-page mx-auto max-w-[1440px] px-8 pt-7 pb-10">
       <PageHeader
         title="Mapa"
-        subtitle={noche === d.hoy ? 'Cómo está el rancho esta noche. Toca un hospedaje para ver su calendario.' : `Cómo estará el rancho el ${larga(noche)}. Toca un hospedaje para ver su calendario.`}
+        subtitle={noche === d.hoy ? 'Vista general del rancho. El mapa permanece fijo al elegir un hospedaje.' : `Estado del rancho el ${larga(noche)}. El mapa permanece fijo al elegir un hospedaje.`}
       />
 
       {!hayHospedajes ? (
         <div className="card px-8 py-12 text-center">
           <p className="text-[16px] font-medium">Todavía no hay hospedajes</p>
-          <p className="mx-auto mt-1 max-w-[46ch] text-[14px] text-ink-soft">Da de alta tus cabañas y habitaciones en Cabañas para verlas aquí.</p>
+          <p className="mx-auto mt-1 max-w-[46ch] text-[14px] text-ink-soft">Da de alta tus cabañas, casas y habitaciones en Hospedajes para verlas aquí.</p>
           <Button className="mt-5" icon={<BedDouble size={16} />} onClick={() => (useApp.getState().ir('cabanas'), useApp.getState().editarCabana('nueva'))}>
-            Ir a Cabañas
+            Ir a hospedajes
           </Button>
         </div>
       ) : (
-        <div className="card p-6">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="app-map-panel card p-5">
+          <div className="app-map-summary mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
             <div>
-              <div className="text-[13px] text-ink-3">{noche === d.hoy ? 'Esta noche' : `${diaCorto(noche)} ${corta(noche)}`}</div>
-              <div className="text-[26px] leading-tight font-semibold tracking-[-0.02em]">
-                {cuenta('reservada')} de {casas.length} ocupados
+              <div className="app-map-date-label text-[12px] text-ink-3">{noche === d.hoy ? 'Esta noche' : `${diaCorto(noche)} ${corta(noche)}`}</div>
+              <div className="app-map-occupancy text-[24px] leading-tight font-semibold tracking-[-0.02em]">
+                {cuenta('reservada')} de {casas.length} hospedajes ocupados
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px] text-ink-soft">
+            <div className="app-map-legend flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-ink-soft">
               <Dato clase="bg-chispa" n={cuenta('reservada')} texto="Ocupados" />
               <Dato clase="plano-late-chip bg-[color-mix(in_oklab,var(--chispa)_20%,transparent)] ring-1 ring-chispa ring-inset" n={cuenta('apartada')} texto="Solicitudes" />
               <Dato clase="rayas bg-sunken ring-1 ring-line ring-inset" n={cuenta('cerrada')} texto="Cerrados" />
@@ -59,11 +60,34 @@ export default function Mapa() {
             </div>
           </div>
 
-          <div className="rounded-[var(--r-md)] bg-sunken p-2 ring-1 ring-line ring-inset">
-            <MapaRancho casas={casas} elegida={elegida} onElegir={setElegida} />
+          <div className="app-map-workspace">
+            <div className="app-map-visual">
+              <MapaRancho casas={casas} elegida={elegida} onElegir={elegirHospedaje} />
+            </div>
+            <aside className="app-map-lodgings" aria-label="Elige un hospedaje">
+              <div className="app-map-lodgings-heading">
+                <div>
+                  <h2>Hospedajes</h2>
+                  <p>{cuentaTipo('cabana')} cabañas · {cuentaTipo('casa')} casas · {cuentaTipo('habitacion')} habitaciones</p>
+                </div>
+                <span className="app-map-lodgings-count">{casas.length}</span>
+              </div>
+              <div className="app-map-lodgings-list">
+                {casas.map((c) => (
+                  <button key={c.id} type="button" aria-pressed={elegida === c.id} title={c.linea} onClick={() => elegirHospedaje(c.id)} className="app-map-lodging">
+                    <span className={cx('app-map-lodging-dot', c.estado === 'reservada' ? 'is-reserved' : c.estado === 'apartada' ? 'is-request' : c.estado === 'cerrada' ? 'is-closed' : 'is-free')} />
+                    <span className="app-map-lodging-copy">
+                      <strong>{c.nombre}</strong>
+                      <small>{TIPO[c.tipo].uno} · {c.estado === 'reservada' ? 'Ocupada' : c.estado === 'apartada' ? 'Solicitud' : c.estado === 'cerrada' ? 'Cerrada' : 'Libre'}</small>
+                    </span>
+                    <span className="app-map-lodging-arrow" aria-hidden="true">›</span>
+                  </button>
+                ))}
+              </div>
+            </aside>
           </div>
 
-          <div className="mt-6">
+          <div className="app-map-nights mt-5">
             <Noches d={d} noche={noche} onNoche={setNoche} />
           </div>
         </div>
@@ -91,7 +115,6 @@ function FichaCabana({ cabana, noche, onCerrar }: { cabana: Cabana; noche: ISODa
   const d = useApp((s) => s.datos)!
   const abrir = useApp((s) => s.abrir)
   const n = nocheDe(d, cabana.id, noche)
-  const foto = cabana.fotos[0]
   const proximas = d.reservaciones
     .filter((r) => r.cabana_id === cabana.id && activa(r) && r.salida > d.hoy)
     .sort((a, b) => a.llegada.localeCompare(b.llegada))
@@ -107,13 +130,9 @@ function FichaCabana({ cabana, noche, onCerrar }: { cabana: Cabana; noche: ISODa
   return (
     <div className="scroll-area flex-1 overflow-y-auto px-7 pt-7 pb-8">
       <div className="flex items-start gap-4">
-        {foto ? (
-          <img src={urlFoto(foto.ruta)} alt="" className="h-[72px] w-[96px] shrink-0 rounded-[10px] object-cover" />
-        ) : (
-          <span className="flex h-[72px] w-[96px] shrink-0 items-center justify-center rounded-[10px] bg-secondary text-ink-3">
-            <BedDouble size={24} />
-          </span>
-        )}
+        <span className="flex h-[72px] w-[96px] shrink-0 items-center justify-center rounded-[10px] bg-secondary text-ink-3" aria-label="Ilustración del hospedaje">
+          <BedDouble size={24} />
+        </span>
         <div className="min-w-0 flex-1">
           <h2 className="heading text-[24px] leading-tight">{cabana.nombre}</h2>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px] text-ink-soft">
