@@ -47,6 +47,32 @@ jobs:
       - name: Probar que cada puesto solo ve y edita lo suyo
         run: supabase test db
 
+  revisar-migraciones-db:
+    name: Revisar migraciones con conexión de base
+    needs: pruebas
+    # Si falta SUPABASE_PROJECT_REF, no corre el despliegue completo. Este paso solo consulta
+    # la conexión directa ya guardada para poder revisar el historial antes de aplicar cambios.
+    if: github.ref == 'refs/heads/main' && vars.SUPABASE_PROJECT_REF == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.1.0
+      - name: Comprobar la conexión directa
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::error::Falta el secreto SUPABASE_DB_URL para revisar el historial remoto."
+            exit 1
+          fi
+      - name: Ver historial remoto
+        run: supabase migration list --remote="$DB_URL"
+      - name: Mostrar migraciones pendientes sin aplicarlas
+        run: supabase db push --dry-run --remote="$DB_URL"
+
   publicar:
     needs: pruebas
     # Sin el proyecto de Supabase configurado no hay a dónde publicar: se salta en vez de fallar
