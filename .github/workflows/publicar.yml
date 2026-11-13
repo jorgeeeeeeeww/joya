@@ -47,11 +47,11 @@ jobs:
       - name: Probar que cada puesto solo ve y edita lo suyo
         run: supabase test db
 
-  revisar-migraciones-db:
-    name: Revisar migraciones con conexión de base
+  migraciones-db:
+    name: Aplicar migraciones con conexión directa
     needs: pruebas
-    # Si falta SUPABASE_PROJECT_REF, no corre el despliegue completo. Este paso solo consulta
-    # la conexión directa ya guardada para poder revisar el historial antes de aplicar cambios.
+    # Si falta SUPABASE_PROJECT_REF, el despliegue completo se omite. Se usa la conexión directa
+    # guardada para aplicar las migraciones pendientes de la base.
     if: github.ref == 'refs/heads/main' && vars.SUPABASE_PROJECT_REF == ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -70,8 +70,10 @@ jobs:
           fi
       - name: Ver historial remoto
         run: supabase migration list --remote="$DB_URL"
-      - name: Mostrar migraciones pendientes sin aplicarlas
+      - name: Revisar las migraciones pendientes
         run: supabase db push --dry-run --remote="$DB_URL"
+      - name: Aplicar migraciones pendientes
+        run: supabase db push --remote="$DB_URL" --yes
 
   publicar:
     needs: pruebas
