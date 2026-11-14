@@ -3,7 +3,7 @@
 // Se guarda solo mientras escribes, como en las apps de la Mac.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { BedDouble, Bath, Check, Eye, EyeOff, Plus, Trash2, Users } from 'lucide-react'
+import { BedDouble, Bath, Check, Eye, EyeOff, Plus, Search, Trash2, Users } from 'lucide-react'
 import { useApp, recargar } from '@/lib/store'
 import { rpc } from '@/lib/nube'
 import { TIPO } from '@/lib/ocupacion'
@@ -32,6 +32,7 @@ export default function Cabanas() {
   const sel = useApp((s) => s.cabana)
   const editar = useApp((s) => s.editarCabana)
   const [filtro, setFiltro] = useState<'todos' | TipoHospedaje>('todos')
+  const [busqueda, setBusqueda] = useState('')
   useEffect(() => {
     if (!sel && d.cabanas[0]) editar(d.cabanas[0].id)
     if (!sel && !d.cabanas.length) editar('nueva')
@@ -42,63 +43,47 @@ export default function Cabanas() {
     casa: d.cabanas.filter((c) => c.tipo === 'casa').length,
     habitacion: d.cabanas.filter((c) => c.tipo === 'habitacion').length,
   }
-  const visibles = filtro === 'todos' ? d.cabanas : d.cabanas.filter((c) => c.tipo === filtro)
+  const visibles = d.cabanas.filter((c) => (filtro === 'todos' || c.tipo === filtro) && c.nombre.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().includes(busqueda.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()))
   const filtros: ('todos' | TipoHospedaje)[] = ['todos', 'cabana', 'casa', 'habitacion']
 
   return (
-    <div className="app-cabanas flex h-full">
-      <div className="app-cabanas-list interfaz flex w-[240px] shrink-0 flex-col border-r border-line">
-        <div className="app-cabanas-list-header flex items-end justify-between gap-2 px-4 pt-6 pb-3">
-          <div className="min-w-0">
-            <h1 className="heading text-[22px]">Hospedajes</h1>
-            <p className="mt-1 text-[12px] text-ink-soft">{d.cabanas.length} en total</p>
-          </div>
-          <Button size="sm" variant="secondary" icon={<Plus size={15} />} onClick={() => editar('nueva')}>
-            Agregar
-          </Button>
-        </div>
-        <div className="app-cabanas-filters" aria-label="Filtrar por tipo de hospedaje">
+    <div className="flex h-full min-w-0 flex-col overflow-hidden bg-paper">
+      <header className="flex min-w-0 shrink-0 flex-wrap items-end justify-between gap-4 border-b border-line px-5 py-6 min-[1200px]:px-7">
+        <div className="min-w-0"><h1 className="text-[30px] font-semibold leading-none tracking-[-.035em] text-ink">Hospedajes</h1><p className="mt-3 text-[12px] text-ink-soft">{d.cabanas.filter((c) => c.publicada).length} publicados · {d.cabanas.length} en total</p></div>
+        <Button size="sm" icon={<Plus size={15} />} onClick={() => editar('nueva')}>Agregar hospedaje</Button>
+      </header>
+      <div className="flex min-h-0 min-w-0 flex-1">
+      <div className="flex w-[236px] min-w-0 shrink-0 flex-col border-r border-line bg-paper min-[1280px]:w-[286px]">
+        <label className="mx-3 mt-4 flex h-9 min-w-0 items-center gap-2 rounded-lg border border-line bg-transparent px-2.5 text-ink-soft"><Search size={14} className="shrink-0" /><input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar hospedaje" aria-label="Buscar hospedaje" className="w-full min-w-0 bg-transparent text-[13px] outline-none" /></label>
+        <div className="grid grid-cols-2 gap-1 p-3" aria-label="Filtrar por tipo de hospedaje">
           {filtros.map((t) => {
             const n = t === 'todos' ? d.cabanas.length : conteos[t]
-            const texto = t === 'todos' ? 'Todos' : TIPO[t].varios
-            return (
-              <button key={t} type="button" aria-pressed={filtro === t} onClick={() => setFiltro(t)} className="app-cabanas-filter">
-                <span>{texto}</span>
-                <span>{n}</span>
-              </button>
-            )
+            return <button key={t} type="button" aria-pressed={filtro === t} onClick={() => setFiltro(t)} className={cx('flex min-h-8 min-w-0 items-center justify-between gap-1 rounded-md px-2 text-[12px] transition-colors', filtro === t ? 'bg-[color-mix(in_srgb,var(--primary)_9%,transparent)] font-semibold text-primary' : 'bg-transparent text-ink-soft hover:text-ink')}><span>{t === 'todos' ? 'Todos' : TIPO[t].varios}</span><span className="tabular">{n}</span></button>
           })}
         </div>
-        <div className="scroll-area min-h-0 flex-1 overflow-y-auto px-2.5 pb-6">
-          {visibles.map((c) => (
-            <button key={c.id} onClick={() => editar(c.id)} className={cx('app-cabana-item flex w-full items-center gap-3 rounded-[12px] p-2 text-left transition-colors', sel === c.id ? 'is-active bg-[color-mix(in_oklab,var(--primary)_13%,var(--surface))]' : 'hover:bg-wash')}>
-              <Miniatura c={c} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[14px] leading-tight font-semibold">{c.nombre}</span>
-                <span className="block text-[12px] text-ink-3">
-                  {TIPO[c.tipo].uno} · {c.publicada ? 'en la web' : 'oculta'}
-                </span>
-              </span>
-              <span className={cx('h-2 w-2 shrink-0 rounded-full', c.publicada ? 'bg-success' : 'bg-line-strong')} title={c.publicada ? 'Sale en la web' : 'No sale en la web'} />
-            </button>
-          ))}
+        <div className="scroll-area min-h-0 flex-1 overflow-y-auto pb-6">
+          {(['cabana', 'casa', 'habitacion'] as TipoHospedaje[]).map((tipo) => {
+            const grupo = visibles.filter((c) => c.tipo === tipo)
+            if (!grupo.length) return null
+            return <section key={tipo} className="mb-5"><h2 className="px-4 pb-2 text-[13px] font-semibold text-ink">{TIPO[tipo].varios} · {grupo.length}</h2><div className="flex flex-col">{grupo.map((c) => <button key={c.id} onClick={() => editar(c.id)} aria-pressed={sel === c.id} className="flex w-full min-w-0 items-start gap-3 border-b border-l-[3px] border-b-line px-3 py-4 text-left transition-colors hover:text-primary" style={{ backgroundColor: sel === c.id ? 'color-mix(in srgb, var(--primary) 9%, transparent)' : 'transparent', borderLeftColor: sel === c.id ? 'var(--primary)' : 'transparent' }}>
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-primary"><CasaIcono tipo={c.tipo} size={22} /></span><span className="min-w-0 flex-1"><strong className="block truncate text-[15px] font-semibold leading-snug text-ink" title={c.nombre}>{c.nombre}</strong><span className="mt-1.5 block text-[13px] leading-relaxed text-ink-soft">{plural(c.capacidad, 'persona', 'personas')}</span><span className="mt-0.5 block text-[13px] font-medium leading-relaxed text-primary">{c.precio_noche ? mxn(c.precio_noche) + ' / noche' : 'Sin tarifa'}</span><span className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] text-ink-soft"><span className={cx('h-1.5 w-1.5 rounded-full', c.publicada ? 'bg-success' : 'bg-ink-soft')} />{c.publicada ? 'Publicado en la web' : 'Oculto en la web'}</span></span>
+            </button>)}</div></section>
+          })}
           {sel === 'nueva' && (
-            <div className="app-cabana-item is-active flex items-center gap-3 rounded-[12px] bg-[color-mix(in_oklab,var(--primary)_13%,var(--surface))] p-2">
-              <IlustracionHospedaje tipo="cabana" />
+            <div className="flex items-center gap-3 border-l-[3px] border-primary bg-[color-mix(in_srgb,var(--primary)_9%,transparent)] px-3 py-4">
+              <span className="text-primary"><CasaIcono tipo="cabana" size={22} /></span>
               <span className="text-[14px] font-semibold">Nuevo hospedaje</span>
             </div>
           )}
           {visibles.length === 0 && sel !== 'nueva' && <p className="px-3 py-6 text-center text-[12px] text-ink-soft">No hay hospedajes de este tipo.</p>}
         </div>
       </div>
-      <div className="app-cabanas-editor scroll-area min-w-0 flex-1 overflow-y-auto">{sel && <Editor key={sel} original={actual ?? null} />}</div>
+      <div className="scroll-area min-w-0 flex-1 overflow-x-hidden overflow-y-auto">{sel && <Editor key={sel} original={actual ?? null} />}</div>
+      </div>
     </div>
   )
 }
 
-function Miniatura({ c }: { c: Pick<Cabana, 'tipo'> }) {
-  return <IlustracionHospedaje tipo={c.tipo} />
-}
 function CasaIcono({ tipo, size = 22 }: { tipo: TipoHospedaje; size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden>
@@ -193,7 +178,7 @@ function Editor({ original }: { original: Cabana | null }) {
       setErrorGuardar(null)
       void recargar()
       if (nueva) {
-        toast.success(`${r.nombre} quedó guardada`, 'Tú subes las fotos desde la web.')
+        toast.success(`${r.nombre} quedó guardada`, 'Las fotografías se administran por separado.')
         editar(r.id)
       }
     } catch (e) {
@@ -218,14 +203,14 @@ function Editor({ original }: { original: Cabana | null }) {
   const temporadas = original ? d.temporadas.filter((t) => t.cabana_id === original.id) : []
 
   return (
-    <div className="mx-auto grid max-w-[1120px] grid-cols-1 gap-7 px-6 pt-8 pb-16 min-[1280px]:grid-cols-[minmax(0,1fr)_288px]">
+    <div className="mx-auto grid w-full min-w-0 max-w-[1200px] grid-cols-1 gap-5 px-4 pt-6 pb-12 min-[1200px]:px-6 min-[1560px]:grid-cols-[minmax(0,1fr)_250px]">
       <div className="min-w-0">
         {/* Encabezado */}
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div className="mb-5 flex min-w-0 flex-col items-start gap-4 min-[1300px]:flex-row min-[1300px]:justify-between">
           <div className="min-w-0">
-            <h2 className="heading text-[28px] leading-tight">{f.nombre.trim() || 'Nuevo hospedaje'}</h2>
-            <p className="mt-1 text-[13px] text-ink-3">
-              {nueva ? 'Completa los datos del hospedaje. Tú subes la foto desde la web.' : estado === 'guardando' ? 'Guardando…' : estado === 'pendiente' ? (valido ? 'Cambios por guardar' : 'Falta el nombre o la capacidad') : estado === 'error' ? '' : `Se guarda solo · ${CMD}S`}
+            <h2 className="break-words text-[24px] font-semibold leading-tight tracking-[-.025em] text-ink" style={{ overflowWrap: 'anywhere' }}>{f.nombre.trim() || 'Nuevo hospedaje'}</h2>
+            <p className="mt-1 text-[13px] text-ink-soft">
+              {nueva ? 'Completa los datos que aparecerán en la página.' : estado === 'guardando' ? 'Guardando…' : estado === 'pendiente' ? (valido ? 'Cambios por guardar' : 'Falta el nombre o la capacidad') : estado === 'error' ? '' : `Se guarda solo · ${CMD}S`}
               {estado === 'guardado' && !nueva && <Check size={13} className="ml-1 inline text-success" />}
             </p>
             {errorGuardar && <p className="mt-1 text-[13px] text-danger">{errorGuardar}</p>}
@@ -235,23 +220,17 @@ function Editor({ original }: { original: Cabana | null }) {
               Crear hospedaje
             </Button>
           ) : (
-            <div className="rounded-[14px] px-4 py-2.5 ring-1 ring-line">
+            <div className="w-full min-w-0 py-1 min-[1300px]:max-w-[260px]">
               <Toggle checked={f.publicada} onChange={(v) => set('publicada', v)} label={f.publicada ? 'Sale en la página' : 'No sale en la página'} description={!f.publicada ? 'Apagado: no sale en la página' : !f.precio_noche ? 'Sin precio: en la página se pregunta por WhatsApp (ponle el precio en «Editar datos y precios»)' : undefined} />
             </div>
           )}
         </div>
 
-        <div className="app-cabana-illustration-banner">
-          <IlustracionHospedaje tipo={f.tipo} grande />
-          <div>
-            <strong>{TIPO[f.tipo].uno}</strong>
-            <p>Aquí solo va la ilustración. Tú agregas y administras las fotos en la web.</p>
-          </div>
-        </div>
+        <p className="mb-5 text-[12px] text-ink-soft">Sincronizado con la página · Las fotos se administran por separado.</p>
 
         <Bloque titulo="Datos">
-          <Segmented value={f.tipo} onChange={(v) => set('tipo', v)} options={(['cabana', 'casa', 'habitacion'] as TipoHospedaje[]).map((t) => ({ value: t, label: <><CasaIcono tipo={t} size={15} /> {TIPO[t].uno}</> }))} />
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="max-w-full overflow-x-auto pb-1"><Segmented value={f.tipo} onChange={(v) => set('tipo', v)} options={(['cabana', 'casa', 'habitacion'] as TipoHospedaje[]).map((t) => ({ value: t, label: <><CasaIcono tipo={t} size={15} /> {TIPO[t].uno}</> }))} /></div>
+          <div className="mt-4 grid grid-cols-1 gap-3 min-[1200px]:grid-cols-2">
             <Campo label="Nombre" value={f.nombre} onChange={(v) => set('nombre', v)} maxLength={80} autoFocus={nueva} ok={!!f.nombre.trim()} />
             <Campo
               label={original ? 'Clave (no se cambia)' : 'Clave en la página'}
@@ -264,8 +243,8 @@ function Editor({ original }: { original: Cabana | null }) {
           </div>
           <Campo className="mt-3" label="Resumen (una línea para la tarjeta)" value={f.resumen ?? ''} onChange={(v) => set('resumen', v || null)} maxLength={200} counter />
           <CampoLargo className="mt-3" label="Descripción" value={f.descripcion ?? ''} onChange={(v) => set('descripcion', v || null)} maxLength={4000} minRows={4} />
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <Contador className="col-span-2" label="Capacidad" value={f.capacidad} onChange={(n) => set('capacidad', n)} min={1} max={50} sufijo={(n) => plural(n, 'persona', 'personas')} />
+          <div className="mt-3 grid grid-cols-1 gap-3 min-[1200px]:grid-cols-2">
+            <Contador className="min-[1200px]:col-span-2" label="Capacidad" value={f.capacidad} onChange={(n) => set('capacidad', n)} min={1} max={50} sufijo={(n) => plural(n, 'persona', 'personas')} />
             <Contador label="Recámaras" value={f.recamaras ?? 0} onChange={(n) => set('recamaras', n)} min={0} max={20} />
             <Contador label="Baños" value={f.banos ?? 0} onChange={(n) => set('banos', n)} min={0} max={20} />
           </div>
@@ -276,7 +255,7 @@ function Editor({ original }: { original: Cabana | null }) {
         </Bloque>
 
         <Bloque titulo="Precios" detalle="Los precios los decide el rancho. Sin precio, la página muestra «Pregunta por WhatsApp».">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[1200px]:grid-cols-2">
             <CampoDinero label="Precio por noche" value={f.precio_noche} onChange={(v) => set('precio_noche', v)} />
             <CampoDinero label="Noche de fin de semana" value={f.precio_fin_semana} onChange={(v) => set('precio_fin_semana', v)} hint={`Noches de ${nochesFinde(d.ajustes.noches_fin_semana)}`} />
             <Contador label="Personas incluidas" value={f.huespedes_incluidos ?? f.capacidad} onChange={(n) => set('huespedes_incluidos', n)} min={1} max={f.capacidad} hint="Arriba de ellas se cobra el extra" />
@@ -325,12 +304,12 @@ function Editor({ original }: { original: Cabana | null }) {
       </div>
 
       {/* En una ventana angosta la vista previa se guarda para dejarle espacio al formulario */}
-      <aside className="hidden min-[1280px]:block">
+      <aside className="hidden min-[1560px]:block">
         <div className="sticky top-8">
-          <div className="mb-2 flex items-center gap-1.5 text-[13px] font-medium text-ink-3">
+          <div className="mb-2 flex items-center gap-1.5 text-[14px] font-semibold text-ink">
             {f.publicada ? <Eye size={14} /> : <EyeOff size={14} />} Vista orientativa{f.publicada ? '' : ' · oculta'}
           </div>
-          <p className="mb-2 text-[12px] text-ink-soft">Tú subes las fotos desde la web.</p>
+
           <VistaPrevia f={f} minimoGeneral={d.ajustes.noches_minimas} />
         </div>
       </aside>
@@ -346,8 +325,8 @@ function nochesFinde(n: number[]) {
 
 function Bloque({ titulo, detalle, children }: { titulo: string; detalle?: string; children: React.ReactNode }) {
   return (
-    <section className="app-cabana-block mt-9 first-of-type:mt-0">
-      <h3 className="text-[16px] font-semibold tracking-[-0.015em]">{titulo}</h3>
+    <section className="mt-7 min-w-0 border-t border-line pt-5 first-of-type:mt-0">
+      <h3 className="text-[17px] font-semibold tracking-[-0.015em] text-ink">{titulo}</h3>
       {detalle && <p className="mt-0.5 text-[13px] text-ink-soft">{detalle}</p>}
       <div className="mt-3.5">{children}</div>
     </section>
@@ -361,13 +340,13 @@ function Ejemplo({ f }: { f: Forma }) {
   const incluidas = f.huespedes_incluidos ?? f.capacidad
   const extra = f.precio_huesped_extra && f.capacidad > incluidas ? f.precio_huesped_extra * (f.capacidad - incluidas) * 2 : 0
   return (
-    <div className="mt-4 rounded-[14px] bg-sunken px-4 py-3 text-[14px]">
+    <div className="mt-4 border-l-2 border-primary py-1 pl-3 text-[13px]">
       <span className="text-ink-soft">Con estos precios, un fin de semana de 2 noches para {plural(incluidas, 'persona', 'personas')} sale en </span>
-      <b className="text-key">{mxn(finde * 2)}</b>
+      <b className="font-semibold text-primary">{mxn(finde * 2)}</b>
       {extra > 0 && (
         <span className="text-ink-soft">
           {' '}
-          y lleno ({f.capacidad}) en <b className="text-key">{mxn(finde * 2 + extra)}</b>
+          y lleno ({f.capacidad}) en <b className="font-semibold text-primary">{mxn(finde * 2 + extra)}</b>
         </span>
       )}
       <span className="text-ink-soft">.</span>
@@ -414,13 +393,13 @@ function Temporadas({ cabana, lista }: { cabana: Cabana; lista: Temporada[] }) {
           {lista.map((t) => (
             <div key={t.id} className="group flex items-center gap-3 px-4 py-3">
               <span className="min-w-0 flex-1">
-                <span className="block text-[14px] font-semibold">{t.nombre}</span>
+                <span className="block text-[14px] font-semibold text-ink">{t.nombre}</span>
                 <span className="block text-[13px] text-ink-soft">
                   Noches del {corta(t.desde)} al {corta(t.hasta)} · {plural(noches(t.desde, t.hasta) + 1, 'noche', 'noches')}
                   {t.noches_minimas ? ` · mínimo ${t.noches_minimas}` : ''}
                 </span>
               </span>
-              <span className="text-[14px] font-semibold text-key tabular">{mxn(t.precio_noche)}</span>
+              <span className="text-[15px] font-semibold text-primary tabular">{mxn(t.precio_noche)}</span>
               <button
                 aria-label={`Borrar ${t.nombre}`}
                 onClick={async () => {
@@ -432,7 +411,7 @@ function Temporadas({ cabana, lista }: { cabana: Cabana; lista: Temporada[] }) {
                     toast.error('No se pudo borrar', e instanceof Error ? e.message : String(e))
                   }
                 }}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-ink-3 opacity-0 group-hover:opacity-100 hover:bg-wash hover:text-danger focus-visible:opacity-100"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft opacity-0 group-hover:opacity-100 hover:bg-wash hover:text-danger focus-visible:opacity-100"
               >
                 <Trash2 size={15} />
               </button>
@@ -442,14 +421,14 @@ function Temporadas({ cabana, lista }: { cabana: Cabana; lista: Temporada[] }) {
       )}
       {nueva ? (
         <div className="rounded-[14px] bg-sunken p-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[1200px]:grid-cols-2">
             <Campo label="Nombre de la temporada" value={nombre} onChange={setNombre} placeholder="Navidad" maxLength={60} autoFocus />
             <CampoDinero label="Precio por noche" value={precio} onChange={setPrecio} />
           </div>
           <div className="mt-3 rounded-[12px] bg-surface p-3">
             <RangoFechas llegada={desde} salida={hastaSalida} hoy={d.hoy} ocupacion={ocupacion} onChange={(a, b) => (setDesde(a), setHastaSalida(b))} />
           </div>
-          <p className="mt-2 text-[13px] text-ink-3">{desde && hastaSalida ? `Cobra las noches del ${corta(desde)} al ${corta(masDias(hastaSalida, -1))} (${rango(desde, hastaSalida)})` : 'Elige la primera noche y el día siguiente a la última.'}</p>
+          <p className="mt-2 text-[13px] text-ink-soft">{desde && hastaSalida ? `Cobra las noches del ${corta(desde)} al ${corta(masDias(hastaSalida, -1))} (${rango(desde, hastaSalida)})` : 'Elige la primera noche y el día siguiente a la última.'}</p>
           <Contador className="mt-3" label="Mínimo de noches en esas fechas" value={minimo} onChange={setMinimo} min={1} max={60} />
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setNueva(false)}>
@@ -480,10 +459,10 @@ function VistaPrevia({ f, minimoGeneral }: { f: Forma; minimoGeneral: number }) 
         <span className="absolute top-3 left-3 rounded-full bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] px-2.5 py-1 text-[12px] font-semibold backdrop-blur">{TIPO[f.tipo].uno}</span>
       </div>
       <div className="p-5">
-        <h4 className="text-[19px] leading-tight font-semibold tracking-[-0.02em]">
+        <h4 className="text-[18px] leading-tight font-semibold tracking-[-0.02em] text-ink">
           {f.nombre.trim() || 'Nombre del hospedaje'}
         </h4>
-        <p className={cx('mt-1.5 text-[14px] leading-snug', f.resumen ? 'text-ink-soft' : 'text-ink-3')}>{f.resumen || 'El resumen aparece aquí'}</p>
+        <p className={cx('mt-1.5 text-[14px] leading-snug', f.resumen ? 'text-ink-soft' : 'text-ink-soft')}>{f.resumen || 'El resumen aparece aquí'}</p>
         <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-ink-soft">
           <span className="inline-flex items-center gap-1">
             <Users size={13} /> {plural(f.capacidad, 'persona', 'personas')}
@@ -506,20 +485,20 @@ function VistaPrevia({ f, minimoGeneral }: { f: Forma; minimoGeneral: number }) 
                 {a}
               </span>
             ))}
-            {f.amenidades.length > 6 && <span className="px-1 text-[12px] text-ink-3">y {f.amenidades.length - 6} más</span>}
+            {f.amenidades.length > 6 && <span className="px-1 text-[12px] text-ink-soft">y {f.amenidades.length - 6} más</span>}
           </div>
         )}
         <div className="mt-4 flex items-end justify-between border-t border-line pt-3.5">
           {desde ? (
             <span>
-              <span className="text-[12px] text-ink-3">Desde </span>
-              <span className="text-[20px] font-semibold text-key tabular">{mxn(desde)}</span>
-              <span className="text-[12px] text-ink-3"> / noche</span>
+              <span className="text-[12px] text-ink-soft">Desde </span>
+              <span className="text-[20px] font-semibold text-ink tabular">{mxn(desde)}</span>
+              <span className="text-[12px] text-ink-soft"> / noche</span>
             </span>
           ) : (
             <span className="text-[13px] font-medium text-ink-soft">Pregunta por WhatsApp</span>
           )}
-          {minimo > 1 && <span className="text-[12px] text-ink-3">Mínimo {minimo} noches</span>}
+          {minimo > 1 && <span className="text-[12px] text-ink-soft">Mínimo {minimo} noches</span>}
         </div>
       </div>
     </motion.article>

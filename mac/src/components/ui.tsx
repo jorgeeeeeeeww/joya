@@ -1,3 +1,4 @@
+import { AnimatedNumber } from './AnimatedNumber'
 // step1 · componentes base, copiados del PWA y ajustados a la Mac (mouse, teclado, ventana ancha).
 // Solo tokens: sin colores sueltos.
 import { createContext, forwardRef, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode, type RefObject } from 'react'
@@ -190,14 +191,14 @@ export function Toggle({ checked, onChange, label, description, disabled }: { ch
 export function Segmented<T extends string>({ value, onChange, options, className, size = 'md' }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode }[]; className?: string; size?: 'sm' | 'md' }) {
   const id = useId()
   return (
-    <div className={cx('inline-flex rounded-full bg-sunken p-[3px] ring-1 ring-line ring-inset', className)} role="tablist">
+    <div className={cx('inline-flex max-w-full overflow-x-auto rounded-full bg-sunken p-[3px] ring-1 ring-line ring-inset', className)} role="tablist">
       {options.map((o) => (
         <button
           key={o.value}
           role="tab"
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cx('relative flex-1 rounded-full font-medium whitespace-nowrap transition-colors duration-[var(--dur-3)]', size === 'sm' ? 'h-7 px-3 text-[13px]' : 'h-8 px-3.5 text-[13px]', value === o.value ? 'text-ink' : 'text-ink-soft hover:text-ink')}
+          className={cx('relative flex-auto shrink-0 rounded-full font-medium whitespace-nowrap transition-colors duration-[var(--dur-3)]', size === 'sm' ? 'h-7 px-3 text-[13px]' : 'h-8 px-3.5 text-[13px]', value === o.value ? 'text-ink' : 'text-ink-soft hover:text-ink')}
         >
           {value === o.value && <motion.span layoutId={id} className="absolute inset-0 rounded-full bg-surface shadow-[var(--shadow-1)] ring-1 ring-line" transition={spring.suave} />}
           <span className="relative z-10 inline-flex items-center gap-1.5">{o.label}</span>
@@ -219,11 +220,11 @@ export function Stat({ label, value, sub, icon, onClick }: { label: string; valu
   const inStrip = useContext(StripContext)
   const body = (
     <>
-      <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-ink-soft">
+      <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] font-semibold text-ink">
         {icon && <span className="inline-flex shrink-0 text-ink-3 [&>svg]:h-[15px] [&>svg]:w-[15px]">{icon}</span>}
         <span>{label}</span>
       </span>
-      <div className="display-num mt-2.5 text-[26px] leading-none">{value}</div>
+      <div className="display-num mt-2.5 text-[26px] leading-none">{typeof value === 'number' ? <AnimatedNumber value={value} /> : value}</div>
       {sub && <div className="mt-1.5 text-[13px] leading-snug text-ink-3">{sub}</div>}
     </>
   )

@@ -128,11 +128,11 @@ export default function Ajustes() {
 
   const ejemplo = d.cabanas.find((c) => c.precio_noche)
   return (
-    <div className="app-settings-page mx-auto max-w-[860px] px-8 pt-9 pb-20">
+    <div className="mx-auto max-w-[940px] px-8 pt-8 pb-20">
       <div className="mb-7 flex items-end justify-between gap-4">
         <div>
-          <h1 className="heading text-[30px] leading-[1.1]">Ajustes</h1>
-          <p className="mt-1.5 text-[14px] text-ink-soft">
+          <h1 className="text-[30px] leading-[1.1] font-semibold tracking-[-.04em] text-ink">Ajustes</h1>
+          <p className="mt-1.5 text-[12px] text-ink-soft">
             {!admin ? 'Solo el dueño puede cambiar estos datos.' : estado === 'guardando' ? 'Guardando…' : estado === 'pendiente' ? 'Cambios por guardar' : estado === 'incompleto' ? `Falta terminar ${incompletas.join(' y ')}. Lo demás ya se guardó.` : estado === 'error' ? '' : 'Todo se guarda solo.'}
             {admin && estado === 'guardado' && <Check size={14} className="ml-1 inline text-success" />}
           </p>
@@ -143,7 +143,7 @@ export default function Ajustes() {
       <fieldset disabled={!admin} className="contents">
         {/* Encender la página */}
         <div className={cx('card flex items-start gap-4 p-5', f.reservas_web && 'ring-2 ring-[color-mix(in_oklab,var(--success)_40%,transparent)]')}>
-          <span className={cx('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', f.reservas_web ? 'bg-sage-soft text-sage-ink' : 'bg-sunken text-ink-3')}>
+          <span className={cx('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', f.reservas_web ? 'bg-sage-soft text-sage-ink' : 'bg-sunken text-ink-soft')}>
             <Globe size={20} />
           </span>
           <div className="min-w-0 flex-1">
@@ -160,7 +160,7 @@ export default function Ajustes() {
           </div>
         </div>
 
-        <Bloque titulo="Llegada y salida" detalle="Arrastra las dos marcas sobre el día. Entre una y otra queda el tiempo para dejar todo listo.">
+        <Bloque titulo="Llegada y salida" detalle="Arrastra las marcas para cambiar los horarios.">
           <Reloj salida={f.hora_salida} llegada={f.hora_llegada} onSalida={(v) => set('hora_salida', v)} onLlegada={(v) => set('hora_llegada', v)} />
         </Bloque>
 
@@ -170,7 +170,7 @@ export default function Ajustes() {
             {f.anticipo_pct === 0 ? 'Las solicitudes no piden transferencia: tú confirmas por WhatsApp.' : ejemplo ? `Por ejemplo, una noche en ${ejemplo.nombre} (${mxn(ejemplo.precio_noche)}) pide ${mxn(Math.round((ejemplo.precio_noche! * f.anticipo_pct) / 100))} de anticipo.` : `El huésped transfiere el ${f.anticipo_pct} % del total para apartar.`}
           </p>
           <div className="mt-6">
-            <div className="mb-2 text-[13px] font-medium text-ink-soft">Las fechas de una solicitud se apartan</div>
+            <div className="mb-2 text-[14px] font-semibold text-ink">Las fechas de una solicitud se apartan</div>
             <div className="flex flex-wrap gap-1.5">
               {[6, 12, 24, 48, 72].map((h) => (
                 <button key={h} type="button" onClick={() => set('horas_apartado', h)} className={cx('pressable h-9 rounded-full px-3.5 text-[13px] font-medium ring-1 ring-inset', f.horas_apartado === h ? 'bg-ink text-paper ring-ink' : 'text-ink-soft ring-line-strong hover:text-ink')}>
@@ -185,7 +185,7 @@ export default function Ajustes() {
             <Contador label="Se puede reservar con" value={f.dias_anticipacion} onChange={(n) => set('dias_anticipacion', n)} min={7} max={730} sufijo={(n) => (n % 30 === 0 ? plural(n / 30, 'mes', 'meses') : plural(n, 'día', 'días'))} hint="de anticipación como máximo" />
           </div>
           <div className="mt-6">
-            <div className="mb-2 text-[13px] font-medium text-ink-soft">Noches con precio de fin de semana</div>
+            <div className="mb-2 text-[14px] font-semibold text-ink">Noches con precio de fin de semana</div>
             <div className="flex flex-wrap gap-1.5">
               {['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'].map((n, i) => {
                 const v = i + 1
@@ -197,7 +197,7 @@ export default function Ajustes() {
                 )
               })}
             </div>
-            <p className="mt-2 text-[13px] text-ink-soft">La noche del viernes es la que empieza el viernes y termina el sábado en la mañana.</p>
+            <p className="mt-2 text-[13px] text-ink-soft">La tarifa del viernes corresponde a la noche del viernes al sábado.</p>
           </div>
         </Bloque>
 
@@ -283,8 +283,8 @@ function ProbarAviso() {
 
 function Bloque({ titulo, detalle, children }: { titulo: string; detalle?: string; children: ReactNode }) {
   return (
-    <section className="app-settings-block mt-11">
-      <h2 className="text-[17px] font-semibold tracking-[-0.02em]">{titulo}</h2>
+    <section className="mt-5 rounded-[22px] border border-line bg-surface p-6">
+      <h2 className="text-[16px] font-semibold tracking-[-0.02em] text-ink">{titulo}</h2>
       {detalle && <p className="mt-0.5 text-[13px] text-ink-soft">{detalle}</p>}
       <div className="mt-4">{children}</div>
     </section>
@@ -296,8 +296,8 @@ function Deslizador({ label, value, onChange, min, max, paso, formato }: { label
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
-        <span className="text-[13px] font-medium text-ink-soft">{label}</span>
-        <span className="text-[20px] font-semibold text-key tabular">{formato(value)}</span>
+        <span className="text-[14px] font-semibold text-ink">{label}</span>
+        <span className="text-[20px] font-semibold text-ink tabular">{formato(value)}</span>
       </div>
       <input type="range" min={min} max={max} step={paso} value={value} onChange={(e) => onChange(Number(e.target.value))} className="deslizador w-full" style={{ ['--pct' as string]: `${pct}%` }} aria-label={label} />
     </div>
@@ -362,11 +362,11 @@ function Reloj({ salida, llegada, onSalida, onLlegada }: { salida: string | null
         <Marca x={x(s)} etiqueta="Salida" hora={salida ? doce(s) : 'Sin definir'} icon={<LogOut size={14} />} activa={cual === 'salida'} definida={!!salida} />
         <Marca x={x(l)} etiqueta="Llegada" hora={llegada ? doce(l) : 'Sin definir'} icon={<LogIn size={14} />} activa={cual === 'llegada'} definida={!!llegada} abajo />
       </div>
-      <div className="relative mt-3 h-4 text-[11px] text-ink-3">
+      <div className="relative mt-3 h-4 text-[11px] text-ink-soft">
         {horas
           .filter((m) => (m / 60) % 2 === 0)
           .map((m) => (
-            <span key={m} className="absolute -translate-x-1/2 whitespace-nowrap tabular" style={{ left: x(m) }}>
+            <span key={m} className="absolute whitespace-nowrap tabular" style={{ left: x(m), transform: m === DESDE ? 'none' : m === HASTA ? 'translateX(-100%)' : 'translateX(-50%)' }}>
               {Math.floor(m / 60) > 12 ? Math.floor(m / 60) - 12 : Math.floor(m / 60)}
               {Math.floor(m / 60) < 12 ? ' am' : ' pm'}
             </span>
@@ -384,8 +384,8 @@ function Marca({ x, etiqueta, hora, icon, activa, definida, abajo }: { x: string
         <span className="flex h-full w-full items-center justify-center text-ink">{icon}</span>
       </div>
       <div className={cx('absolute -translate-x-1/2 text-center whitespace-nowrap', abajo ? 'top-[70px]' : '-top-[2px]')}>
-        <span className="text-[12px] text-ink-3">{etiqueta} </span>
-        <span className="text-[13px] font-semibold">{hora}</span>
+        <span className="text-[12px] text-ink-soft">{etiqueta} </span>
+        <span className="text-[15px] font-semibold text-ink">{hora}</span>
       </div>
     </motion.div>
   )
@@ -403,7 +403,7 @@ function EstaMac() {
       <div className="card divide-y divide-line">
         {enMac && alIniciar !== null && (
           <div className="flex items-center gap-4 px-5 py-4">
-            <Power size={18} className="text-ink-3" />
+            <Power size={18} className="text-ink-soft" />
             <div className="flex-1">
               <Toggle
                 checked={alIniciar}
@@ -418,9 +418,9 @@ function EstaMac() {
           </div>
         )}
         <div className="flex items-center gap-4 px-5 py-4">
-          <Bell size={18} className="text-ink-3" />
+          <Bell size={18} className="text-ink-soft" />
           <div className="min-w-0 flex-1">
-            <div className="text-[14px] font-medium">Avisos de cada solicitud</div>
+            <div className="text-[14px] font-semibold text-ink">Avisos de cada solicitud</div>
             <div className="text-[13px] text-ink-soft">Llegan al Centro de notificaciones y suman al número del Dock.</div>
           </div>
           <Button
@@ -435,9 +435,9 @@ function EstaMac() {
           </Button>
         </div>
         <div className="flex items-center gap-4 px-5 py-4">
-          <Download size={18} className="text-ink-3" />
+          <Download size={18} className="text-ink-soft" />
           <div className="min-w-0 flex-1">
-            <div className="text-[14px] font-medium">Versión {__APP_VERSION__}</div>
+            <div className="text-[14px] font-semibold text-ink">Versión {__APP_VERSION__}</div>
             <div className="text-[13px] text-ink-soft">{esNubeLocal ? `Conectada a la nube local (${URL_NUBE})` : 'Conectada a la nube del rancho'}</div>
           </div>
           {enMac && (

@@ -1,0 +1,484 @@
+/* ==========================================================================
+   step1 · tokens v1.0 — La huella visual de Jorge
+   Fuente única de verdad para web (CSS / Tailwind v4 / shadcn).
+   Espejo para JS / React Native: assets/tokens.ts (mismos valores).
+
+   Uso en <html>:
+     data-atmos      = "crepusculo" (base) | "marea" | "flor" | "nocturno"
+     data-theme      = (ausente = sigue al sistema) | "light" | "dark"
+     data-intensity  = "sutil" | "equilibrada" (base) | "expresiva"
+     data-type       = "editorial" (base) | "geometrica" | "elegante"
+     data-density    = "aireada" (base) | "compacta"
+
+   Requiere navegadores con light-dark(), color-mix() y mask-image (Baseline 2024).
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Fundaciones invariantes (no cambian entre atmósferas)
+   -------------------------------------------------------------------------- */
+:root {
+  color-scheme: light dark;
+
+  /* Tipografía — una sola familia: Geist (sin serif ni cursiva). Títulos en semibold con interletra cerrada. */
+  --font-display: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --display-settings: normal;
+  --display-weight: 600;
+  --display-tracking: -0.032em;
+  --display-leading: 1.06;
+
+  /* Escala fluida (ratio ~1.25) */
+  --text-2xs: 0.6875rem;                                 /* 11 — solo etiquetas en mayúsculas */
+  --text-xs: 0.75rem;                                    /* 12 */
+  --text-sm: 0.875rem;                                   /* 14 */
+  --text-base: 1rem;                                     /* 16 */
+  --text-lg: 1.125rem;                                   /* 18 */
+  --text-xl: 1.25rem;                                    /* 20 — títulos de sección */
+  --text-2xl: clamp(1.375rem, 1.25rem + 0.4vw, 1.625rem); /* 22→26 */
+  --text-3xl: clamp(1.75rem, 1.5rem + 1vw, 2.25rem);     /* 28→36 */
+  --text-4xl: clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem);     /* 40→72 */
+  --text-display: clamp(3rem, 1.8rem + 5vw, 6.5rem);     /* 48→104 */
+  --leading-body: 1.6;
+  --leading-tight: 1.2;
+  --measure: 62ch;
+
+  /* Espacio (base 4) — "cielo": mucho aire */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;  --s-5: 24px;
+  --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;  --s-10: 128px;
+  --section: clamp(4rem, 3rem + 6vw, 10rem);   /* padding vertical de sección */
+  --gutter: clamp(1rem, 0.5rem + 2.5vw, 2.5rem);
+  --frame: clamp(6px, 0.4rem + 0.4vw, 12px);   /* margen del "lienzo" (passe-partout) */
+  --container: 1200px;
+  --control-h: 48px;     /* alto de botones/inputs (táctil) */
+  --control-h-sm: 40px;
+  --card-pad: clamp(20px, 1rem + 1vw, 32px);
+
+  /* Radios — formas suaves: pills, arcos, círculos */
+  --r-xs: 6px;  --r-sm: 10px; --r-md: 14px; --r-lg: 22px; --r-xl: 32px;
+  --r-slab: clamp(20px, 1rem + 1.5vw, 36px);   /* losas de sección */
+  --r-pill: 999px;
+  --r-arch: 999px 999px var(--r-md) var(--r-md);
+
+  /* Movimiento — "deriva" */
+  --ease-calma: cubic-bezier(0.22, 1, 0.36, 1);    /* entradas, hover */
+  --ease-marea: cubic-bezier(0.65, 0, 0.35, 1);    /* ida y vuelta, loops */
+  --ease-salida: cubic-bezier(0.55, 0, 1, 0.45);   /* salidas (más cortas) */
+  --dur-1: 120ms;  /* press */
+  --dur-2: 180ms;  /* hover, color */
+  --dur-3: 280ms;  /* cambios de estado */
+  --dur-4: 480ms;  /* entradas, modales */
+  --dur-5: 800ms;  /* hero, revelados grandes */
+  --stagger: 70ms;
+
+  /* Grano (textura de papel) */
+  --grain-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 0 0 0 -.95'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --grain-size: 220px;
+
+  /* Intensidad "equilibrada" (base) */
+  --grain-opacity: 0.07;
+  --rise: 12px;
+  --luz-glow: 55%;
+  --ambient: running;
+}
+
+/* Modo de color forzado */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
+
+/* --------------------------------------------------------------------------
+   2. Atmósferas (cada color = light-dark(claro, oscuro))
+   Contrastes verificados: texto ≥ 4.5:1 sobre paper/surface/sunken.
+   -------------------------------------------------------------------------- */
+
+/* CREPÚSCULO — base. Globo al atardecer: índigo, lavanda, rosa polvo, luz crema */
+:root, [data-atmos="crepusculo"] {
+  --paper:          light-dark(#F4ECE0, #1A2233);
+  --surface:        light-dark(#FAF5EC, #222C40);
+  --sunken:         light-dark(#EAE0D1, #151C2A);
+  --ink:            light-dark(#2B3150, #EFE3CB);
+  --ink-soft:       light-dark(#565D7E, #B4B7CB);
+  --primary:        light-dark(#4B5582, #F0D9AF);
+  --primary-hover:  light-dark(#3E4770, #F7E5C4);
+  --on-primary:     light-dark(#F7EBD6, #1A2233);
+  --secondary:      light-dark(#DDD3DC, #333E57);
+  --matiz:          light-dark(#C29596, #8E86AE);   /* decorativo */
+  --matiz-ink:      light-dark(#7E5257, #BDB3D8);   /* matiz como texto */
+  --chispa:         light-dark(#A95434, #F0A27A);   /* brasa: 1 CTA de conversión / 1 cifra por vista */
+  --chispa-soft:    light-dark(#E0906A, #C9805F);   /* no-texto: barras, puntos */
+  --on-chispa:      light-dark(#FBEFDF, #1A2233);
+  --luz:            light-dark(#F2D8AE, #F2DDB6);
+  --night:          light-dark(#1A2233, #10172A);   /* losas oscuras */
+  --on-night:       #EFE3CB;
+  --on-night-soft:  #AEB4C8;
+  --horizon:        light-dark(#5C6989, #0B1120);   /* tono hacia el que oscurecen las capas frontales */
+  --shade:          light-dark(#2B3150, #05080F);   /* color de sombras */
+  --sky-1: light-dark(#5C6989, #151C2E);
+  --sky-2: light-dark(#89879B, #283150);
+  --sky-3: light-dark(#BCA3A3, #4A4868);
+  --sky-4: light-dark(#E9C4AA, #6E5F7A);
+  --success: light-dark(#466550, #8FB39A);
+  --warning: light-dark(#825718, #E0B36E);
+  --danger:  light-dark(#963F38, #E8988D);
+  --info:    light-dark(#4B5582, #A9B6D6);
+}
+
+/* MAREA — veleros al atardecer: ocre, arena, verde azulado profundo */
+[data-atmos="marea"] {
+  --paper:          light-dark(#F5ECDB, #13262A);
+  --surface:        light-dark(#FBF5EA, #1B3237);
+  --sunken:         light-dark(#EBDFC8, #0F1F22);
+  --ink:            light-dark(#1E3A40, #F2E4C6);
+  --ink-soft:       light-dark(#4A6468, #AFC0BC);
+  --primary:        light-dark(#2F5A61, #E8B876);
+  --primary-hover:  light-dark(#244A50, #F0C890);
+  --on-primary:     light-dark(#F6EAD2, #13262A);
+  --secondary:      light-dark(#DCE3D8, #27443A);
+  --matiz:          light-dark(#D99A55, #5E8C87);
+  --matiz-ink:      light-dark(#7A4F18, #9CC2BD);
+  --chispa:         light-dark(#A15924, #EDAA64);
+  --chispa-soft:    light-dark(#E1A05E, #C98A4A);
+  --on-chispa:      light-dark(#FBEFDF, #13262A);
+  --luz:            light-dark(#F2D7A4, #F2D7A4);
+  --night:          light-dark(#13262A, #0A1719);
+  --on-night:       #F2E4C6;
+  --on-night-soft:  #AFC0BC;
+  --horizon:        light-dark(#33585E, #07120F);
+  --shade:          light-dark(#1E3A40, #030809);
+  --sky-1: light-dark(#C5A073, #13262A);
+  --sky-2: light-dark(#E1AA68, #1F3B40);
+  --sky-3: light-dark(#F1C383, #3B5A5A);
+  --sky-4: light-dark(#F2D7A4, #7A6A4A);
+  --success: light-dark(#466550, #8FB39A);
+  --warning: light-dark(#825718, #E8B876);
+  --danger:  light-dark(#963F38, #E8988D);
+  --info:    light-dark(#2F5A61, #9CC2BD);
+}
+
+/* FLOR — versión formal para La Joya: marfil, piedra, salvia, azul gris y arena.
+   Pastel sobrio de negocio; un solo acento terracota apagado para lo que más importa.
+   Claro: marfil que no encandila de noche. Oscuro: grafito cálido con pasteles suaves. */
+[data-atmos="flor"] {
+  --paper:          light-dark(#ECE8E1, #1B1D21);
+  --surface:        light-dark(#F5F2EC, #24272C);
+  --sunken:         light-dark(#E0DBD2, #141619);
+  --ink:            light-dark(#2A2B30, #ECE8E1);
+  --ink-soft:       light-dark(#5B5C64, #B6B3AD);
+  --primary:        light-dark(#46525E, #C8D1D9);
+  --primary-hover:  light-dark(#3A4550, #DAE1E7);
+  --on-primary:     light-dark(#F5F2EC, #1B1D21);
+  --secondary:      light-dark(#DADBD3, #2E3238);
+  --matiz:          light-dark(#9FAE9A, #8E9F8A);
+  --matiz-ink:      light-dark(#4F5C4B, #BDCAB7);
+  --olive:          light-dark(#686B55, #A8AB8E);
+  --chispa:         light-dark(#965A46, #DDA58E);
+  --chispa-soft:    light-dark(#C9A190, #B38E7E);
+  --on-chispa:      light-dark(#F8F1EA, #1B1D21);
+  --luz:            light-dark(#EADBC2, #EADCC4);
+  --night:          light-dark(#25282E, #111316);
+  --on-night:       #EEEAE3;
+  --on-night-soft:  #B4B2B4;
+  --horizon:        light-dark(#46525E, #0B0C0F);
+  --shade:          light-dark(#2A2B30, #030405);
+  --sky-1: light-dark(#7A8592, #1B1D21);
+  --sky-2: light-dark(#A2A8AE, #272B32);
+  --sky-3: light-dark(#C7C1B4, #3A414A);
+  --sky-4: light-dark(#E4D9C6, #5B6470);
+  --success: light-dark(#4B6350, #A0BB9C);
+  --warning: light-dark(#76592A, #DDBC88);
+  --danger:  light-dark(#8A3F3A, #E39E95);
+  --info:    light-dark(#46525E, #B3C0CD);
+}
+
+/* Colores de datos y etiquetas más apagados en la atmósfera formal (más específico que la base de abajo) */
+:root[data-atmos="flor"] {
+  --data-1: light-dark(#6E7B8B, #A9B5C6);
+  --data-2: light-dark(#B49796, #D7B5B3);
+  --data-3: light-dark(#BFA06E, #DCC293);
+  --data-4: light-dark(#5E7D79, #96B5B1);
+  --data-5: light-dark(#998FA4, #C2B9D0);
+  --data-6: light-dark(#83826A, #B4B394);
+}
+
+/* NOCTURNO — montañas bajo la luna: pizarra, azul noche, lavanda, luna crema */
+[data-atmos="nocturno"] {
+  --paper:          light-dark(#EFEDE7, #172330);
+  --surface:        light-dark(#F8F6F1, #1F2E3D);
+  --sunken:         light-dark(#E3E0D8, #111B26);
+  --ink:            light-dark(#1C2B3A, #F1E3C4);
+  --ink-soft:       light-dark(#4A5A6B, #AEB9C6);
+  --primary:        light-dark(#34506A, #F1DDB4);
+  --primary-hover:  light-dark(#2A4258, #F8E9CC);
+  --on-primary:     light-dark(#F4E6C8, #172330);
+  --secondary:      light-dark(#DAD9E4, #2C3D50);
+  --matiz:          light-dark(#8F87B5, #8F87B5);
+  --matiz-ink:      light-dark(#62588A, #B9B0D6);
+  --chispa:         light-dark(#A2592B, #EFB06F);
+  --chispa-soft:    light-dark(#E09A5E, #C98E52);
+  --on-chispa:      light-dark(#FBEFDF, #172330);
+  --luz:            light-dark(#F1DDB4, #F1DDB4);
+  --night:          light-dark(#172330, #0D151F);
+  --on-night:       #F1E3C4;
+  --on-night-soft:  #AEB9C6;
+  --horizon:        light-dark(#345163, #070D14);
+  --shade:          light-dark(#1C2B3A, #03060A);
+  --sky-1: light-dark(#798897, #192A34);
+  --sky-2: light-dark(#9E9EA5, #263D4C);
+  --sky-3: light-dark(#BFB2AE, #4C6078);
+  --sky-4: light-dark(#F4DFC0, #627388);
+  --success: light-dark(#466550, #8FB39A);
+  --warning: light-dark(#7E5518, #E0B36E);
+  --danger:  light-dark(#963F38, #E8988D);
+  --info:    light-dark(#34506A, #A9B6D6);
+}
+
+/* LA JOYA — un solo color: el verde agave de la marca, en todos sus tonos. De día es niebla clara (sin blanco puro, para
+   no encandilar) y de noche un verde grisáceo medio, nunca negro. Lo importante va en el tono fuerte del mismo color;
+   lo secundario, en sus tonos pálidos. Solo el rojo se usa aparte, y únicamente para errores y borrar. */
+[data-atmos="lajoya"] {
+  --paper:          light-dark(#E7EDE9, #1F2E2A);
+  --surface:        light-dark(#F1F5F2, #283A35);
+  --sunken:         light-dark(#DAE3DE, #1A2724);
+  --ink:            light-dark(#1F3631, #DCE8E3);
+  --ink-soft:       light-dark(#4B665F, #A8BEB7);
+  --primary:        light-dark(#3F7A6D, #86BFB0);
+  --primary-hover:  light-dark(#346B5F, #9CCDBF);
+  --on-primary:     light-dark(#F1F5F2, #14221E);
+  --secondary:      light-dark(#D0E0D9, #34493F);
+  --matiz:          light-dark(#7FA79B, #4E7A6E);   /* decorativo */
+  --matiz-ink:      light-dark(#3C685D, #A8D0C5);   /* tono suave como texto */
+  --chispa:         light-dark(#2F6256, #9AD0C2);   /* lo importante: el tono fuerte del mismo verde */
+  --chispa-soft:    light-dark(#6FA394, #5E9A8B);   /* no-texto: barras, puntos */
+  --on-chispa:      light-dark(#F1F5F2, #14221E);
+  --luz:            light-dark(#CBE0D8, #BFE0D6);
+  --night:          light-dark(#2A4A43, #324F48);   /* bloques y avisos oscuros */
+  --on-night:       #E8F1ED;
+  --on-night-soft:  #B5CBC4;
+  --horizon:        light-dark(#6F8A84, #1A2926);
+  --shade:          light-dark(#1F3631, #0B1311);
+  --sky-1: light-dark(#6F8A84, #2B423C);
+  --sky-2: light-dark(#9DB4AC, #3A5750);
+  --sky-3: light-dark(#C3D3CC, #4E7A6E);
+  --sky-4: light-dark(#E3ECE8, #6E9A8E);
+  --success: light-dark(#3F7A6D, #86BFB0);
+  --warning: light-dark(#5E7A72, #A8BEB7);
+  --danger:  light-dark(#A24A44, #E8958D);
+  --info:    light-dark(#3F7A6D, #86BFB0);
+}
+/* Los colores de etiquetas y estados (antes seis colores distintos): todos son tonos del mismo verde */
+:root[data-atmos="lajoya"] {
+  --data-1: light-dark(#3F7A6D, #86BFB0);
+  --data-2: light-dark(#8A9E97, #93A8A1);
+  --data-3: light-dark(#6F9A8C, #8FB8AA);
+  --data-4: light-dark(#5E9A8B, #6FB09F);
+  --data-5: light-dark(#5F8A82, #8FB5AB);
+  --data-6: light-dark(#4F8A7A, #86BFB0);
+}
+
+/* --------------------------------------------------------------------------
+   3. Derivados (funcionan con cualquier atmósfera)
+   -------------------------------------------------------------------------- */
+:root, [data-atmos] {
+  --line:        color-mix(in oklab, var(--ink) 12%, transparent);
+  --line-strong: color-mix(in oklab, var(--ink) 22%, transparent);
+  --ink-faint:   color-mix(in oklab, var(--ink) 45%, var(--paper));   /* solo decorativo / deshabilitado */
+  --wash:        color-mix(in oklab, var(--ink) 6%, transparent);     /* hover de ghost */
+  --bruma:       color-mix(in oklab, var(--surface) 72%, transparent); /* "vidrio" cálido con blur */
+  --ink-base:      var(--ink);        /* tinta original (para tarjetas claras dentro de losas noche) */
+  --ink-soft-base: var(--ink-soft);
+
+  /* Capas atmosféricas: fondo → frente (perspectiva aérea) */
+  --layer-1: color-mix(in oklab, var(--horizon) 10%, var(--paper));
+  --layer-2: color-mix(in oklab, var(--horizon) 22%, var(--paper));
+  --layer-3: color-mix(in oklab, var(--horizon) 38%, var(--paper));
+  --layer-4: color-mix(in oklab, var(--horizon) 58%, var(--paper));
+
+  --sky: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 38%, var(--sky-3) 68%, var(--sky-4) 100%);
+  --sky-soft: linear-gradient(180deg, color-mix(in oklab, var(--sky-4) 70%, var(--paper)) 0%, var(--paper) 100%);
+
+  /* Sombras teñidas (nunca gris/negro puro) */
+  --shadow-1: 0 1px 2px color-mix(in oklab, var(--shade) 6%, transparent),
+              0 4px 14px color-mix(in oklab, var(--shade) 6%, transparent);
+  --shadow-2: 0 2px 6px color-mix(in oklab, var(--shade) 7%, transparent),
+              0 14px 36px color-mix(in oklab, var(--shade) 11%, transparent);
+  --shadow-3: 0 6px 16px color-mix(in oklab, var(--shade) 9%, transparent),
+              0 30px 70px color-mix(in oklab, var(--shade) 16%, transparent);
+  --glow: 0 0 0 1px color-mix(in oklab, var(--luz) 45%, transparent),
+          0 0 48px -6px color-mix(in oklab, var(--luz) var(--luz-glow), transparent);
+  --focus-ring: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink),
+          0 0 24px 2px color-mix(in oklab, var(--luz) 60%, transparent);
+
+  /* Grano teñido por la atmósfera (motas de tinta en claro, de luz en oscuro) */
+  --grain-color: light-dark(var(--ink), var(--luz));
+
+  /* Visualización de datos (categóricas, apagadas) */
+  --data-1: light-dark(#5C6989, #9AA6CC);
+  --data-2: light-dark(#C28B8B, #E0AFAE);
+  --data-3: light-dark(#C9974F, #E8C07E);
+  --data-4: light-dark(#4D7171, #86B0AE);
+  --data-5: light-dark(#A2939F, #C4B7D6);
+  --data-6: light-dark(#7C7A55, #B5B38A);
+}
+
+/* --------------------------------------------------------------------------
+   4. Diales
+   -------------------------------------------------------------------------- */
+[data-intensity="sutil"]     { --grain-opacity: 0.045; --rise: 8px;  --luz-glow: 35%; --ambient: paused; }
+[data-intensity="expresiva"] { --grain-opacity: 0.10;  --rise: 20px; --luz-glow: 75%; }
+
+[data-type="geometrica"] {
+  --font-display: "Outfit", "Avenir Next", "Futura", ui-sans-serif, system-ui, sans-serif;
+  --display-settings: normal; --display-weight: 400; --display-tracking: -0.03em; --display-leading: 1.02;
+}
+[data-type="elegante"] {
+  --font-display: "Instrument Serif", "Cormorant Garamond", Georgia, serif;
+  --display-settings: normal; --display-weight: 400; --display-tracking: -0.012em; --display-leading: 1.0;
+}
+
+[data-density="compacta"] {
+  --section: clamp(2.5rem, 2rem + 3vw, 5rem);
+  --control-h: 40px; --control-h-sm: 32px;
+  --card-pad: 16px;
+  --leading-body: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   5. Base global
+   -------------------------------------------------------------------------- */
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 100%;
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
+}
+body { margin: 0; min-height: 100dvh; }
+
+/* Capa de grano global: encima de todo, sin capturar eventos */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  background-color: var(--grain-color);
+  -webkit-mask-image: var(--grain-tile);
+          mask-image: var(--grain-tile);
+  -webkit-mask-size: var(--grain-size);
+          mask-size: var(--grain-size);
+  opacity: var(--grain-opacity);
+}
+
+::selection { background: color-mix(in oklab, var(--luz) 70%, transparent); color: var(--ink); }
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-settings);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  line-height: var(--display-leading);
+  text-wrap: balance;
+}
+p { text-wrap: pretty; }
+.num { font-variant-numeric: tabular-nums; }
+
+:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--focus-ring); }
+
+/* --------------------------------------------------------------------------
+   6. Primitivas de la huella
+   -------------------------------------------------------------------------- */
+
+/* Grano local (para una superficie concreta, p. ej. una losa o tarjeta) */
+.grain { position: relative; isolation: isolate; }
+.grain::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
+  background-color: var(--grain-color);
+  -webkit-mask-image: var(--grain-tile); mask-image: var(--grain-tile);
+  -webkit-mask-size: var(--grain-size); mask-size: var(--grain-size);
+  opacity: calc(var(--grain-opacity) * 1.3);
+}
+
+/* La Luz: el sol/luna. Máximo una por vista. */
+.luz {
+  --size: clamp(120px, 20vw, 300px);
+  width: var(--size); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%,
+              color-mix(in oklab, var(--luz) 55%, white) 0%,
+              var(--luz) 55%,
+              color-mix(in oklab, var(--luz) 82%, var(--matiz)) 100%);
+  box-shadow: 0 0 calc(var(--size) * 0.4) calc(var(--size) * 0.05)
+              color-mix(in oklab, var(--luz) var(--luz-glow), transparent);
+  animation: luz-respira 9s var(--ease-marea) infinite alternate;
+  animation-play-state: var(--ambient);
+}
+@keyframes luz-respira {
+  from { transform: scale(1);    filter: brightness(1); }
+  to   { transform: scale(1.025); filter: brightness(1.04); }
+}
+
+/* Lienzo: la página enmarcada como un póster (passe-partout) */
+.lienzo { padding: var(--frame); }
+.lienzo > .lienzo-inner { border-radius: var(--r-slab); overflow: clip; background: var(--paper); }
+
+/* Losas: bloques de sección redondeados */
+.losa {
+  border-radius: var(--r-slab);
+  padding: var(--section) var(--gutter);
+  position: relative; isolation: isolate; overflow: clip;
+}
+.losa--noche {
+  background: var(--night); color: var(--on-night);
+  --ink: var(--on-night); --ink-soft: var(--on-night-soft);
+  --grain-color: var(--luz);
+  --line: color-mix(in oklab, var(--on-night) 14%, transparent);
+  box-shadow: inset 0 0 0 1px light-dark(transparent, color-mix(in oklab, var(--on-night) 8%, transparent));
+}
+.losa--cielo { background: var(--sky); }
+.losa--bruma { background: var(--sky-soft); }
+
+/* Estela: separador tipo nube alargada */
+.estela {
+  height: 1px; border: 0;
+  background: linear-gradient(90deg, transparent, var(--line-strong) 20%, var(--line-strong) 80%, transparent);
+}
+
+/* Hilo: línea fina que conecta elementos (cuerdas del globo) */
+.hilo { stroke: var(--line-strong); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+
+/* Arco: marco de imagen con remate en arco (florero) */
+.arco { border-radius: var(--r-arch); overflow: clip; }
+
+/* Tratamiento cálido de fotografía */
+.foto-calida { filter: saturate(0.82) sepia(0.10) contrast(0.97); }
+
+/* Revelado al entrar en vista (JS añade .is-visible; ver motion.md) */
+.revela { opacity: 0; transform: translateY(var(--rise)); }
+.revela.is-visible {
+  opacity: 1; transform: none;
+  transition: opacity var(--dur-4) var(--ease-calma), transform var(--dur-4) var(--ease-calma);
+  transition-delay: calc(var(--i, 0) * var(--stagger));
+}
+
+/* Transiciones entre páginas (mejora progresiva) */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: 200ms var(--ease-salida) both step1-vt-out; }
+::view-transition-new(root) { animation: 420ms var(--ease-calma) both step1-vt-in; }
+@keyframes step1-vt-out { to   { opacity: 0; transform: translateY(-6px); } }
+@keyframes step1-vt-in  { from { opacity: 0; transform: translateY(10px); } }
+
+/* --------------------------------------------------------------------------
+   7. Movimiento reducido: solo opacidad, sin loops
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  :root { --rise: 0px; --ambient: paused; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}

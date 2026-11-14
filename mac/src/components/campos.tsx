@@ -214,7 +214,7 @@ export function Contador({ label, value, onChange, min = 0, max = 99, sufijo, hi
     <div className={cx('min-w-0', className)}>
       {/* Si no cabe en un renglón, los botones bajan completos: nunca se salen de la caja */}
       <div className="flex min-h-12 flex-wrap items-center justify-between gap-x-3 rounded-[var(--r-md)] bg-surface px-3.5 py-1 ring-1 ring-line-strong ring-inset">
-        <span className="text-[13px] font-medium text-ink-soft">{label}</span>
+        <span className="text-[13px] font-semibold text-ink">{label}</span>
         <div className="ml-auto flex items-center gap-1">
           <button type="button" aria-label={`Menos ${label.toLowerCase()}`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))} className="pressable flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-wash hover:text-ink disabled:opacity-35">
             <Minus size={15} strokeWidth={2} />
@@ -234,7 +234,7 @@ export function Contador({ label, value, onChange, min = 0, max = 99, sufijo, hi
 export function Pastillas<T extends string>({ value, onChange, opciones, label, className }: { value: T | null; onChange: (v: T) => void; opciones: { value: T; label: ReactNode; detalle?: string }[]; label?: string; className?: string }) {
   return (
     <div className={className}>
-      {label && <div className="mb-2 text-[13px] font-medium text-ink-soft">{label}</div>}
+      {label && <div className="mb-2 text-[13px] font-semibold text-ink">{label}</div>}
       <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={label}>
         {opciones.map((o) => (
           <button
@@ -266,7 +266,7 @@ export function Etiquetas({ value, onChange, sugerencias = [], label, placeholde
   const faltan = sugerencias.filter((s) => !value.some((v) => v.toLowerCase() === s.toLowerCase()))
   return (
     <div>
-      <div className="mb-2 text-[13px] font-medium text-ink-soft">{label}</div>
+      <div className="mb-2 text-[13px] font-semibold text-ink">{label}</div>
       <div className="flex flex-wrap items-center gap-1.5 rounded-[var(--r-md)] bg-surface p-2 ring-1 ring-line-strong ring-inset focus-within:ring-primary">
         {value.map((v) => (
           <span key={v} className="inline-flex h-8 items-center gap-1 rounded-full bg-sunken pr-1 pl-3 text-[13px]">

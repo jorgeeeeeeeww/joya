@@ -16,6 +16,7 @@
     "icono": "tauri icon src-tauri/icons/icono.svg"
   },
   "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource-variable/geist": "^5.3.0",
     "@supabase/supabase-js": "^2.118.0",
     "@tauri-apps/api": "^2.9.0",

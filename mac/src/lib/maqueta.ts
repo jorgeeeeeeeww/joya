@@ -831,8 +831,10 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
     if (of) camara.setViewOffset(w, h, -of, 0, w, h)
     else camara.clearViewOffset()
     camara.updateProjectionMatrix()
-    // Ángulo casi cenital: el terreno y sus edificios se leen como un plano satelital.
-    const e = encuadrar(0.18, 1.46, camara.aspect)
+    // Mismo encuadre adaptable de la página pública: volumen legible y luz de tarde.
+    const t = Math.min(1, Math.max(0, (camara.aspect - 0.8) / 0.9))
+    const s = t * t * (3 - 2 * t)
+    const e = encuadrar(0.18 + s * (Math.PI / 2 - 0.52), 0.86 - s * 0.3, camara.aspect)
     Object.assign(est, e)
   }
   function colocarCamara() {
@@ -846,6 +848,7 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
   // El lienzo solo deja pasar el movimiento vertical (touch-action: pan-y): arriba y abajo sigue moviendo la página,
   // y de lado gira la maqueta.
   const fin = new AbortController()
+  let compilando: Promise<unknown> | null = null
   const rayo = new THREE.Raycaster()
   const m2 = new THREE.Vector2()
   const elEl = renderer.domElement
@@ -1019,7 +1022,11 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
     pintarTodo()
     sombraSucia = true
     await pausa()
-    await renderer.compileAsync(escena, camara).catch(() => undefined)
+    if (fin.signal.aborted) return
+    compilando = renderer.compileAsync(escena, camara).catch(() => undefined)
+    await compilando
+    compilando = null
+    if (fin.signal.aborted) return
     listoGPU = true
     despertar()
   })()
@@ -1085,12 +1092,18 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
       cancelAnimationFrame(raf)
       clearTimeout(lento)
       gsap.killTweensOf(est)
-      escena.traverse((n) => {
-        if (n.geometry) n.geometry.dispose()
-        const mt = n.material
-        if (mt) (Array.isArray(mt) ? mt : [mt]).forEach((x) => x.dispose())
-      })
-      renderer.dispose()
+      // Three consulta los programas mientras compileAsync sigue pendiente. No se pueden
+      // liberar sus materiales hasta que termine, aunque React ya haya cerrado el mapa.
+      const liberarGPU = () => {
+        escena.traverse((n) => {
+          if (n.geometry) n.geometry.dispose()
+          const mt = n.material
+          if (mt) (Array.isArray(mt) ? mt : [mt]).forEach((x) => x.dispose())
+        })
+        renderer.dispose()
+      }
+      if (compilando) void compilando.finally(liberarGPU)
+      else liberarGPU()
       renderer.domElement.remove()
     },
   }

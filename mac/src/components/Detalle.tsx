@@ -100,7 +100,7 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
             <Badge tone={e.tono} dot>
               {e.label}
             </Badge>
-            <button onClick={() => void copiar(d.codigo).then(() => toast.success(`Copiaste ${d.codigo}`))} title="Copiar código" className="pressable inline-flex h-[22px] items-center gap-1 rounded-full bg-sunken px-2 text-[12px] font-semibold tracking-wide text-ink-soft tabular hover:text-ink">
+            <button onClick={() => void copiar(d.codigo).then(() => toast.success(`Copiaste ${d.codigo}`))} title="Copiar código" className="reservation-code pressable inline-flex items-center gap-1 hover:bg-secondary">
               {d.codigo}
               <Copy size={11} />
             </button>

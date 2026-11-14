@@ -8,11 +8,11 @@ import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { nocheDe } from '@/lib/ocupacion'
-import { dia, diaSemana, inicioDeMes, masDias, mesLargo } from '@/lib/fechas'
+import { dia, diaSemana, inicioDeMes, larga, masDias, mesLargo } from '@/lib/fechas'
 import type { Cabana, ISODate } from '@/lib/tipos'
 import { cx } from './ui'
 
-const SEMANA = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+const SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 const sumaMes = (iso: ISODate, n: number): ISODate => {
   const [a, m] = iso.split('-').map(Number) as [number, number]
@@ -36,10 +36,10 @@ export function CalendarioCabana({ cabana, mesInicial }: { cabana: Cabana; mesIn
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <div className="text-[15px] font-semibold capitalize">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-[15px] font-semibold capitalize text-ink">
           {mesLargo(mes)} {mes.slice(0, 4)}
-        </div>
+        </h3>
         <div className="flex items-center gap-1">
           <button type="button" aria-label="Mes anterior" onClick={() => setMes(sumaMes(mes, -1))} className="pressable flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-wash hover:text-ink">
             <ChevronLeft size={16} />
@@ -53,7 +53,7 @@ export function CalendarioCabana({ cabana, mesInicial }: { cabana: Cabana; mesIn
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-ink-3">
+      <div className="grid grid-cols-7 gap-1 text-center text-[12px] font-medium text-ink-soft">
         {SEMANA.map((s, i) => (
           <div key={i} className="pb-1">
             {s}
@@ -67,9 +67,9 @@ export function CalendarioCabana({ cabana, mesInicial }: { cabana: Cabana; mesIn
           const pasado = iso < d.hoy
           const esHoy = iso === d.hoy
           const llega = (n.tipo === 'reservada' || n.tipo === 'apartada') && n.r.llegada === iso
-          const base = 'relative flex h-[58px] flex-col items-center justify-between rounded-[10px] px-1 py-1.5 text-center'
+          const base = 'relative flex h-[58px] min-w-0 flex-col items-center justify-between overflow-hidden rounded-[8px] px-1 py-1.5 text-center'
           const comun = cx(esHoy && 'ring-2 ring-ink ring-offset-1 ring-offset-surface', pasado && 'opacity-55')
-          const numero = <span className={cx('text-[13px] leading-none font-semibold tabular', n.tipo === 'reservada' ? 'text-on-chispa' : 'text-ink')}>{dia(iso)}</span>
+          const numero = <span className={cx('text-[14px] leading-none font-semibold tabular', n.tipo === 'reservada' ? 'text-on-chispa' : 'text-ink')}>{dia(iso)}</span>
           if (n.tipo === 'reservada' || n.tipo === 'apartada') {
             const solicitud = n.tipo === 'apartada'
             return (
@@ -77,20 +77,20 @@ export function CalendarioCabana({ cabana, mesInicial }: { cabana: Cabana; mesIn
                 key={i}
                 type="button"
                 onClick={() => abrir(n.r.id)}
-                title={`${n.r.nombre}${solicitud ? ' · solicitud' : ''}`}
+                title={`${larga(iso)} · ${n.r.nombre}${solicitud ? ' · solicitud' : ''}`}
                 className={cx(base, comun, 'pressable cursor-pointer', solicitud ? 'plano-late-chip bg-[color-mix(in_oklab,var(--chispa)_16%,transparent)] ring-1 ring-chispa ring-inset' : 'bg-chispa text-on-chispa')}
                 style={solicitud ? { outlineStyle: 'dashed' } : undefined}
               >
                 {numero}
-                <span className={cx('w-full text-[10px] leading-tight break-words', solicitud ? 'text-chispa' : 'text-on-chispa')}>{llega ? n.r.nombre.split(' ')[0] : ''}</span>
+                <span className={cx('w-full truncate text-[12px] leading-tight', solicitud ? 'text-chispa' : 'text-on-chispa')}>{llega ? n.r.nombre.split(' ')[0] : ''}</span>
               </button>
             )
           }
           if (n.tipo === 'cerrada') {
             return (
-              <div key={i} title={n.b.motivo ? `Cerrado: ${n.b.motivo}` : 'Cerrado'} className={cx(base, comun, 'rayas bg-sunken text-ink-3 ring-1 ring-line ring-inset')}>
+              <div key={i} title={n.b.motivo ? `Cerrado: ${n.b.motivo}` : 'Cerrado'} className={cx(base, comun, 'rayas bg-sunken text-ink-soft ring-1 ring-line ring-inset')}>
                 {numero}
-                <span className="text-[10px] leading-tight">Cerrado</span>
+                <span className="text-[12px] leading-tight">Cerrado</span>
               </div>
             )
           }
@@ -100,7 +100,7 @@ export function CalendarioCabana({ cabana, mesInicial }: { cabana: Cabana; mesIn
               type="button"
               disabled={pasado}
               onClick={() => crear({ tipo: 'reservacion', cabana_id: cabana.id, llegada: iso, salida: masDias(iso, 1) })}
-              title="Libre: tocar para reservar"
+              title={`${larga(iso)} · Libre: tocar para reservar`}
               className={cx(base, comun, 'bg-secondary ring-1 ring-line ring-inset', !pasado && 'pressable cursor-pointer hover:ring-line-strong')}
             >
               {numero}

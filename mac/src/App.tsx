@@ -12,6 +12,7 @@ import { Conexion } from './components/Conexion'
 import { LightDots } from './components/step1'
 import { Loto } from './components/Loto'
 import { Barra } from './components/Barra'
+import { Topbar } from './components/Topbar'
 import Entrar from './pages/Entrar'
 import Hoy from './pages/Hoy'
 import { DetalleReservacion } from './components/Detalle'
@@ -235,6 +236,8 @@ function Marco() {
   return (
     <div className="app-shell flex h-dvh overflow-hidden bg-paper" data-vista={vista}>
       <Barra />
+      <div className="app-workspace">
+      <Topbar />
       <main ref={mainRef} id="contenido" className={llena ? 'relative min-w-0 flex-1 overflow-hidden' : 'scroll-area relative min-w-0 flex-1 overflow-y-auto'}>
         {enMac && <div data-tauri-drag-region className="absolute inset-x-0 top-0 z-20 h-3" />}
         {!datos ? (
@@ -264,6 +267,7 @@ function Marco() {
           </AnimatePresence>
         )}
       </main>
+      </div>
       {/* Fuera de «Reservaciones», el detalle se abre como panel a la derecha sin perder la pantalla */}
       <Sheet open={!!abierta && vista !== 'reservaciones'} onClose={() => useApp.getState().abrir(null)} wide header={<span />}>
         {ultimaAbierta.current && (

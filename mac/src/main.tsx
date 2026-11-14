@@ -6,6 +6,9 @@ import App from './App'
 import { enMac } from './lib/mac'
 import { repararColores } from './lib/compat'
 
+document.documentElement.dataset.theme = 'light'
+document.documentElement.dataset.appDesign = 'reservations'
+
 // En la Mac no hay menú del navegador: el clic derecho solo abre los menús propios de la app
 if (enMac) document.addEventListener('contextmenu', (e) => {
   const t = e.target as HTMLElement

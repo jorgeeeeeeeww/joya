@@ -143,6 +143,12 @@ let solicitud
   revisar(ocup?.length === 1 && ocup[0].desde === viernes && ocup[0].hasta === domingo && !JSON.stringify(disp).includes('Prueba'), 'Las fechas salen ocupadas en la web, sin nombres', disp)
   const { data: mia } = await web.rpc('consultar_reservacion', { p_token: solicitud.token })
   revisar(mia?.ok && mia.estado === 'solicitud' && mia.nombre === 'Huésped' && mia.puede_cancelar === true && mia.pago?.monto === 1450, '«Mi reservación» muestra el estado y lo que falta pagar', mia)
+  const porCodigo = await web.rpc('consultar_reservacion_codigo', { p_codigo: solicitud.codigo.toLowerCase().replace('-', ''), p_telefono: '+52 33 1234 5678' })
+  revisar(porCodigo.data?.ok && porCodigo.data.token === solicitud.token && porCodigo.data.codigo === solicitud.codigo, 'Consulta por código y teléfono recupera la liga privada', porCodigo.error?.message ?? porCodigo.data)
+  const telefonoAjeno = await web.rpc('consultar_reservacion_codigo', { p_codigo: solicitud.codigo, p_telefono: '3399998888' })
+  revisar(telefonoAjeno.data?.motivo === 'no_existe' && !telefonoAjeno.data?.token, 'Un teléfono diferente no recupera la reservación', telefonoAjeno.error?.message ?? telefonoAjeno.data)
+  const codigoInvalido = await web.rpc('consultar_reservacion_codigo', { p_codigo: 'LJ-INVALIDO', p_telefono: huesped.telefono })
+  revisar(codigoInvalido.data?.motivo === 'no_existe', 'Un código inválido no revela datos', codigoInvalido.error?.message ?? codigoInvalido.data)
 }
 
 console.log('\n3. La app de la Mac recibe la solicitud')

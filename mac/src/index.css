@@ -3,11 +3,12 @@
    tipografía Geist (una sola familia, sin serif ni cursiva), claro + oscuro.
    Fuente de verdad de color: src/styles/step1.css. Aquí solo hay alias y utilidades.
    ========================================================================== */
-@import '@fontsource-variable/geist/wght.css';
+@import '@fontsource-variable/dm-sans/wght.css';
 
 @import 'tailwindcss';
 @import './styles/step1.css' layer(base);
 @import './styles/reservations.css';
+@import './styles/resort.css';
 
 /* --------------------------------------------------------------------------
    Alias de compatibilidad: los módulos usan nombres "pastel" como tonos

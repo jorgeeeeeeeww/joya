@@ -18,6 +18,7 @@ La web no tiene cuenta ni lee tablas. Solo llama estas funciones con la **llave 
 | `cotizar(p_cabana, p_llegada, p_salida, p_huespedes)` | El precio noche por noche, el total y el anticipo, calculados en la nube |
 | `POST /functions/v1/reservar` | Crea la solicitud y aparta las fechas. Pasa por el anti-robots de Cloudflare |
 | `consultar_reservacion(p_token)` | La página «Mi reservación» del huésped |
+| `consultar_reservacion_codigo(p_codigo, p_telefono)` | Recupera la reservación y su liga privada al verificar el código y el teléfono del huésped |
 | `cancelar_mi_reservacion(p_token)` | El huésped cancela su solicitud si todavía no ha pagado |
 
 Todo lo demás (confirmar, registrar pagos, ver nombres y teléfonos) lo hace el dueño desde la app de la Mac.

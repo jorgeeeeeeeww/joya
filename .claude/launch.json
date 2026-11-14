@@ -103,6 +103,21 @@
         "marcar"
       ],
       "port": 4330
+    },
+    {
+      "name": "web-prueba-estatica",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/Jorge/AppData/Local/Temp/claude/ff169613d0a14a37/c0eadbf4-4513-41e7-96b3-749cbb5d7ef8/scratchpad/servir.mjs",
+        "C:/Users/Jorge/Documents/joya/web/dist-prueba",
+        "4336"
+      ],
+      "port": 4336
+    },
+    {
+      "name": "web-abierta",
+      "url": "http://localhost:4321",
+      "port": 4321
     }
   ]
 }

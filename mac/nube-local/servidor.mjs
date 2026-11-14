@@ -49,7 +49,8 @@ const pg = new PGlite({ dataDir: enMemoria ? undefined : join(DATOS, 'postgres')
 try {
   await pg.exec(await readFile(join(AQUI, 'supabase-local.sql'), 'utf8'))
   await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261105000000_hospedaje.sql'), 'utf8'))
-await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261112000000_avisos_al_celular.sql'), 'utf8'))
+  await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261112000000_avisos_al_celular.sql'), 'utf8'))
+  await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261113000000_consultar_reservacion_por_codigo.sql'), 'utf8'))
   for (const c of CUENTAS) {
     await pg.query('insert into auth.users (id, email) values ($1, $2) on conflict (id) do nothing', [c.id, c.email])
     await pg.query('insert into public.profiles (id, role, display_name) values ($1, $2, $3) on conflict (id) do update set role = excluded.role', [c.id, c.role, c.nombre])

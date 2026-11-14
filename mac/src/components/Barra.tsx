@@ -1,13 +1,11 @@
 // Barra lateral flotante, igual que la del PWA: la luz y el día arriba, nueva reservación y búsqueda,
 // las cuatro secciones y abajo Ajustes, la conexión y tu cuenta.
 import { useRef, useState } from 'react'
-import { motion } from 'motion/react'
 import { BedDouble, CalendarRange, ChevronsUpDown, Inbox, LogOut, Map as MapaIcono, Plus, RefreshCw, Search, Settings, Sun } from 'lucide-react'
 import { useApp, type Vista } from '@/lib/store'
 import { CMD, enMac } from '@/lib/mac'
 import { activa } from '@/lib/estados'
 import { esNubeLocal } from '@/lib/nube'
-import { spring } from '@/lib/motion'
 import { Button, MenuList, Popover, cx } from './ui'
 import { Marca } from './Loto'
 
@@ -22,14 +20,8 @@ const SECCIONES: { vista: Vista; label: string; icon: typeof Sun; atajo: string 
 function Renglon({ activo, label, icon: Icon, onClick, cuenta, urgente, atajo }: { activo: boolean; label: string; icon: typeof Sun; onClick: () => void; cuenta?: number; urgente?: boolean; atajo?: string }) {
   return (
     <button onClick={onClick} title={atajo ? `${label} (${CMD}${atajo})` : label} aria-current={activo ? 'page' : undefined} className={cx('group relative flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-left transition-colors duration-[var(--dur-2)]', activo ? 'text-ink' : 'text-ink-soft hover:bg-wash hover:text-ink')}>
-      {activo && (
-        <>
-          <motion.span layoutId="barra-activa" className="absolute inset-0 rounded-[10px] bg-[color-mix(in_oklab,var(--ink)_6.5%,transparent)]" transition={spring.suave} />
-          <motion.span layoutId="barra-luz" className="absolute top-1/2 -left-2.5 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-chispa-soft shadow-[0_0_10px_var(--luz)]" transition={spring.suave} />
-        </>
-      )}
       <Icon size={17} strokeWidth={activo ? 2 : 1.7} className="relative shrink-0" />
-      <span className={cx('relative flex-1 text-[14px]', activo ? 'font-semibold' : 'font-medium')}>{label}</span>
+      <span className={cx('relative flex-1 min-w-0 text-[14px]', activo ? 'font-semibold' : 'font-medium')}>{label}</span>
       {!!cuenta && <span className={cx('relative min-w-5 text-right text-[12px] tabular', urgente ? 'font-semibold text-chispa' : 'font-medium text-key')}>{cuenta}</span>}
     </button>
   )
@@ -73,6 +65,7 @@ export function Barra() {
           </button>
         </div>
 
+        <p className="reception-nav-label">RECEPCIÓN</p>
         <nav className="flex flex-1 flex-col gap-px px-2.5" aria-label="Secciones">
           {SECCIONES.map((s) => (
             <Renglon key={s.vista} activo={vista === s.vista} label={s.label} icon={s.icon} atajo={s.atajo} onClick={() => ir(s.vista)} cuenta={s.vista === 'hoy' ? solicitudes || movimientos : undefined} urgente={s.vista === 'hoy' && solicitudes > 0} />

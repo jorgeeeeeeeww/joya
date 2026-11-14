@@ -52,7 +52,7 @@ function ajusteEtiqueta(id: string) {
 }
 const nombreCorto = (p: Pieza) => (p.tipo === 'habitacion' ? `H${p.nombre.replace(/\D+/g, '')}` : p.tipo === 'casa' ? p.nombre.replace(/^Casa\s+/i, 'C') : p.nombre.replace(/^Cabaña\s+/i, ''))
 
-export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; elegida: string | null; onElegir: (id: string) => void }) {
+export function MapaRancho({ casas, elegida, onElegir, tipo = null }: { casas: CasaEscena[]; elegida: string | null; onElegir: (id: string) => void; tipo?: CasaEscena['tipo'] | null }) {
   const caja = useRef<HTMLDivElement>(null)
   const maqueta = useRef<Maqueta | null>(null)
   const etiquetas = useRef(new Map<string, HTMLElement>())
@@ -85,7 +85,7 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
     const m = crearMaqueta(caja.current, {
       reduce,
-      fija: true,
+      fija: false,
       alMover: (pos) => {
         posiciones.current = pos
         const w = caja.current?.clientWidth ?? 0
@@ -145,11 +145,14 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
     maqueta.current?.ponerEstados(estados)
   }, [porPieza, sinWebGL])
   useEffect(() => {
+    maqueta.current?.filtrar(tipo ? [...porPieza].filter(([, c]) => c.tipo === tipo).map(([id]) => id) : null)
+  }, [tipo, porPieza, sinWebGL])
+  useEffect(() => {
     maqueta.current?.resaltar(piezaDe(elegida))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elegida, ids])
 
-  if (sinWebGL) return <PlanoRancho casas={casas} elegida={elegida} onPick={onElegir} mostrarSueltos={false} />
+  if (sinWebGL) return <PlanoRancho casas={casas.filter((c) => !tipo || c.tipo === tipo)} elegida={elegida} onPick={onElegir} mostrarSueltos={false} />
 
   const casaSobre = sobre ? porPieza.get(sobre) : undefined
   const posSobre = sobre ? posiciones.current.get(sobre) : undefined
@@ -161,6 +164,7 @@ export function MapaRancho({ casas, elegida, onElegir }: { casas: CasaEscena[]; 
         {/* Etiquetas individuales: cada alojamiento se puede seleccionar directamente. */}
         <div className="pointer-events-none absolute inset-0">
           {[...porPieza].map(([id, c]) => {
+            if (tipo && c.tipo !== tipo) return null
             const p = HOSPEDAJES.find((x) => x.id === id)
             if (!p) return null
             return (

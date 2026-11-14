@@ -212,8 +212,8 @@
 }
 .app-shell:not([data-vista='mapa']) .app-sidebar [class*='rounded-[20px]'] { border-radius: 0; }
 .app-shell:not([data-vista='mapa']) .app-sidebar button[aria-current='page'] { color: var(--ink); }
-.app-shell:not([data-vista='mapa']) .app-sidebar button[aria-current='page'] > span:first-of-type { background: #edf2f8; }
-.app-shell:not([data-vista='mapa']) .app-sidebar button[aria-current='page'] > span:nth-of-type(2) { display: none; }
+
+
 .app-shell:not([data-vista='mapa']) .app-sidebar [class*='bg-primary'] { box-shadow: 0 1px 2px rgb(45 89 158 / 12%); }
 .app-shell:not([data-vista='mapa']) .app-sidebar .tecla { border-radius: 4px; }
 
