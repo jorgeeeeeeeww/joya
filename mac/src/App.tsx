@@ -233,7 +233,8 @@ function Marco() {
 
   if (sinPermiso) return <SinPermiso correo={sesion.user.email ?? ''} />
 
-  const llena = vista === 'calendario' || vista === 'reservaciones' || vista === 'cabanas'
+  // El calendario mensual crece con sus semanas; el contenedor debe poder desplazarse.
+  const llena = vista === 'reservaciones' || vista === 'cabanas'
   return (
     <div className="app-shell flex h-dvh overflow-hidden bg-paper" data-vista={vista}>
       <Barra />

@@ -70,7 +70,7 @@ export default function CalendarioMes() {
             const eventos = reservas.filter((r) => r.llegada <= iso && r.salida > iso)
             const bloqueadas = d.bloqueos.filter((b) => ids.has(b.cabana_id) && b.inicio <= iso && b.fin > iso)
             const ocupados = eventos.length + bloqueadas.length
-            return <div key={iso} className={cx('app-month-day min-h-[148px] min-w-0 border-r border-b border-line p-1.5 @[800px]:p-2', iso.slice(0, 7) !== mes.slice(0, 7) && 'bg-wash', fecha === iso && 'is-selected')}>
+            return <div key={iso} data-fecha={iso} className={cx('app-month-day min-h-[148px] min-w-0 border-r border-b border-line p-1.5 @[800px]:p-2', iso.slice(0, 7) !== mes.slice(0, 7) && 'bg-wash', fecha === iso && 'is-selected')}>
               <button type="button" aria-label={`${larga(iso)}, ${eventos.length} reservaciones, ${bloqueadas.length} cierres`} aria-pressed={fecha === iso} onClick={() => setFecha(iso)} className="mb-2 flex w-full items-center justify-between gap-1 text-left">
                 <span className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold', iso === d.hoy ? 'bg-primary text-on-primary' : 'text-ink')}>{dia(iso)}</span>
                 <span className="text-[11px] text-ink-soft" title="Hospedajes no disponibles / total">{ocupados}/{cabanas.length}</span>

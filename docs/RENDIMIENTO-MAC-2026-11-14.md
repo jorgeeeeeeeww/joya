@@ -34,7 +34,11 @@ Compilación y TypeScript correctos. Tres pruebas de datos verifican sondeos con
 
 El navegador Edge automatizado ejecutó cuatro perfiles con 1,000 reservaciones ficticias: normal, CPU limitada a 4×, movimiento reducido y compatibilidad de colores forzada. Se verificaron las cinco secciones, búsqueda, nueva reservación, mapa 3D, descarga diferida del motor, liberación del lienzo al salir y reintento tras fallo de WebGL. Sin errores de JavaScript. Se revisaron capturas del panel y mapa.
 
-En la última ejecución, la vista general apareció en 498 ms en modo normal y 804 ms con CPU limitada. La preparación del 3D en el perfil CPU 4× quedó registrada en el informe. Son resultados locales con API simulada y caché de datos; no representan la latencia de Supabase ni una medición en una Mac antigua. Los tiempos de navegación incluyen esperas de carga y automatización. No hay referencia anterior de FPS o tiempo de arranque en navegador, por lo que no se afirma una mejora porcentual de esos tiempos.
+En la ejecución de la versión 0.3.13, la vista general apareció en 469 ms en modo normal y 751 ms con CPU limitada. La preparación del 3D en el perfil CPU 4× quedó registrada en el informe. Son resultados locales con API simulada y caché de datos; no representan la latencia de Supabase ni una medición en una Mac antigua. Los tiempos de navegación incluyen esperas de carga y automatización. No hay referencia anterior de FPS o tiempo de arranque en navegador, por lo que no se afirma una mejora porcentual de esos tiempos.
+
+### Corrección del calendario en 0.3.13
+
+El contenedor principal trataba el calendario mensual como una pantalla de alto fijo y aplicaba `overflow: hidden`. Las semanas inferiores quedaban recortadas. Ahora permite desplazamiento vertical. La prueba de navegador usa un mes de seis semanas (mayo de 2027), gira la rueda y verifica que los días 29, 30 y 31 queden visibles y puedan seleccionarse con alturas de ventana de 640, 860 y 1000 px, en los cuatro perfiles. [Captura de la última fila](calendario-fin-de-mes.png).
 
 Resultados completos: [mediciones del navegador](rendimiento-navegador.json). Capturas: [panel](fluidez-dashboard.png), [mapa siempre 3D](fluidez-mapa-3d.png).
 

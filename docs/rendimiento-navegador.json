@@ -1,180 +1,177 @@
 [
   {
     "perfil": "normal",
-    "carga": 498,
+    "carga": 469,
     "vistas": {
-      "mapa": 460,
-      "calendario": 358,
-      "reservaciones": 403,
-      "cabanas": 361,
-      "hoy": 89
+      "mapa": 411,
+      "calendario": 349,
+      "reservaciones": 357,
+      "cabanas": 344,
+      "hoy": 73
     },
     "errores": [],
     "mediciones": {
       "muestras": [
         {
           "nombre": "arranque:compatibilidad-y-montaje",
-          "ms": 96.9
+          "ms": 2.1
         },
         {
           "nombre": "rpc:hosp_datos",
-          "ms": 65.3
+          "ms": 51.4
         },
         {
           "nombre": "datos:comparar-y-cache",
-          "ms": 0.8
+          "ms": 1.1
         },
         {
           "nombre": "vista:hoy:presentacion",
-          "ms": 5.1
-        },
-        {
-          "nombre": "longtask:self",
-          "ms": 52
+          "ms": 5.2
         },
         {
           "nombre": "vista:mapa:presentacion",
-          "ms": 32.2
+          "ms": 29.6
         },
         {
           "nombre": "mapa:preparar-3d",
-          "ms": 117.2
-        },
-        {
-          "nombre": "longtask:self",
-          "ms": 59
+          "ms": 114.1
         },
         {
           "nombre": "vista:calendario:presentacion",
-          "ms": 6
+          "ms": 6.3
         },
         {
           "nombre": "vista:reservaciones:presentacion",
-          "ms": 6.6
+          "ms": 1.8
         },
         {
           "nombre": "vista:cabanas:presentacion",
-          "ms": 20.9
+          "ms": 17.9
         },
         {
           "nombre": "vista:hoy:presentacion",
-          "ms": 7.9
+          "ms": 10.4
         },
         {
           "nombre": "vista:mapa:presentacion",
-          "ms": 9.6
+          "ms": 6.6
         }
       ],
       "recursos": [
         {
           "archivo": "tema.js",
-          "ms": 16,
+          "ms": 12,
           "bytes": 584
         },
         {
-          "archivo": "index-BSouvQoW.js",
-          "ms": 17,
-          "bytes": 477011
+          "archivo": "index-BM7bhOQO.js",
+          "ms": 14,
+          "bytes": 476993
         },
         {
           "archivo": "ui-BBZ7pisE.js",
-          "ms": 32,
+          "ms": 15,
           "bytes": 193389
         },
         {
           "archivo": "index-CaMjJLY5.css",
-          "ms": 18,
+          "ms": 15,
           "bytes": 201658
         },
         {
-          "archivo": "menuReservacion-C1WcYgbO.js",
-          "ms": 39,
-          "bytes": 2586
-        },
-        {
-          "archivo": "Hoy-CxZsGwcv.js",
-          "ms": 39,
+          "archivo": "Hoy-Cgfc9Wv7.js",
+          "ms": 41,
           "bytes": 23540
         },
         {
-          "archivo": "mensajes-DZLA0mmM.js",
-          "ms": 39,
+          "archivo": "menuReservacion-kPgUktLV.js",
+          "ms": 41,
+          "bytes": 2586
+        },
+        {
+          "archivo": "mensajes-CJ-RQhFJ.js",
+          "ms": 43,
           "bytes": 2583
         },
         {
-          "archivo": "acciones-DpIhgtx1.js",
-          "ms": 40,
+          "archivo": "acciones-Dq8yVyqt.js",
+          "ms": 45,
           "bytes": 3986
         },
         {
           "archivo": "chevron-left-BGM-SyvL.js",
-          "ms": 40,
+          "ms": 45,
           "bytes": 456
         },
         {
           "archivo": "users-CBNaOx9p.js",
-          "ms": 41,
+          "ms": 47,
           "bytes": 632
         },
         {
-          "archivo": "casas-4d_UAMyK.js",
-          "ms": 42,
+          "archivo": "casas-wAcVywuT.js",
+          "ms": 52,
           "bytes": 957
         },
         {
           "archivo": "circle-exclamation-point-CEtPQzf2.js",
-          "ms": 47,
+          "ms": 52,
           "bytes": 628
         },
         {
           "archivo": "geist-latin-wght-normal-BgDaEnEv.woff2",
-          "ms": 37,
+          "ms": 42,
           "bytes": 29700
         },
         {
           "archivo": "hosp_datos",
-          "ms": 17,
+          "ms": 14,
           "bytes": 0
         },
         {
           "archivo": "logo.svg",
-          "ms": 9,
+          "ms": 15,
           "bytes": 2712
         },
         {
           "archivo": "dm-sans-latin-wght-normal-Xz1IZZA0.woff2",
-          "ms": 20,
+          "ms": 19,
           "bytes": 37232
         },
         {
-          "archivo": "Mapa-Bi9SmJj9.js",
-          "ms": 3,
+          "archivo": "Mapa-DnytOnLj.js",
+          "ms": 2,
           "bytes": 16770
         },
         {
-          "archivo": "MapaRancho-CxEyWdrl.js",
-          "ms": 4,
-          "bytes": 618893
-        },
-        {
           "archivo": "minus-DSLEpmcK.js",
-          "ms": 2,
+          "ms": 4,
           "bytes": 443
         },
         {
-          "archivo": "Calendario-GJf0SCnq.js",
-          "ms": 5,
-          "bytes": 30287
+          "archivo": "MapaRancho-B11yw8fv.js",
+          "ms": 3,
+          "bytes": 618893
+        },
+        {
+          "archivo": "Calendario-sDBtYv_4.js",
+          "ms": 3,
+          "bytes": 30302
         },
         {
           "archivo": "lock-CSa_-HXt.js",
-          "ms": 4,
+          "ms": 2,
           "bytes": 532
         },
         {
-          "archivo": "Reservaciones-Qp-ee8gn.js",
+          "archivo": "Reservaciones-Cey3BwHq.js",
           "ms": 3,
           "bytes": 10513
+        },
+        {
+          "archivo": "Detalle-DZNZrTji.js",
+          "ms": 3,
+          "bytes": 20903
         },
         {
           "archivo": "trash-BZq9wmhB.js",
@@ -182,27 +179,22 @@
           "bytes": 672
         },
         {
-          "archivo": "Detalle-BvdcUyVt.js",
-          "ms": 3,
-          "bytes": 20903
-        },
-        {
-          "archivo": "campos-CaucEM5V.js",
+          "archivo": "campos-DJwDbTPr.js",
           "ms": 3,
           "bytes": 13365
         },
         {
-          "archivo": "Cabanas-IhSdwMbr.js",
+          "archivo": "Cabanas-Bc9WGFTq.js",
           "ms": 2,
           "bytes": 23396
         },
         {
-          "archivo": "Buscar-BMmsCCFB.js",
-          "ms": 3,
+          "archivo": "Buscar-CJHN5Ypn.js",
+          "ms": 4,
           "bytes": 4458
         },
         {
-          "archivo": "NuevaHoja-Bee7rRoc.js",
+          "archivo": "NuevaHoja-oC1TpSDK.js",
           "ms": 4,
           "bytes": 10707
         }
@@ -210,133 +202,217 @@
       "pintura": [
         {
           "nombre": "first-paint",
-          "ms": 300
+          "ms": 152
         },
         {
           "nombre": "first-contentful-paint",
-          "ms": 300
+          "ms": 268
         }
       ],
       "vistas": [
         {
           "nombre": "joya:vista:calendario",
-          "ms": 313
+          "ms": 308
         },
         {
           "nombre": "joya:vista:reservaciones",
-          "ms": 313
+          "ms": 307
         },
         {
           "nombre": "joya:vista:cabanas",
-          "ms": 323
+          "ms": 326
         },
         {
           "nombre": "joya:vista:hoy",
-          "ms": 16
+          "ms": 19
         },
         {
           "nombre": "joya:vista:mapa",
-          "ms": 19
+          "ms": 13
         }
       ]
     }
   },
   {
     "perfil": "cpu4x",
-    "carga": 804,
+    "carga": 751,
     "vistas": {
-      "mapa": 593,
-      "calendario": 579,
-      "reservaciones": 521,
-      "cabanas": 518,
-      "hoy": 182
+      "mapa": 560,
+      "calendario": 531,
+      "reservaciones": 511,
+      "cabanas": 483,
+      "hoy": 157
     },
     "errores": [],
     "mediciones": {
       "muestras": [
         {
           "nombre": "arranque:compatibilidad-y-montaje",
-          "ms": 10.3
+          "ms": 9.1
         },
         {
           "nombre": "longtask:self",
-          "ms": 131
+          "ms": 126
         },
         {
           "nombre": "longtask:self",
-          "ms": 195
+          "ms": 178
         },
         {
           "nombre": "rpc:hosp_datos",
-          "ms": 252.9
+          "ms": 228.8
         },
         {
           "nombre": "datos:comparar-y-cache",
-          "ms": 2.9
+          "ms": 2.4
         },
         {
           "nombre": "vista:hoy:presentacion",
-          "ms": 1.2
-        },
-        {
-          "nombre": "longtask:self",
-          "ms": 110
-        },
-        {
-          "nombre": "longtask:self",
-          "ms": 62
-        },
-        {
-          "nombre": "vista:mapa:presentacion",
-          "ms": 141.9
-        },
-        {
-          "nombre": "longtask:self",
-          "ms": 136
-        },
-        {
-          "nombre": "longtask:self",
-          "ms": 71
-        },
-        {
-          "nombre": "mapa:preparar-3d",
-          "ms": 305.4
+          "ms": 1
         },
         {
           "nombre": "longtask:self",
           "ms": 118
         },
         {
-          "nombre": "vista:calendario:presentacion",
-          "ms": 5.1
+          "nombre": "longtask:self",
+          "ms": 53
+        },
+        {
+          "nombre": "vista:mapa:presentacion",
+          "ms": 142.1
         },
         {
           "nombre": "longtask:self",
-          "ms": 143
+          "ms": 137
+        },
+        {
+          "nombre": "longtask:self",
+          "ms": 72
+        },
+        {
+          "nombre": "mapa:preparar-3d",
+          "ms": 303.6
+        },
+        {
+          "nombre": "longtask:self",
+          "ms": 117
+        },
+        {
+          "nombre": "vista:calendario:presentacion",
+          "ms": 4.2
+        },
+        {
+          "nombre": "longtask:self",
+          "ms": 120
+        },
+        {
+          "nombre": "longtask:self",
+          "ms": 75
+        },
+        {
+          "nombre": "longtask:self",
+          "ms": 81
+        },
+        {
+          "nombre": "event:pointerdown",
+          "ms": 104
+        },
+        {
+          "nombre": "event:mousedown",
+          "ms": 104
+        },
+        {
+          "nombre": "event:pointerup",
+          "ms": 104
+        },
+        {
+          "nombre": "event:mouseup",
+          "ms": 104
+        },
+        {
+          "nombre": "event:click",
+          "ms": 104
+        },
+        {
+          "nombre": "longtask:self",
+          "ms": 70
+        },
+        {
+          "nombre": "longtask:self",
+          "ms": 77
+        },
+        {
+          "nombre": "event:pointerdown",
+          "ms": 104
+        },
+        {
+          "nombre": "event:mousedown",
+          "ms": 104
+        },
+        {
+          "nombre": "event:pointerup",
+          "ms": 104
+        },
+        {
+          "nombre": "event:mouseup",
+          "ms": 104
+        },
+        {
+          "nombre": "event:click",
+          "ms": 104
+        },
+        {
+          "nombre": "longtask:self",
+          "ms": 68
+        },
+        {
+          "nombre": "longtask:self",
+          "ms": 108
+        },
+        {
+          "nombre": "event:pointerdown",
+          "ms": 152
+        },
+        {
+          "nombre": "event:mousedown",
+          "ms": 152
+        },
+        {
+          "nombre": "event:pointerup",
+          "ms": 152
+        },
+        {
+          "nombre": "event:mouseup",
+          "ms": 152
+        },
+        {
+          "nombre": "event:click",
+          "ms": 152
         },
         {
           "nombre": "vista:reservaciones:presentacion",
-          "ms": 5
+          "ms": 4.4
         },
         {
           "nombre": "longtask:self",
-          "ms": 119
+          "ms": 100
         },
         {
           "nombre": "vista:cabanas:presentacion",
-          "ms": 130
+          "ms": 113.9
         },
         {
           "nombre": "longtask:self",
-          "ms": 125
+          "ms": 109
         },
         {
           "nombre": "vista:hoy:presentacion",
-          "ms": 49.8
+          "ms": 47.3
         },
         {
           "nombre": "longtask:self",
-          "ms": 106
+          "ms": 102
         },
         {
           "nombre": "event:pointerout",
@@ -394,67 +470,67 @@
       "recursos": [
         {
           "archivo": "tema.js",
-          "ms": 22,
+          "ms": 19,
           "bytes": 584
         },
         {
-          "archivo": "index-BSouvQoW.js",
-          "ms": 22,
-          "bytes": 477011
+          "archivo": "index-BM7bhOQO.js",
+          "ms": 19,
+          "bytes": 476993
         },
         {
           "archivo": "ui-BBZ7pisE.js",
-          "ms": 23,
+          "ms": 20,
           "bytes": 193389
         },
         {
           "archivo": "index-CaMjJLY5.css",
-          "ms": 22,
+          "ms": 19,
           "bytes": 201658
         },
         {
-          "archivo": "Hoy-CxZsGwcv.js",
-          "ms": 154,
+          "archivo": "Hoy-Cgfc9Wv7.js",
+          "ms": 140,
           "bytes": 23540
         },
         {
-          "archivo": "menuReservacion-C1WcYgbO.js",
-          "ms": 154,
+          "archivo": "menuReservacion-kPgUktLV.js",
+          "ms": 139,
           "bytes": 2586
         },
         {
-          "archivo": "mensajes-DZLA0mmM.js",
-          "ms": 154,
+          "archivo": "mensajes-CJ-RQhFJ.js",
+          "ms": 139,
           "bytes": 2583
         },
         {
-          "archivo": "acciones-DpIhgtx1.js",
-          "ms": 153,
+          "archivo": "acciones-Dq8yVyqt.js",
+          "ms": 139,
           "bytes": 3986
         },
         {
           "archivo": "chevron-left-BGM-SyvL.js",
-          "ms": 154,
+          "ms": 139,
           "bytes": 456
         },
         {
           "archivo": "users-CBNaOx9p.js",
-          "ms": 154,
+          "ms": 139,
           "bytes": 632
         },
         {
-          "archivo": "casas-4d_UAMyK.js",
-          "ms": 154,
+          "archivo": "casas-wAcVywuT.js",
+          "ms": 139,
           "bytes": 957
         },
         {
           "archivo": "circle-exclamation-point-CEtPQzf2.js",
-          "ms": 154,
+          "ms": 139,
           "bytes": 628
         },
         {
           "archivo": "geist-latin-wght-normal-BgDaEnEv.woff2",
-          "ms": 130,
+          "ms": 117,
           "bytes": 29700
         },
         {
@@ -464,21 +540,21 @@
         },
         {
           "archivo": "logo.svg",
-          "ms": 5,
+          "ms": 6,
           "bytes": 2712
         },
         {
           "archivo": "dm-sans-latin-wght-normal-Xz1IZZA0.woff2",
-          "ms": 93,
+          "ms": 100,
           "bytes": 37232
         },
         {
-          "archivo": "Mapa-Bi9SmJj9.js",
-          "ms": 57,
+          "archivo": "Mapa-DnytOnLj.js",
+          "ms": 50,
           "bytes": 16770
         },
         {
-          "archivo": "MapaRancho-CxEyWdrl.js",
+          "archivo": "MapaRancho-B11yw8fv.js",
           "ms": 5,
           "bytes": 618893
         },
@@ -488,47 +564,47 @@
           "bytes": 443
         },
         {
-          "archivo": "Calendario-GJf0SCnq.js",
-          "ms": 43,
-          "bytes": 30287
+          "archivo": "Calendario-sDBtYv_4.js",
+          "ms": 39,
+          "bytes": 30302
         },
         {
           "archivo": "lock-CSa_-HXt.js",
-          "ms": 42,
+          "ms": 38,
           "bytes": 532
         },
         {
-          "archivo": "Reservaciones-Qp-ee8gn.js",
-          "ms": 5,
+          "archivo": "Reservaciones-Cey3BwHq.js",
+          "ms": 38,
           "bytes": 10513
         },
         {
-          "archivo": "Detalle-BvdcUyVt.js",
-          "ms": 5,
+          "archivo": "Detalle-DZNZrTji.js",
+          "ms": 38,
           "bytes": 20903
         },
         {
           "archivo": "trash-BZq9wmhB.js",
-          "ms": 5,
+          "ms": 37,
           "bytes": 672
         },
         {
-          "archivo": "campos-CaucEM5V.js",
-          "ms": 4,
+          "archivo": "campos-DJwDbTPr.js",
+          "ms": 36,
           "bytes": 13365
         },
         {
-          "archivo": "Cabanas-IhSdwMbr.js",
-          "ms": 7,
+          "archivo": "Cabanas-Bc9WGFTq.js",
+          "ms": 6,
           "bytes": 23396
         },
         {
-          "archivo": "Buscar-BMmsCCFB.js",
+          "archivo": "Buscar-CJHN5Ypn.js",
           "ms": 10,
           "bytes": 4458
         },
         {
-          "archivo": "NuevaHoja-Bee7rRoc.js",
+          "archivo": "NuevaHoja-oC1TpSDK.js",
           "ms": 9,
           "bytes": 10707
         }
@@ -536,46 +612,46 @@
       "pintura": [
         {
           "nombre": "first-paint",
-          "ms": 80
+          "ms": 76
         },
         {
           "nombre": "first-contentful-paint",
-          "ms": 472
+          "ms": 436
         }
       ],
       "vistas": [
         {
           "nombre": "joya:vista:mapa",
-          "ms": 456
+          "ms": 460
         },
         {
           "nombre": "joya:vista:calendario",
-          "ms": 317
+          "ms": 313
         },
         {
           "nombre": "joya:vista:reservaciones",
-          "ms": 320
+          "ms": 317
         },
         {
           "nombre": "joya:vista:cabanas",
-          "ms": 444
+          "ms": 422
         },
         {
           "nombre": "joya:vista:hoy",
-          "ms": 104
+          "ms": 99
         }
       ]
     }
   },
   {
     "perfil": "reducido",
-    "carga": 440,
+    "carga": 448,
     "vistas": {
-      "mapa": 363,
+      "mapa": 365,
       "calendario": 346,
-      "reservaciones": 353,
-      "cabanas": 341,
-      "hoy": 44
+      "reservaciones": 342,
+      "cabanas": 337,
+      "hoy": 36
     },
     "errores": [],
     "mediciones": {
@@ -586,91 +662,91 @@
         },
         {
           "nombre": "rpc:hosp_datos",
-          "ms": 62.9
+          "ms": 64.5
         },
         {
           "nombre": "datos:comparar-y-cache",
-          "ms": 0.6
+          "ms": 0.5
         },
         {
           "nombre": "vista:hoy:presentacion",
-          "ms": 3.9
+          "ms": 0.9
         },
         {
           "nombre": "vista:mapa:presentacion",
-          "ms": 28.7
+          "ms": 29.2
         },
         {
           "nombre": "mapa:preparar-3d",
-          "ms": 61.4
+          "ms": 62.5
         },
         {
           "nombre": "vista:calendario:presentacion",
-          "ms": 6.4
+          "ms": 6.5
         },
         {
           "nombre": "vista:reservaciones:presentacion",
-          "ms": 6.3
+          "ms": 6.6
         },
         {
           "nombre": "vista:cabanas:presentacion",
-          "ms": 19.4
+          "ms": 17.7
         },
         {
           "nombre": "vista:hoy:presentacion",
-          "ms": 11
+          "ms": 7.2
         },
         {
           "nombre": "event:pointerout",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerleave",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerleave",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerleave",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerleave",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerleave",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerover",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerenter",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerenter",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerenter",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerenter",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:mouseout",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:mouseover",
-          "ms": 328
+          "ms": 320
         },
         {
           "nombre": "event:pointerdown",
@@ -696,41 +772,41 @@
       "recursos": [
         {
           "archivo": "tema.js",
-          "ms": 10,
+          "ms": 12,
           "bytes": 584
         },
         {
-          "archivo": "index-BSouvQoW.js",
-          "ms": 11,
-          "bytes": 477011
-        },
-        {
-          "archivo": "index-CaMjJLY5.css",
-          "ms": 12,
-          "bytes": 201658
-        },
-        {
           "archivo": "ui-BBZ7pisE.js",
-          "ms": 13,
+          "ms": 15,
           "bytes": 193389
         },
         {
-          "archivo": "Hoy-CxZsGwcv.js",
+          "archivo": "index-BM7bhOQO.js",
+          "ms": 13,
+          "bytes": 476993
+        },
+        {
+          "archivo": "index-CaMjJLY5.css",
+          "ms": 14,
+          "bytes": 201658
+        },
+        {
+          "archivo": "Hoy-Cgfc9Wv7.js",
           "ms": 33,
           "bytes": 23540
         },
         {
-          "archivo": "menuReservacion-C1WcYgbO.js",
-          "ms": 34,
+          "archivo": "menuReservacion-kPgUktLV.js",
+          "ms": 33,
           "bytes": 2586
         },
         {
-          "archivo": "mensajes-DZLA0mmM.js",
-          "ms": 34,
+          "archivo": "mensajes-CJ-RQhFJ.js",
+          "ms": 33,
           "bytes": 2583
         },
         {
-          "archivo": "acciones-DpIhgtx1.js",
+          "archivo": "acciones-Dq8yVyqt.js",
           "ms": 34,
           "bytes": 3986
         },
@@ -741,12 +817,12 @@
         },
         {
           "archivo": "users-CBNaOx9p.js",
-          "ms": 35,
+          "ms": 34,
           "bytes": 632
         },
         {
-          "archivo": "casas-4d_UAMyK.js",
-          "ms": 35,
+          "archivo": "casas-wAcVywuT.js",
+          "ms": 34,
           "bytes": 957
         },
         {
@@ -756,12 +832,12 @@
         },
         {
           "archivo": "geist-latin-wght-normal-BgDaEnEv.woff2",
-          "ms": 29,
+          "ms": 30,
           "bytes": 29700
         },
         {
           "archivo": "hosp_datos",
-          "ms": 13,
+          "ms": 14,
           "bytes": 0
         },
         {
@@ -771,66 +847,66 @@
         },
         {
           "archivo": "dm-sans-latin-wght-normal-Xz1IZZA0.woff2",
-          "ms": 18,
+          "ms": 17,
           "bytes": 37232
         },
         {
-          "archivo": "Mapa-Bi9SmJj9.js",
+          "archivo": "Mapa-DnytOnLj.js",
           "ms": 2,
           "bytes": 16770
         },
         {
-          "archivo": "minus-DSLEpmcK.js",
-          "ms": 2,
-          "bytes": 443
-        },
-        {
-          "archivo": "MapaRancho-CxEyWdrl.js",
+          "archivo": "MapaRancho-B11yw8fv.js",
           "ms": 4,
           "bytes": 618893
         },
         {
-          "archivo": "Calendario-GJf0SCnq.js",
+          "archivo": "minus-DSLEpmcK.js",
           "ms": 3,
-          "bytes": 30287
+          "bytes": 443
+        },
+        {
+          "archivo": "Calendario-sDBtYv_4.js",
+          "ms": 3,
+          "bytes": 30302
         },
         {
           "archivo": "lock-CSa_-HXt.js",
-          "ms": 3,
+          "ms": 2,
           "bytes": 532
         },
         {
-          "archivo": "Reservaciones-Qp-ee8gn.js",
+          "archivo": "Reservaciones-Cey3BwHq.js",
           "ms": 3,
           "bytes": 10513
         },
         {
-          "archivo": "Detalle-BvdcUyVt.js",
-          "ms": 4,
+          "archivo": "Detalle-DZNZrTji.js",
+          "ms": 3,
           "bytes": 20903
         },
         {
           "archivo": "trash-BZq9wmhB.js",
-          "ms": 4,
+          "ms": 3,
           "bytes": 672
         },
         {
-          "archivo": "campos-CaucEM5V.js",
-          "ms": 4,
+          "archivo": "campos-DJwDbTPr.js",
+          "ms": 3,
           "bytes": 13365
         },
         {
-          "archivo": "Cabanas-IhSdwMbr.js",
-          "ms": 3,
+          "archivo": "Cabanas-Bc9WGFTq.js",
+          "ms": 2,
           "bytes": 23396
         },
         {
-          "archivo": "Buscar-BMmsCCFB.js",
-          "ms": 5,
+          "archivo": "Buscar-CJHN5Ypn.js",
+          "ms": 3,
           "bytes": 4458
         },
         {
-          "archivo": "NuevaHoja-Bee7rRoc.js",
+          "archivo": "NuevaHoja-oC1TpSDK.js",
           "ms": 4,
           "bytes": 10707
         }
@@ -838,7 +914,7 @@
       "pintura": [
         {
           "nombre": "first-paint",
-          "ms": 40
+          "ms": 36
         },
         {
           "nombre": "first-contentful-paint",
@@ -852,7 +928,7 @@
         },
         {
           "nombre": "joya:vista:calendario",
-          "ms": 309
+          "ms": 310
         },
         {
           "nombre": "joya:vista:reservaciones",
@@ -860,84 +936,79 @@
         },
         {
           "nombre": "joya:vista:cabanas",
-          "ms": 322
+          "ms": 320
         },
         {
           "nombre": "joya:vista:hoy",
-          "ms": 22
+          "ms": 15
         }
       ]
     }
   },
   {
     "perfil": "compat",
-    "carga": 426,
+    "carga": 427,
     "vistas": {
-      "mapa": 380,
-      "calendario": 352,
-      "reservaciones": 340,
-      "cabanas": 341,
-      "hoy": 34
+      "mapa": 374,
+      "calendario": 357,
+      "reservaciones": 352,
+      "cabanas": 337,
+      "hoy": 37
     },
     "errores": [],
     "mediciones": {
       "muestras": [
         {
           "nombre": "arranque:compatibilidad-y-montaje",
-          "ms": 26.5
+          "ms": 26.7
         },
         {
           "nombre": "rpc:hosp_datos",
-          "ms": 51.7
+          "ms": 51.1
         },
         {
           "nombre": "datos:comparar-y-cache",
-          "ms": 0.7
+          "ms": 0.5
         },
         {
           "nombre": "vista:hoy:presentacion",
-          "ms": 5.3
+          "ms": 5.1
         },
         {
           "nombre": "vista:mapa:presentacion",
-          "ms": 32.3
+          "ms": 31.6
         },
         {
           "nombre": "mapa:preparar-3d",
-          "ms": 74.8
+          "ms": 68.6
         },
         {
           "nombre": "vista:calendario:presentacion",
-          "ms": 6.5
+          "ms": 6.3
         },
         {
           "nombre": "vista:reservaciones:presentacion",
-          "ms": 4.7
+          "ms": 6.5
         },
         {
           "nombre": "vista:cabanas:presentacion",
-          "ms": 19.1
+          "ms": 17.3
         },
         {
           "nombre": "vista:hoy:presentacion",
-          "ms": 7.2
+          "ms": 7.3
         }
       ],
       "recursos": [
         {
-          "archivo": "tema.js",
-          "ms": 12,
-          "bytes": 584
-        },
-        {
-          "archivo": "index-BSouvQoW.js",
-          "ms": 11,
-          "bytes": 477011
-        },
-        {
           "archivo": "index-CaMjJLY5.css",
           "ms": 12,
           "bytes": 201658
+        },
+        {
+          "archivo": "tema.js",
+          "ms": 12,
+          "bytes": 584
         },
         {
           "archivo": "ui-BBZ7pisE.js",
@@ -945,32 +1016,37 @@
           "bytes": 193389
         },
         {
+          "archivo": "index-BM7bhOQO.js",
+          "ms": 11,
+          "bytes": 476993
+        },
+        {
           "archivo": "index-CaMjJLY5.css",
-          "ms": 5,
+          "ms": 6,
           "bytes": 201658
         },
         {
           "archivo": "logo.svg",
-          "ms": 5,
+          "ms": 6,
           "bytes": 2712
         },
         {
-          "archivo": "Hoy-CxZsGwcv.js",
+          "archivo": "Hoy-Cgfc9Wv7.js",
           "ms": 30,
           "bytes": 23540
         },
         {
-          "archivo": "menuReservacion-C1WcYgbO.js",
+          "archivo": "menuReservacion-kPgUktLV.js",
           "ms": 31,
           "bytes": 2586
         },
         {
-          "archivo": "mensajes-DZLA0mmM.js",
+          "archivo": "mensajes-CJ-RQhFJ.js",
           "ms": 31,
           "bytes": 2583
         },
         {
-          "archivo": "acciones-DpIhgtx1.js",
+          "archivo": "acciones-Dq8yVyqt.js",
           "ms": 31,
           "bytes": 3986
         },
@@ -981,12 +1057,12 @@
         },
         {
           "archivo": "users-CBNaOx9p.js",
-          "ms": 33,
+          "ms": 32,
           "bytes": 632
         },
         {
-          "archivo": "casas-4d_UAMyK.js",
-          "ms": 33,
+          "archivo": "casas-wAcVywuT.js",
+          "ms": 32,
           "bytes": 957
         },
         {
@@ -996,26 +1072,26 @@
         },
         {
           "archivo": "geist-latin-wght-normal-BgDaEnEv.woff2",
-          "ms": 29,
+          "ms": 28,
           "bytes": 29700
         },
         {
           "archivo": "hosp_datos",
-          "ms": 13,
+          "ms": 12,
           "bytes": 0
         },
         {
           "archivo": "dm-sans-latin-wght-normal-Xz1IZZA0.woff2",
-          "ms": 19,
+          "ms": 18,
           "bytes": 37232
         },
         {
-          "archivo": "Mapa-Bi9SmJj9.js",
+          "archivo": "Mapa-DnytOnLj.js",
           "ms": 2,
           "bytes": 16770
         },
         {
-          "archivo": "MapaRancho-CxEyWdrl.js",
+          "archivo": "MapaRancho-B11yw8fv.js",
           "ms": 4,
           "bytes": 618893
         },
@@ -1025,19 +1101,24 @@
           "bytes": 443
         },
         {
+          "archivo": "Calendario-sDBtYv_4.js",
+          "ms": 3,
+          "bytes": 30302
+        },
+        {
           "archivo": "lock-CSa_-HXt.js",
           "ms": 3,
           "bytes": 532
         },
         {
-          "archivo": "Calendario-GJf0SCnq.js",
-          "ms": 3,
-          "bytes": 30287
-        },
-        {
-          "archivo": "Reservaciones-Qp-ee8gn.js",
+          "archivo": "Reservaciones-Cey3BwHq.js",
           "ms": 3,
           "bytes": 10513
+        },
+        {
+          "archivo": "Detalle-DZNZrTji.js",
+          "ms": 4,
+          "bytes": 20903
         },
         {
           "archivo": "trash-BZq9wmhB.js",
@@ -1045,27 +1126,22 @@
           "bytes": 672
         },
         {
-          "archivo": "Detalle-BvdcUyVt.js",
+          "archivo": "campos-DJwDbTPr.js",
           "ms": 3,
-          "bytes": 20903
-        },
-        {
-          "archivo": "campos-CaucEM5V.js",
-          "ms": 4,
           "bytes": 13365
         },
         {
-          "archivo": "Cabanas-IhSdwMbr.js",
+          "archivo": "Cabanas-Bc9WGFTq.js",
           "ms": 2,
           "bytes": 23396
         },
         {
-          "archivo": "Buscar-BMmsCCFB.js",
-          "ms": 4,
+          "archivo": "Buscar-CJHN5Ypn.js",
+          "ms": 3,
           "bytes": 4458
         },
         {
-          "archivo": "NuevaHoja-Bee7rRoc.js",
+          "archivo": "NuevaHoja-oC1TpSDK.js",
           "ms": 4,
           "bytes": 10707
         }
@@ -1073,7 +1149,7 @@
       "pintura": [
         {
           "nombre": "first-paint",
-          "ms": 32
+          "ms": 36
         },
         {
           "nombre": "first-contentful-paint",
@@ -1083,7 +1159,7 @@
       "vistas": [
         {
           "nombre": "joya:vista:mapa",
-          "ms": 335
+          "ms": 336
         },
         {
           "nombre": "joya:vista:calendario",
@@ -1091,11 +1167,11 @@
         },
         {
           "nombre": "joya:vista:reservaciones",
-          "ms": 308
+          "ms": 315
         },
         {
           "nombre": "joya:vista:cabanas",
-          "ms": 322
+          "ms": 320
         },
         {
           "nombre": "joya:vista:hoy",

@@ -68,6 +68,26 @@ try {
       await page.getByRole('navigation', { name: 'Secciones' }).getByRole('button', { name: new RegExp(`^${nombre}`) }).click()
       await page.locator(`.app-shell[data-vista="${vista}"] .vista-entrada h1`).first().waitFor()
       vistas[vista] = Math.round(performance.now() - desde)
+      if (vista === 'calendario') {
+        // Mes de seis semanas y ventanas bajas: la rueda debe llegar a la última fila.
+        for (let i = 0; i < 6; i++) await page.getByRole('button', { name: 'Mes siguiente', exact: true }).click()
+        for (const alto of [640, 860, 1000]) {
+          await page.setViewportSize({ width: 1320, height: alto })
+          await page.locator('#contenido').evaluate(el => { el.scrollTop = 0 })
+          await page.mouse.move(800, 400)
+          await page.mouse.wheel(0, 10000)
+          await page.waitForFunction(() => document.getElementById('contenido').scrollTop > 0)
+          for (const dia of ['29', '30', '31']) {
+            const boton = page.locator(`[data-fecha="2027-05-${dia}"] > button`).first()
+            await boton.click()
+            assert.equal(await boton.getAttribute('aria-pressed'), 'true', `Debe poder seleccionarse el ${dia} en ventana de ${alto}px`)
+            const caja = await boton.boundingBox()
+            assert(caja && caja.y >= 0 && caja.y + caja.height <= alto, `El día ${dia} debe quedar visible`)
+          }
+          if (perfil === 'normal' && alto === 640) await page.screenshot({ path: '../docs/calendario-fin-de-mes.png' })
+        }
+        await page.setViewportSize({ width: 1440, height: 1000 })
+      }
       if (vista === 'mapa') {
         await page.locator('canvas').waitFor()
         await page.waitForFunction(() => window.rendimientoJoya().muestras.some(m => m.nombre === 'mapa:preparar-3d'), null, { timeout: 20000 })
