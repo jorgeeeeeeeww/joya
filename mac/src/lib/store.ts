@@ -1,3 +1,6 @@
+import { sonarAviso } from './sonido'
+import { medir } from './rendimiento'
+import { compartirDatos } from './compartirDatos'
 // Estado de la app: sesión, datos de la nube, qué se ve y qué está abierto.
 // Los datos se bajan completos con hosp_datos (son pocos: unas cuantas cabañas y sus reservaciones)
 // y se vuelven a bajar cuando la nube avisa «hubo cambios», cada 30 s y al volver a la ventana.
@@ -121,7 +124,13 @@ export const useApp = create<Estado>((set, get) => ({
   cabana: null,
   irAHoy: 0,
   filtro: 'atender',
-  ir: (vista) => set((s) => ({ vista, buscar: false, abierta: vista === s.vista ? s.abierta : null })),
+  ir: (vista) => {
+    if (vista !== get().vista) {
+      performance.clearMarks('joya:navegacion')
+      performance.mark('joya:navegacion')
+    }
+    set((s) => ({ vista, buscar: false, abierta: vista === s.vista ? s.abierta : null }))
+  },
   pedirHoy: () => set((s) => ({ irAHoy: s.irAHoy + 1 })),
   abrir: (abierta) => set({ abierta }),
   crear: (nueva) => set({ nueva }),
@@ -155,12 +164,18 @@ export const useApp = create<Estado>((set, get) => ({
         const hoy = get().datos?.hoy ?? hoyLocal()
         const datos = await rpc<Datos>('hosp_datos', { p_desde: masDias(hoy, -120), p_hasta: masDias(hoy, 540) })
         revisarNuevas(datos)
-        set({ datos, conexion: 'en-linea', sinPermiso: false, ultimaCarga: Date.now() })
+        const terminar = medir('datos:comparar-y-cache')
+        const anteriores = get().datos
+        const compartidos = compartirDatos(anteriores, datos)
+        const cambio = compartidos !== anteriores
+        // Sin cambios: conserva referencias; calendarios y mapa no recalculan por cada sondeo.
+        set({ datos: compartidos, conexion: 'en-linea', sinPermiso: false, ultimaCarga: Date.now() })
         try {
-          localStorage.setItem(CACHE, JSON.stringify(datos))
+          if (cambio) localStorage.setItem(CACHE, JSON.stringify(compartidos))
         } catch {
           /* sin espacio: no pasa nada */
         }
+        terminar()
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
         const code = (e as { code?: string }).code
@@ -192,6 +207,7 @@ function revisarNuevas(d: Datos) {
   const nuevas = pendientes.filter((r) => r.origen === 'web' && !conocidas.has(r.id))
   const cabana = (id: string) => d.cabanas.find((c) => c.id === id)?.nombre ?? 'Cabaña'
   if (nuevas.length) {
+    if (!primeraCarga) void sonarAviso()
     if (primeraCarga && nuevas.length > 1) {
       void avisar('La Joya', `Tienes ${plural(pendientes.length, 'solicitud', 'solicitudes')} por atender`)
     } else {

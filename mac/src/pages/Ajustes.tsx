@@ -128,7 +128,7 @@ export default function Ajustes() {
 
   const ejemplo = d.cabanas.find((c) => c.precio_noche)
   return (
-    <div className="mx-auto max-w-[940px] px-8 pt-8 pb-20">
+    <div className="app-preferences-page mx-auto max-w-[940px] px-8 pt-8 pb-20">
       <div className="mb-7 flex items-end justify-between gap-4">
         <div>
           <h1 className="text-[30px] leading-[1.1] font-semibold tracking-[-.04em] text-ink">Ajustes</h1>
@@ -160,11 +160,11 @@ export default function Ajustes() {
           </div>
         </div>
 
-        <Bloque titulo="Llegada y salida" detalle="Arrastra las marcas para cambiar los horarios.">
+        <Bloque tono="blue" titulo="Llegada y salida" detalle="Arrastra las marcas para cambiar los horarios.">
           <Reloj salida={f.hora_salida} llegada={f.hora_llegada} onSalida={(v) => set('hora_salida', v)} onLlegada={(v) => set('hora_llegada', v)} />
         </Bloque>
 
-        <Bloque titulo="Anticipo y apartado">
+        <Bloque tono="amber" titulo="Anticipo y apartado">
           <Deslizador label="Anticipo para apartar" value={f.anticipo_pct} onChange={(v) => set('anticipo_pct', v)} min={0} max={100} paso={5} formato={(v) => (v ? `${v} %` : 'Sin anticipo')} />
           <p className="mt-2 text-[13px] text-ink-soft">
             {f.anticipo_pct === 0 ? 'Las solicitudes no piden transferencia: tú confirmas por WhatsApp.' : ejemplo ? `Por ejemplo, una noche en ${ejemplo.nombre} (${mxn(ejemplo.precio_noche)}) pide ${mxn(Math.round((ejemplo.precio_noche! * f.anticipo_pct) / 100))} de anticipo.` : `El huésped transfiere el ${f.anticipo_pct} % del total para apartar.`}
@@ -201,7 +201,7 @@ export default function Ajustes() {
           </div>
         </Bloque>
 
-        <Bloque titulo="Datos para transferir" detalle="La página se los muestra al huésped con el monto y su código como referencia.">
+        <Bloque tono="green" titulo="Datos para transferir" detalle="La página se los muestra al huésped con el monto y su código como referencia.">
           <div className="grid grid-cols-2 gap-3">
             <Campo
               label="CLABE (18 dígitos)"
@@ -223,7 +223,7 @@ export default function Ajustes() {
           <Campo className="mt-3" label="A nombre de" value={f.titular ?? ''} onChange={(v) => set('titular', v || null)} maxLength={120} />
         </Bloque>
 
-        <Bloque titulo="Contacto">
+        <Bloque tono="blue" titulo="Contacto">
           <div className="grid grid-cols-2 gap-3">
             <CampoTelefono label="WhatsApp de reservaciones" value={f.telefono_hospedaje ?? ''} onChange={(v) => set('telefono_hospedaje', v || null)} hint="El que sale en la página" />
             <CampoTelefono label="Teléfono del salón" value={f.telefono_salon ?? ''} onChange={(v) => set('telefono_salon', v || null)} hint="La página lo muestra para eventos" />
@@ -232,11 +232,11 @@ export default function Ajustes() {
           </div>
         </Bloque>
 
-        <Bloque titulo="Aviso al celular" detalle="Cada solicitud nueva de la página le llega al celular del dueño como notificación (con la app ntfy), esté donde esté la Mac. El canal privado se carga en la nube, no aquí.">
+        <Bloque tono="violet" titulo="Aviso al celular" detalle="Cada solicitud nueva de la página le llega al celular del dueño como notificación (con la app ntfy), esté donde esté la Mac. El canal privado se carga en la nube, no aquí.">
           <ProbarAviso />
         </Bloque>
 
-        <Bloque titulo="Textos para la página">
+        <Bloque tono="violet" titulo="Textos para la página">
           <CampoLargo label="Políticas (cancelación, mascotas, horarios…)" value={f.politicas ?? ''} onChange={(v) => set('politicas', v || null)} maxLength={6000} minRows={5} />
           <CampoLargo className="mt-3" label="Aviso de privacidad" value={f.aviso_privacidad ?? ''} onChange={(v) => set('aviso_privacidad', v || null)} maxLength={20000} minRows={5} hint="El huésped lo acepta antes de mandar su solicitud" />
         </Bloque>
@@ -281,9 +281,9 @@ function ProbarAviso() {
   )
 }
 
-function Bloque({ titulo, detalle, children }: { titulo: string; detalle?: string; children: ReactNode }) {
+function Bloque({ titulo, detalle, children, tono = 'blue' }: { tono?: string; titulo: string; detalle?: string; children: ReactNode }) {
   return (
-    <section className="mt-5 rounded-[22px] border border-line bg-surface p-6">
+    <section data-tone={tono} className="app-preferences-section mt-5 rounded-[22px] border border-line bg-surface p-6">
       <h2 className="text-[16px] font-semibold tracking-[-0.02em] text-ink">{titulo}</h2>
       {detalle && <p className="mt-0.5 text-[13px] text-ink-soft">{detalle}</p>}
       <div className="mt-4">{children}</div>
@@ -399,7 +399,7 @@ function EstaMac() {
     void abreAlIniciar().then(setAlIniciar)
   }, [])
   return (
-    <Bloque titulo="Esta Mac">
+    <Bloque tono="violet" titulo="Esta Mac">
       <div className="card divide-y divide-line">
         {enMac && alIniciar !== null && (
           <div className="flex items-center gap-4 px-5 py-4">

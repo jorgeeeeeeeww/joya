@@ -1,0 +1,35 @@
+{
+  "inicial": {
+    "bytes": 949192,
+    "gzip": 259202,
+    "archivos": 3
+  },
+  "pantallas": {
+    "src/pages/Ajustes.tsx": {
+      "bytes": 968364,
+      "gzip": 266393,
+      "archivos": 4
+    },
+    "src/pages/Cabanas.tsx": {
+      "bytes": 972195,
+      "gzip": 266769,
+      "archivos": 4
+    },
+    "src/pages/Calendario.tsx": {
+      "bytes": 979012,
+      "gzip": 267968,
+      "archivos": 4
+    },
+    "src/pages/Mapa.tsx": {
+      "bytes": 1590052,
+      "gzip": 435143,
+      "archivos": 4
+    },
+    "src/pages/Reservaciones.tsx": {
+      "bytes": 959323,
+      "gzip": 262465,
+      "archivos": 4
+    }
+  },
+  "fuentes": 131580
+}

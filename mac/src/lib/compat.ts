@@ -174,6 +174,7 @@ function evaluar(expr: string, valor: Leer): string | null {
 
 /** Reescribe todos los `color-mix(...)` del css con los colores de ahora */
 function reescribir(css: string, valor: Leer): string {
+  const mezclas = new Map<string, string | null>()
   const sinGuardia = css.replace(/@supports\s*\(\s*color\s*:\s*color-mix\(\s*in lab\s*,\s*red\s*,\s*red\s*\)\s*\)/g, '@supports (color:red)')
   let salida = ''
   let pos = 0
@@ -183,7 +184,8 @@ function reescribir(css: string, valor: Leer): string {
     const f = cierre(sinGuardia, i + 9)
     if (f < 0) break
     const original = sinGuardia.slice(i, f + 1)
-    const nuevo = evaluar(original, valor)
+    if (!mezclas.has(original)) mezclas.set(original, evaluar(original, valor))
+    const nuevo = mezclas.get(original)
     salida += sinGuardia.slice(pos, i) + (nuevo ?? original)
     pos = f + 1
   }
@@ -195,7 +197,16 @@ export async function repararColores(): Promise<void> {
   if (!sinColorMix) return
   try {
     const enlaces = [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')]
-    const textos = await Promise.all(enlaces.map((l) => fetch(l.href).then((r) => r.text())))
+    const controlador = new AbortController()
+    const limite = setTimeout(() => controlador.abort(), 5000)
+    let textos: string[]
+    try {
+      textos = await Promise.all(enlaces.map(async (l) => {
+        const r = await fetch(l.href, { signal: controlador.signal })
+        if (!r.ok) throw new Error('No se pudieron leer los estilos')
+        return r.text()
+      }))
+    } finally { clearTimeout(limite) }
     const hoja = document.createElement('style')
     hoja.setAttribute('data-compat', 'color-mix')
     document.head.append(hoja)
@@ -205,7 +216,12 @@ export async function repararColores(): Promise<void> {
       // Varias vueltas: unos colores se arman con otros que a su vez eran color-mix
       for (let vuelta = 0; vuelta < 4; vuelta++) {
         const estilo = getComputedStyle(raiz)
-        hoja.textContent = textos.map((t) => reescribir(t, (n) => estilo.getPropertyValue(n).trim())).join('\n')
+        const variables = new Map<string, string>()
+        const leer = (n: string) => {
+          if (!variables.has(n)) variables.set(n, estilo.getPropertyValue(n).trim())
+          return variables.get(n)!
+        }
+        hoja.textContent = textos.map((t) => reescribir(t, leer)).join('\n')
       }
     }
     calcular()

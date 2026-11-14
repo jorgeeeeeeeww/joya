@@ -65,7 +65,7 @@ export default function Cabanas() {
           {(['cabana', 'casa', 'habitacion'] as TipoHospedaje[]).map((tipo) => {
             const grupo = visibles.filter((c) => c.tipo === tipo)
             if (!grupo.length) return null
-            return <section key={tipo} className="mb-5"><h2 className="px-4 pb-2 text-[13px] font-semibold text-ink">{TIPO[tipo].varios} · {grupo.length}</h2><div className="flex flex-col">{grupo.map((c) => <button key={c.id} onClick={() => editar(c.id)} aria-pressed={sel === c.id} className="flex w-full min-w-0 items-start gap-3 border-b border-l-[3px] border-b-line px-3 py-4 text-left transition-colors hover:text-primary" style={{ backgroundColor: sel === c.id ? 'color-mix(in srgb, var(--primary) 9%, transparent)' : 'transparent', borderLeftColor: sel === c.id ? 'var(--primary)' : 'transparent' }}>
+            return <section key={tipo} className="mb-5"><h2 className="px-4 pb-2 text-[13px] font-semibold text-ink">{TIPO[tipo].varios} · {grupo.length}</h2><div className="flex flex-col">{grupo.map((c) => <button key={c.id} onClick={() => editar(c.id)} aria-pressed={sel === c.id} data-tipo={c.tipo} className="app-property-choice flex w-full min-w-0 items-start gap-3 border-b border-l-[3px] border-b-line px-3 py-4 text-left transition-colors hover:text-primary" style={{ backgroundColor: sel === c.id ? 'color-mix(in srgb, var(--primary) 9%, transparent)' : 'transparent', borderLeftColor: sel === c.id ? 'var(--primary)' : 'transparent' }}>
               <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-primary"><CasaIcono tipo={c.tipo} size={22} /></span><span className="min-w-0 flex-1"><strong className="block truncate text-[15px] font-semibold leading-snug text-ink" title={c.nombre}>{c.nombre}</strong><span className="mt-1.5 block text-[13px] leading-relaxed text-ink-soft">{plural(c.capacidad, 'persona', 'personas')}</span><span className="mt-0.5 block text-[13px] font-medium leading-relaxed text-primary">{c.precio_noche ? mxn(c.precio_noche) + ' / noche' : 'Sin tarifa'}</span><span className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] text-ink-soft"><span className={cx('h-1.5 w-1.5 rounded-full', c.publicada ? 'bg-success' : 'bg-ink-soft')} />{c.publicada ? 'Publicado en la web' : 'Oculto en la web'}</span></span>
             </button>)}</div></section>
           })}
@@ -228,7 +228,7 @@ function Editor({ original }: { original: Cabana | null }) {
 
         <p className="mb-5 text-[12px] text-ink-soft">Sincronizado con la página · Las fotos se administran por separado.</p>
 
-        <Bloque titulo="Datos">
+        <Bloque tono="blue" titulo="Datos">
           <div className="max-w-full overflow-x-auto pb-1"><Segmented value={f.tipo} onChange={(v) => set('tipo', v)} options={(['cabana', 'casa', 'habitacion'] as TipoHospedaje[]).map((t) => ({ value: t, label: <><CasaIcono tipo={t} size={15} /> {TIPO[t].uno}</> }))} /></div>
           <div className="mt-4 grid grid-cols-1 gap-3 min-[1200px]:grid-cols-2">
             <Campo label="Nombre" value={f.nombre} onChange={(v) => set('nombre', v)} maxLength={80} autoFocus={nueva} ok={!!f.nombre.trim()} />
@@ -254,7 +254,7 @@ function Editor({ original }: { original: Cabana | null }) {
           </div>
         </Bloque>
 
-        <Bloque titulo="Precios" detalle="Los precios los decide el rancho. Sin precio, la página muestra «Pregunta por WhatsApp».">
+        <Bloque tono="green" titulo="Precios" detalle="Los precios los decide el rancho. Sin precio, la página muestra «Pregunta por WhatsApp».">
           <div className="grid grid-cols-1 gap-3 min-[1200px]:grid-cols-2">
             <CampoDinero label="Precio por noche" value={f.precio_noche} onChange={(v) => set('precio_noche', v)} />
             <CampoDinero label="Noche de fin de semana" value={f.precio_fin_semana} onChange={(v) => set('precio_fin_semana', v)} hint={`Noches de ${nochesFinde(d.ajustes.noches_fin_semana)}`} />
@@ -266,12 +266,12 @@ function Editor({ original }: { original: Cabana | null }) {
         </Bloque>
 
         {original && (
-          <Bloque titulo="Temporadas" detalle="Precio especial por noche en ciertas fechas (Semana Santa, diciembre…). Gana sobre el de fin de semana.">
+          <Bloque tono="amber" titulo="Temporadas" detalle="Precio especial por noche en ciertas fechas (Semana Santa, diciembre…). Gana sobre el de fin de semana.">
             <Temporadas cabana={original} lista={temporadas} />
           </Bloque>
         )}
 
-        <Bloque titulo="Notas internas">
+        <Bloque tono="violet" titulo="Notas internas">
           <CampoLargo label="Solo las ve el rancho" value={f.notas ?? ''} onChange={(v) => set('notas', v || null)} maxLength={2000} minRows={2} />
         </Bloque>
 
@@ -323,9 +323,9 @@ function nochesFinde(n: number[]) {
   return nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}` : (nombres[0] ?? 'fin de semana')
 }
 
-function Bloque({ titulo, detalle, children }: { titulo: string; detalle?: string; children: React.ReactNode }) {
+function Bloque({ titulo, detalle, children, tono = 'blue' }: { tono?: string; titulo: string; detalle?: string; children: React.ReactNode }) {
   return (
-    <section className="mt-7 min-w-0 border-t border-line pt-5 first-of-type:mt-0">
+    <section data-tone={tono} className="app-property-section mt-7 min-w-0 border-t border-line pt-5 first-of-type:mt-0">
       <h3 className="text-[17px] font-semibold tracking-[-0.015em] text-ink">{titulo}</h3>
       {detalle && <p className="mt-0.5 text-[13px] text-ink-soft">{detalle}</p>}
       <div className="mt-3.5">{children}</div>

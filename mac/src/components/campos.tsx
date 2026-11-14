@@ -244,7 +244,7 @@ export function Pastillas<T extends string>({ value, onChange, opciones, label, 
             aria-checked={value === o.value}
             title={o.detalle}
             onClick={() => onChange(o.value)}
-            className={cx('pressable inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium ring-1 ring-inset transition-colors duration-[var(--dur-2)]', value === o.value ? 'bg-ink text-paper ring-ink' : 'bg-surface text-ink-soft ring-line-strong hover:text-ink')}
+            className={cx('app-option-group pressable inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium ring-1 ring-inset transition-colors duration-[var(--dur-2)]', value === o.value ? 'bg-ink text-paper ring-ink' : 'bg-surface text-ink-soft ring-line-strong hover:text-ink')}
           >
             {o.label}
           </button>

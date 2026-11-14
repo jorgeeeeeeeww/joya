@@ -1,30 +1,24 @@
 // Entrada de la app: sesión del dueño, barra lateral, tiempo real y atajos de la Mac.
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { LogOut } from 'lucide-react'
 import { nube, sinNubeDelRancho } from './lib/nube'
 import { useApp, esSalidaManual, marcarVencida, type Vista } from './lib/store'
 import { enMac, ponerMenu, buscarActualizacion, instalarActualizacion, alPedirNuevaReservacion, encenderAbreAlIniciarLaPrimeraVez, avisosPermitidos, permisoAvisos } from './lib/mac'
-import { ease } from './lib/motion'
+import { pantallas } from './lib/vistas'
+import { medir } from './lib/rendimiento'
 import { Button, Confirm, Sheet, Toaster, toast } from './components/ui'
 import { Conexion } from './components/Conexion'
 import { LightDots } from './components/step1'
 import { Loto } from './components/Loto'
 import { Barra } from './components/Barra'
 import { Topbar } from './components/Topbar'
-import Entrar from './pages/Entrar'
-import Hoy from './pages/Hoy'
-import { DetalleReservacion } from './components/Detalle'
-import { NuevaHoja } from './components/NuevaHoja'
-import { Buscar } from './components/Buscar'
 import { Tropiezo } from './components/Tropiezo'
 
-const Mapa = lazy(() => import('./pages/Mapa'))
-const Calendario = lazy(() => import('./pages/Calendario'))
-const Reservaciones = lazy(() => import('./pages/Reservaciones'))
-const Cabanas = lazy(() => import('./pages/Cabanas'))
-const Ajustes = lazy(() => import('./pages/Ajustes'))
+const DetalleReservacion = lazy(() => import('./components/Detalle').then(m => ({ default: m.DetalleReservacion })))
+const NuevaHoja = lazy(() => import('./components/NuevaHoja').then(m => ({ default: m.NuevaHoja })))
+const Buscar = lazy(() => import('./components/Buscar').then(m => ({ default: m.Buscar })))
+const Entrar = lazy(() => import('./pages/Entrar'))
 
 // Lo que hacen el menú de arriba y los atajos. Sin sesión (pantalla de Entrar) no hacen nada.
 const conSesion =
@@ -70,7 +64,7 @@ export default function App() {
       ) : sesion ? (
         <Marco />
       ) : (
-        <Entrar />
+        <Suspense fallback={<div className="flex h-dvh items-center justify-center"><LightDots /></div>}><Entrar /></Suspense>
       )}
       <Toaster />
     </>
@@ -86,6 +80,13 @@ function Marco() {
   const datos = useApp((s) => s.datos)
   const sinPermiso = useApp((s) => s.sinPermiso)
   const abierta = useApp((s) => s.abierta)
+  const nueva = useApp((s) => s.nueva)
+  const buscar = useApp((s) => s.buscar)
+  // Una vez cargados, se mantienen montados para conservar su animación de salida.
+  const capas = useRef({ nueva: false, buscar: false })
+  if (nueva) capas.current.nueva = true
+  if (buscar) capas.current.buscar = true
+  const Pantalla = pantallas[vista]
   const cargar = useApp((s) => s.cargar)
   const mainRef = useRef<HTMLElement>(null)
   const [pidiendoAvisos, setPidiendoAvisos] = useState(false)
@@ -245,8 +246,7 @@ function Marco() {
             <LightDots />
           </div>
         ) : (
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={vista} className={llena ? 'h-full' : ''} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.32, ease: ease.calma } }} exit={{ opacity: 0, transition: { duration: 0.12 } }}>
+            <div key={vista} className={`vista-entrada ${llena ? 'h-full' : ''}`}>
               <Tropiezo llave={vista}>
               <Suspense
                 fallback={
@@ -255,16 +255,10 @@ function Marco() {
                   </div>
                 }
               >
-                {vista === 'hoy' && <Hoy />}
-                {vista === 'mapa' && <Mapa />}
-                {vista === 'calendario' && <Calendario />}
-                {vista === 'reservaciones' && <Reservaciones />}
-                {vista === 'cabanas' && <Cabanas />}
-                {vista === 'ajustes' && <Ajustes />}
+                <VistaMedida vista={vista}><Pantalla /></VistaMedida>
               </Suspense>
               </Tropiezo>
-            </motion.div>
-          </AnimatePresence>
+            </div>
         )}
       </main>
       </div>
@@ -272,13 +266,15 @@ function Marco() {
       <Sheet open={!!abierta && vista !== 'reservaciones'} onClose={() => useApp.getState().abrir(null)} wide header={<span />}>
         {ultimaAbierta.current && (
           <Tropiezo llave={ultimaAbierta.current}>
-            <DetalleReservacion id={ultimaAbierta.current} enPanel onCerrar={() => useApp.getState().abrir(null)} />
+            <Suspense fallback={<LightDots />}><DetalleReservacion id={ultimaAbierta.current} enPanel onCerrar={() => useApp.getState().abrir(null)} /></Suspense>
           </Tropiezo>
         )}
       </Sheet>
       <Tropiezo>
-        <NuevaHoja />
-        <Buscar />
+        <Suspense fallback={<div role="status" aria-label="Abriendo panel" className="fixed right-6 bottom-6 z-[70] rounded-xl bg-surface p-4 shadow-lg"><LightDots /></div>}>
+          {capas.current.nueva && <NuevaHoja />}
+          {capas.current.buscar && <Buscar />}
+        </Suspense>
       </Tropiezo>
       <Conexion />
       <Confirm
@@ -294,6 +290,24 @@ function Marco() {
       />
     </div>
   )
+}
+
+function VistaMedida({ vista, children }: { vista: Vista; children: React.ReactNode }) {
+  useLayoutEffect(() => {
+    // El inicio se registra en el store, antes de cargar el chunk de la pantalla.
+    const terminar = medir(`vista:${vista}:presentacion`)
+    const frame = requestAnimationFrame(() => {
+      terminar()
+      const inicio = performance.getEntriesByName('joya:navegacion')[0]
+      if (inicio) {
+        performance.clearMeasures(`joya:vista:${vista}`)
+        performance.measure(`joya:vista:${vista}`, 'joya:navegacion')
+        performance.clearMarks('joya:navegacion')
+      }
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [vista])
+  return children
 }
 
 /** Una app compilada sin la dirección de la nube del rancho no sirve: se dice claro en vez de mostrar «Entrar» */

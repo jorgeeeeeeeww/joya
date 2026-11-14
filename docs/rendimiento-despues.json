@@ -1,0 +1,50 @@
+{
+  "inicial": {
+    "bytes": 871158,
+    "gzip": 236564,
+    "archivos": 3
+  },
+  "pantallas": {
+    "src/pages/Ajustes.tsx": {
+      "bytes": 904092,
+      "gzip": 248685,
+      "archivos": 8
+    },
+    "src/pages/Cabanas.tsx": {
+      "bytes": 908322,
+      "gzip": 249300,
+      "archivos": 9
+    },
+    "src/pages/Calendario.tsx": {
+      "bytes": 910120,
+      "gzip": 249635,
+      "archivos": 10
+    },
+    "src/pages/Entrar.tsx": {
+      "bytes": 891233,
+      "gzip": 244361,
+      "archivos": 7
+    },
+    "src/pages/Hoy.tsx": {
+      "bytes": 904126,
+      "gzip": 247850,
+      "archivos": 11
+    },
+    "src/pages/Mapa.tsx": {
+      "bytes": 888773,
+      "gzip": 242762,
+      "archivos": 7
+    },
+    "src/pages/Reservaciones.tsx": {
+      "bytes": 923965,
+      "gzip": 254882,
+      "archivos": 12
+    }
+  },
+  "fuentes": 131580,
+  "mapa3DCompleto": {
+    "bytes": 1507509,
+    "gzip": 412785,
+    "archivos": 9
+  }
+}

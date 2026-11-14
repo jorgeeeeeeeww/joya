@@ -1,6 +1,7 @@
 // Conexión con la nube (Supabase). La dirección y la llave pública vienen de la compilación;
 // sin ellas, la app usa la nube local de la computadora (npm run nube).
 import { createClient } from '@supabase/supabase-js'
+import { medir } from './rendimiento'
 
 export const URL_NUBE = (import.meta.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54331').replace(/\/$/, '')
 export const LLAVE_PUBLICA = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_local'
@@ -92,7 +93,10 @@ function explicar(mensaje: string, code?: string) {
 
 /** Llama una función de la base y devuelve su resultado (o lanza un error ya explicado en español) */
 export async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
+  const terminar = medir(`rpc:${fn}`)
+  try {
   const { data, error } = await nube.rpc(fn, args)
   if (error) throw new ErrorNube(explicar(error.message, error.code), error.code)
   return data as T
+  } finally { terminar() }
 }

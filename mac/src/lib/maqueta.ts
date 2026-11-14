@@ -10,6 +10,7 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { gsap } from 'gsap'
+import { medir as medirTiempo } from './rendimiento'
 import { ARBOLES, CAMINOS, LOTE, PIEZAS, type Pieza } from './plano'
 
 // Paleta
@@ -62,6 +63,8 @@ const TONO = {
 }
 
 export interface Maqueta {
+  acercar: (factor: number) => void
+  restablecerVista: () => void
   /** Marca los edificios que son hospedajes */
   ponerUnidades: (ids: string[]) => void
   /** Lugares que no son hospedaje pero llevan rótulo: [pieza, altura sobre el piso en metros] */
@@ -473,14 +476,16 @@ function texturaSombra() {
 }
 
 export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
+  const finPreparacion = medirTiempo('mapa:preparar-3d')
+  const ligero = navigator.hardwareConcurrency <= 4 || !CSS.supports('color', 'color-mix(in oklab, red, blue)')
   let renderer: THREE.WebGLRenderer
   try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+    renderer = new THREE.WebGLRenderer({ antialias: !ligero, alpha: true, powerPreference: 'low-power' })
   } catch {
     return null
   }
   const movil = innerWidth <= 900
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, movil ? 1.25 : 1.5)) // menos píxeles: el mapa se mueve más fluido
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, ligero ? 1 : movil ? 1.25 : 1.5))
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
   // Las sombras de las construcciones no cambian entre cuadros: se dibujan una vez y solo se repiten cuando algo se mueve
@@ -500,7 +505,7 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
   const sol = new THREE.DirectionalLight(0xfff8ee, 2.3)
   sol.position.set(80, 98, 86)
   sol.castShadow = true
-  sol.shadow.mapSize.set(movil ? 1024 : 2048, movil ? 1024 : 2048)
+  sol.shadow.mapSize.set(ligero || movil ? 1024 : 2048, ligero || movil ? 1024 : 2048)
   Object.assign(sol.shadow.camera, { left: -120, right: 120, top: 120, bottom: -120, near: 10, far: 400 })
   sol.shadow.radius = 5
   sol.shadow.bias = -0.0006
@@ -786,6 +791,7 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
 
   // ── Vista general fija, desde arriba, con giro manual ──
   const est = { th: 0, ph: 0.72, d: 300, x: 0, y: 0, z: 0, thAjuste: 0, thMeta: 0 }
+  let zoom = 1
   const tan = Math.tan((camara.fov / 2) * (Math.PI / 180))
   // Las esquinas del terreno, abajo (zócalo) y arriba (copa de los árboles): lo que debe caber en la caja
   const ESQUINAS = LOTE.flatMap(([x, z]) => [new THREE.Vector3(x, -ZOCALO, z), new THREE.Vector3(x, 11, z)])
@@ -839,7 +845,7 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
   }
   function colocarCamara() {
     const th = est.th + est.thAjuste
-    vDir.set(Math.sin(th) * Math.cos(est.ph), Math.sin(est.ph), Math.cos(th) * Math.cos(est.ph)).multiplyScalar(est.d)
+    vDir.set(Math.sin(th) * Math.cos(est.ph), Math.sin(est.ph), Math.cos(th) * Math.cos(est.ph)).multiplyScalar(est.d / zoom)
     camara.position.set(est.x + vDir.x, est.y + vDir.y, est.z + vDir.z)
     camara.lookAt(est.x, est.y, est.z)
   }
@@ -950,7 +956,8 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
   const t0 = performance.now()
   function cuadro() {
     raf = 0
-    uT.value = o.reduce ? 0 : (performance.now() - t0) / 1000
+    if (fin.signal.aborted || !listoGPU || !visible || pausado || document.hidden) return
+    uT.value = o.reduce || ligero ? 0 : (performance.now() - t0) / 1000
     for (const h of halos.values()) h.material.opacity = 0.28 + 0.3 * (0.5 + 0.5 * Math.sin(uT.value * 2.4))
     est.thAjuste += (est.thMeta - est.thAjuste) * 0.07
     colocarCamara()
@@ -983,7 +990,7 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
     if (foto !== ultimaFoto) quietaDesde = performance.now()
     ultimaFoto = foto
     if (performance.now() - quietaDesde < 500) despertar()
-    else {
+    else if (!ligero) {
       clearTimeout(lento)
       lento = window.setTimeout(despertar, movil ? 120 : 80)
     }
@@ -992,7 +999,7 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
   let quietaDesde = performance.now()
   let lento = 0
   function despertar() {
-    if (!raf && listoGPU && visible && !pausado && !document.hidden) raf = requestAnimationFrame(cuadro)
+    if (!raf && listoGPU && visible && !pausado && !document.hidden && !fin.signal.aborted) raf = requestAnimationFrame(cuadro)
   }
   const io = new IntersectionObserver(([e]) => {
     visible = e.isIntersecting
@@ -1003,7 +1010,6 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
   const ro = new ResizeObserver(() => {
     medir()
     despertar()
-    if (o.reduce) requestAnimationFrame(cuadro)
   })
   ro.observe(caja)
   medir()
@@ -1028,10 +1034,24 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
     compilando = null
     if (fin.signal.aborted) return
     listoGPU = true
+    finPreparacion()
     despertar()
   })()
 
   return {
+    acercar(factor) {
+      zoom = Math.max(1, Math.min(3, zoom * factor))
+      o.alPasar(null)
+      despertar()
+    },
+    restablecerVista() {
+      zoom = 1
+      est.thAjuste = 0
+      est.thMeta = 0
+      medir()
+      o.alPasar(null)
+      despertar()
+    },
     ponerUnidades(ids) {
       unidades = new Set(ids)
       tocables()
@@ -1095,11 +1115,22 @@ export function crearMaqueta(caja: HTMLElement, o: Opciones): Maqueta | null {
       // Three consulta los programas mientras compileAsync sigue pendiente. No se pueden
       // liberar sus materiales hasta que termine, aunque React ya haya cerrado el mapa.
       const liberarGPU = () => {
+        const materiales = new Set()
+        const geometrias = new Set()
         escena.traverse((n) => {
-          if (n.geometry) n.geometry.dispose()
+          if (n.geometry) geometrias.add(n.geometry)
           const mt = n.material
-          if (mt) (Array.isArray(mt) ? mt : [mt]).forEach((x) => x.dispose())
+          if (mt) (Array.isArray(mt) ? mt : [mt]).forEach((x) => materiales.add(x))
         })
+        const texturas = new Set()
+        for (const m of materiales) {
+          gsap.killTweensOf(m.color)
+          for (const valor of Object.values(m)) if (valor?.isTexture) texturas.add(valor)
+          m.dispose()
+        }
+        for (const t of texturas) t.dispose()
+        for (const g of geometrias) g.dispose()
+        if (velo) velo.esc.traverse(n => { n.geometry?.dispose(); n.material?.dispose() })
         renderer.dispose()
       }
       if (compilando) void compilando.finally(liberarGPU)

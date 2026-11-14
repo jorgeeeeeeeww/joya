@@ -1,6 +1,6 @@
 // Mapa: el rancho visto desde arriba (el mismo plano de la página) con cada hospedaje pintado según la noche que se
 // elija: ocupado, solicitud, cerrado o libre. Al tocar uno se abre su calendario.
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { BedDouble, CalendarPlus, Pencil, Users } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { activa } from '@/lib/estados'
@@ -10,21 +10,25 @@ import { nocheDe, TIPO } from '@/lib/ocupacion'
 import type { Cabana, ISODate } from '@/lib/tipos'
 import { Button, PageHeader, Sheet, cx } from '@/components/ui'
 import type { CasaEscena } from '@/components/plano'
-import { MapaRancho } from '@/components/MapaRancho'
 import { casasDe } from '@/lib/casas'
 import { Noches } from '@/components/Noches'
 import { CalendarioCabana } from '@/components/CalendarioCabana'
 import { AnimatedNumber } from '@/components/AnimatedNumber'
 
+const MapaRancho = lazy(() => import('@/components/MapaRancho').then(m => ({ default: m.MapaRancho })))
+
 export default function Mapa() {
   const d = useApp((s) => s.datos)!
   const [noche, setNoche] = useState<ISODate>(d.hoy)
   const [elegida, setElegida] = useState<string | null>(null)
+  const [busqueda, setBusqueda] = useState('')
+  const normalizar = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
   const [tipo, setTipo] = useState<Cabana['tipo'] | null>(null)
   useEffect(() => setNoche((n) => (n < d.hoy ? d.hoy : n)), [d.hoy])
 
   const casas = useMemo(() => casasDe(d, noche), [d, noche])
   const visibles = casas.filter((c) => !tipo || c.tipo === tipo)
+  const resultados = visibles.filter((c) => normalizar(c.nombre).includes(normalizar(busqueda)))
   const cuenta = (e: CasaEscena['estado']) => casas.filter((c) => c.estado === e).length
   const cuentaTipo = (tipo: Cabana['tipo']) => casas.filter((c) => c.tipo === tipo).length
   const cabana = d.cabanas.find((c) => c.id === elegida) ?? null
@@ -69,8 +73,10 @@ export default function Mapa() {
           </div>
           <div className="grid min-w-0 items-start gap-4 @[820px]:grid-cols-[minmax(0,1fr)_250px]">
             <div className="app-map-visual">
-              <MapaRancho casas={casas} elegida={elegida} onElegir={elegirHospedaje} tipo={tipo} />
-              <p className="mt-2 text-center text-[12px] text-ink-soft">Arrastra para girar · Toca un edificio para ver su calendario</p>
+              <Suspense fallback={<div className="flex h-[clamp(400px,60vh,640px)] items-center justify-center rounded-xl bg-wash text-ink-soft" role="status">Preparando vista 3D…</div>}>
+                <MapaRancho casas={casas} elegida={elegida} onElegir={elegirHospedaje} tipo={tipo} />
+              </Suspense>
+              <p className="mt-2 text-center text-[12px] text-ink-soft">Haz clic en un hospedaje para abrir su calendario · Arrastra para girar · Usa + para acercarte</p>
             </div>
             <aside className="flex h-[260px] min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface @[820px]:h-[clamp(360px,56vh,590px)]" aria-label="Elige un hospedaje">
               <div className="app-map-lodgings-heading">
@@ -79,9 +85,12 @@ export default function Mapa() {
                 </div>
                 <span className="app-map-lodgings-count">{visibles.length}</span>
               </div>
+              <div className="border-b border-line px-3 py-2">
+                <input type="search" aria-label="Buscar hospedaje por nombre" placeholder="Buscar hospedaje…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink focus-visible:outline-2 focus-visible:outline-primary" />
+              </div>
               <div className="app-map-lodgings-list">
-                {visibles.map((c) => (
-                  <button key={c.id} type="button" aria-pressed={elegida === c.id} title={c.linea} onClick={() => elegirHospedaje(c.id)} className="app-map-lodging">
+                {resultados.map((c) => (
+                  <button key={c.id} type="button" aria-pressed={elegida === c.id} title={c.linea} onClick={() => elegirHospedaje(c.id)} data-estado={c.estado} data-tipo={c.tipo} className="app-map-lodging">
                     <span className={cx('app-map-lodging-dot', c.estado === 'reservada' ? 'is-reserved' : c.estado === 'apartada' ? 'is-request' : c.estado === 'cerrada' ? 'is-closed' : 'is-free')} />
                     <span className="app-map-lodging-copy">
                       <strong style={{ fontSize: 14 }}>{c.nombre}</strong>
@@ -90,7 +99,7 @@ export default function Mapa() {
                     <span className="app-map-lodging-arrow" aria-hidden="true">›</span>
                   </button>
                 ))}
-                {!visibles.length && <p className="px-3 py-5 text-[13px] text-ink-soft">No hay {tipo ? TIPO[tipo].varios.toLowerCase() : 'hospedajes'} en este grupo.</p>}
+                {!resultados.length && <p className="px-3 py-5 text-[13px] text-ink-soft">{busqueda ? 'No hay hospedajes con ese nombre.' : 'No hay hospedajes en este grupo.'}</p>}
               </div>
             </aside>
           </div>

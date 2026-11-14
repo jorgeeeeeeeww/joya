@@ -8,6 +8,7 @@ import { activa } from '@/lib/estados'
 import { esNubeLocal } from '@/lib/nube'
 import { Button, MenuList, Popover, cx } from './ui'
 import { Marca } from './Loto'
+import { anticiparVista } from '@/lib/vistas'
 
 const SECCIONES: { vista: Vista; label: string; icon: typeof Sun; atajo: string }[] = [
   { vista: 'hoy', label: 'Hoy', icon: Sun, atajo: '1' },
@@ -17,9 +18,9 @@ const SECCIONES: { vista: Vista; label: string; icon: typeof Sun; atajo: string 
   { vista: 'cabanas', label: 'Hospedajes', icon: BedDouble, atajo: '5' },
 ]
 
-function Renglon({ activo, label, icon: Icon, onClick, cuenta, urgente, atajo }: { activo: boolean; label: string; icon: typeof Sun; onClick: () => void; cuenta?: number; urgente?: boolean; atajo?: string }) {
+function Renglon({ activo, label, icon: Icon, onClick, cuenta, urgente, atajo, vista }: { activo: boolean; label: string; icon: typeof Sun; onClick: () => void; cuenta?: number; urgente?: boolean; atajo?: string; vista?: Vista }) {
   return (
-    <button onClick={onClick} title={atajo ? `${label} (${CMD}${atajo})` : label} aria-current={activo ? 'page' : undefined} className={cx('group relative flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-left transition-colors duration-[var(--dur-2)]', activo ? 'text-ink' : 'text-ink-soft hover:bg-wash hover:text-ink')}>
+    <button onPointerEnter={() => vista && anticiparVista(vista)} onFocus={() => vista && anticiparVista(vista)} onClick={onClick} title={atajo ? `${label} (${CMD}${atajo})` : label} aria-current={activo ? 'page' : undefined} className={cx('group relative flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-left transition-colors duration-[var(--dur-2)]', activo ? 'text-ink' : 'text-ink-soft hover:bg-wash hover:text-ink')}>
       <Icon size={17} strokeWidth={activo ? 2 : 1.7} className="relative shrink-0" />
       <span className={cx('relative flex-1 min-w-0 text-[14px]', activo ? 'font-semibold' : 'font-medium')}>{label}</span>
       {!!cuenta && <span className={cx('relative min-w-5 text-right text-[12px] tabular', urgente ? 'font-semibold text-chispa' : 'font-medium text-key')}>{cuenta}</span>}
@@ -68,12 +69,12 @@ export function Barra() {
         <p className="reception-nav-label">RECEPCIÓN</p>
         <nav className="flex flex-1 flex-col gap-px px-2.5" aria-label="Secciones">
           {SECCIONES.map((s) => (
-            <Renglon key={s.vista} activo={vista === s.vista} label={s.label} icon={s.icon} atajo={s.atajo} onClick={() => ir(s.vista)} cuenta={s.vista === 'hoy' ? solicitudes || movimientos : undefined} urgente={s.vista === 'hoy' && solicitudes > 0} />
+            <Renglon key={s.vista} vista={s.vista} activo={vista === s.vista} label={s.label} icon={s.icon} atajo={s.atajo} onClick={() => ir(s.vista)} cuenta={s.vista === 'hoy' ? solicitudes || movimientos : undefined} urgente={s.vista === 'hoy' && solicitudes > 0} />
           ))}
         </nav>
 
         <div className="flex flex-col gap-px border-t border-line px-2.5 pt-2.5 pb-2.5">
-          <Renglon activo={vista === 'ajustes'} label="Ajustes" icon={Settings} atajo="," onClick={() => ir('ajustes')} />
+          <Renglon vista="ajustes" activo={vista === 'ajustes'} label="Ajustes" icon={Settings} atajo="," onClick={() => ir('ajustes')} />
           <button ref={cuentaRef} onClick={() => setCuenta((o) => !o)} aria-haspopup="menu" aria-expanded={cuenta} className="app-sidebar-account pressable mt-1.5 flex items-center gap-2 rounded-[12px] p-1.5 text-left hover:bg-wash">
             <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sunken text-[12px] font-semibold text-ink-soft uppercase">
               {correo.slice(0, 1)}

@@ -3,16 +3,16 @@ import type { Estado, TipoHospedaje } from '@/lib/tipos'
 
 /** El color identifica al hospedaje; el estado se expresa con un icono y texto. */
 export const TONOS_HOSPEDAJE = {
-  cabana: { background: '#e7eee5', color: '#304d37', borderColor: '#799471' },
-  casa: { background: '#f1e9da', color: '#674e2c', borderColor: '#b59a6c' },
-  habitacion: { background: '#e6edf1', color: '#365466', borderColor: '#809bab' },
+  cabana: { background: '#e3f2e9', color: '#205c43', borderColor: '#3d8965' },
+  casa: { background: '#fff0d8', color: '#80511c', borderColor: '#bf8a36' },
+  habitacion: { background: '#e5edfc', color: '#305d95', borderColor: '#557db8' },
 }
 export const tonoHospedaje = (tipo?: TipoHospedaje) => tipo ? TONOS_HOSPEDAJE[tipo] : { background: '#efeee9', color: '#4e524e', borderColor: '#b1b6ad' }
 export const estadoReserva = (estado: Estado) => estado === 'solicitud' ? 'Solicitud' : estado === 'pagada' ? 'Pagada' : estado === 'cancelada' ? 'Cancelada' : 'Confirmada'
 
 export function EstadoReserva({ estado, soloIcono = false }: { estado: Estado; soloIcono?: boolean }) {
   const Icono = estado === 'solicitud' ? Clock3 : estado === 'pagada' ? BadgeCheck : Check
-  return <span title={estadoReserva(estado)} className="inline-flex min-w-0 max-w-full items-center gap-1 text-[11px] font-medium" aria-label={soloIcono ? estadoReserva(estado) : undefined}>
+  return <span data-estado={estado} title={estadoReserva(estado)} className="app-booking-status inline-flex min-w-0 max-w-full items-center gap-1 text-[11px] font-medium" aria-label={soloIcono ? estadoReserva(estado) : undefined}>
     <Icono size={13} strokeWidth={1.8} className="shrink-0" aria-hidden="true" />{!soloIcono && <span className="min-w-0 truncate">{estadoReserva(estado)}</span>}
   </span>
 }

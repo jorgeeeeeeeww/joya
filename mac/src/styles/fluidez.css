@@ -1,0 +1,18 @@
+/* Entradas breves sin esperar una animación de salida ni rasterizar desenfoques. */
+@keyframes vista-entrada {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.vista-entrada { animation: vista-entrada 180ms cubic-bezier(.22,1,.36,1) both; }
+.reception-metrics > section { animation: vista-entrada 240ms cubic-bezier(.22,1,.36,1) backwards; }
+.reception-metrics > section:nth-child(2) { animation-delay: 35ms; }
+.app-sidebar nav button { transition: background-color 120ms, color 120ms, transform 120ms; }
+.app-sidebar nav button:active { transform: scale(.98); }
+.reception-quick-actions button { transition: background-color 140ms, transform 140ms; }
+.reception-quick-actions button:active { transform: translateX(2px); }
+html[data-ventana-oculta] *, html[data-ventana-oculta] *::before, html[data-ventana-oculta] *::after { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .vista-entrada, .reception-metrics > section { animation: none; }
+  .app-sidebar nav button, .reception-quick-actions button { transition: none; }
+  .app-sidebar nav button:active, .reception-quick-actions button:active { transform: none; }
+}

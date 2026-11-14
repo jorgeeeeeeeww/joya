@@ -2,9 +2,18 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MotionConfig } from 'motion/react'
 import './index.css'
+import './styles/claridad.css'
+import './styles/fluidez.css'
 import App from './App'
 import { enMac } from './lib/mac'
 import { repararColores } from './lib/compat'
+import { medir } from './lib/rendimiento'
+
+const finArranque = medir('arranque:compatibilidad-y-montaje')
+performance.mark('joya:navegacion')
+const visibilidad = () => document.documentElement.toggleAttribute('data-ventana-oculta', document.hidden)
+document.addEventListener('visibilitychange', visibilidad)
+visibilidad()
 
 document.documentElement.dataset.theme = 'light'
 document.documentElement.dataset.appDesign = 'reservations'
@@ -24,4 +33,5 @@ void repararColores().finally(() => {
       </MotionConfig>
     </StrictMode>,
   )
+  requestAnimationFrame(finArranque)
 })

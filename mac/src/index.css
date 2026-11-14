@@ -4,6 +4,7 @@
    Fuente de verdad de color: src/styles/step1.css. Aquí solo hay alias y utilidades.
    ========================================================================== */
 @import '@fontsource-variable/dm-sans/wght.css';
+@import '@fontsource-variable/geist/wght.css';
 
 @import 'tailwindcss';
 @import './styles/step1.css' layer(base);

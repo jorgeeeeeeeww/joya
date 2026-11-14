@@ -22,10 +22,10 @@ export const fadeRise: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: dur.enter, ease: ease.calma } },
 }
 
-/** Solo titulares principales: el blur es caro, no usar en listas */
+/** Entrada del titular sin filtros que obliguen a repintar cada cuadro. */
 export const heroRise: Variants = {
-  hidden: { opacity: 0, y: RISE * 1.5, filter: 'blur(4px)' },
-  show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: dur.hero, ease: ease.calma } },
+  hidden: { opacity: 0, y: RISE },
+  show: { opacity: 1, y: 0, transition: { duration: dur.enter, ease: ease.calma } },
 }
 
 export const stagger: Variants = {
@@ -37,7 +37,7 @@ export const exitFade = { opacity: 0, y: -6, transition: { duration: 0.2, ease: 
 
 export const modal = {
   initial: { opacity: 0, y: 16, scale: 0.98 },
-  animate: { opacity: 1, y: 0, scale: 1, transition: { duration: dur.enter, ease: ease.calma } },
+  animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.24, ease: ease.calma } },
   exit: { opacity: 0, y: 8, scale: 0.99, transition: { duration: 0.2, ease: ease.salida } },
 }
 

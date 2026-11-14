@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, BedDouble, CalendarDays, Check, CheckCheck, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, DoorOpen, Globe2, LockKeyhole, MessageCircle, Plus, Users, Wallet } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { activa, ORIGEN, saldo } from '@/lib/estados'
-import { corta, dia, diaCorto, larga, masDias, noches, rango, venceEn, plural } from '@/lib/fechas'
+import { corta, diaCorto, larga, masDias, noches, rango, venceEn, plural } from '@/lib/fechas'
 import { mxn } from '@/lib/dinero'
 import { nombreDe } from '@/lib/ocupacion'
 import { casasDe } from '@/lib/casas'
@@ -46,7 +46,7 @@ export default function Hoy() {
         <button onClick={() => {setAgendaFecha(d.hoy); setAgendaVista('llegadas'); document.getElementById('reception-agenda')?.scrollIntoView({behavior:'smooth'})}}><span className="reception-small-icon green"><ArrowDownLeft size={18} /></span><span><strong><AnimatedNumber value={llegan.length} /></strong><small>Llegadas de hoy</small></span><ChevronRight size={15} /></button>
         <button onClick={() => {setAgendaFecha(d.hoy); setAgendaVista('salidas'); document.getElementById('reception-agenda')?.scrollIntoView({behavior:'smooth'})}}><span className="reception-small-icon blue"><ArrowUpRight size={18} /></span><span><strong><AnimatedNumber value={salen.length} /></strong><small>Salidas de hoy</small></span><ChevronRight size={15} /></button>
       </div>
-      <Ocupacion d={d} />
+      <Movimientos d={d} onElegir={(fecha, vista) => { setAgendaFecha(fecha); setAgendaVista(vista) }} />
       <section id="reception-requests" className="reception-panel reception-requests"><PanelHeader title="Solicitudes por confirmar" icon={<Clock3 size={17} />} extra={<span className="reception-count">{solicitudes.length} pendientes</span>} />
         {solicitudes.length ? <div className="reception-request-list">{solicitudes.map(r => <Solicitud key={r.id} r={r} d={d} onMenu={e => abrirMenu(e,r)} />)}</div> : <Empty icon={<CheckCheck size={23} />} title="Todo al día" text="Las solicitudes nuevas de la página aparecerán aquí." />}
       </section>
@@ -82,16 +82,24 @@ function Solicitud({r,d,onMenu}:{r:Reservacion;d:Datos;onMenu:(e:React.MouseEven
   </article>
 }
 
-function Ocupacion({d}:{d:Datos}) {
-  const [periodo,setPeriodo] = useState(14)
-  const dias = Array.from({length:periodo},(_,i) => {const fecha=masDias(d.hoy,i); const c=casasDe(d,fecha); return {fecha,ocupadas:c.filter(c=>c.estado==='reservada').length,apartadas:c.filter(c=>c.estado==='apartada').length,cerradas:c.filter(c=>c.estado==='cerrada').length} })
-  const filas = Math.min(12,Math.max(1,d.cabanas.length))
-  const capacidad = d.cabanas.length
-  const totalNoches = dias.reduce((n,d) => n+d.ocupadas,0)
-  return <section className="reception-panel reception-occupancy"><PanelHeader title="Ocupación por noche" icon={<BedDouble size={17} />} extra={<div className="reception-segmented" aria-label="Periodo de ocupación">{[7,14,30].map(n => <button key={n} aria-pressed={periodo===n} onClick={()=>setPeriodo(n)}>{n} días</button>)}</div>} />
-    <div className="reception-chart-summary"><div><strong><AnimatedNumber value={totalNoches} /></strong><span>noches reservadas</span></div><span>Próximos {periodo} días</span></div>
-    {capacidad ? <div className="reception-chart-scroll"><div className="reception-chart" style={{gridTemplateColumns:`repeat(${periodo},minmax(16px,1fr))`}}>{dias.map((d,i) => {const ocupadas=Math.round(d.ocupadas/capacidad*filas); const apartadas=Math.round(d.apartadas/capacidad*filas); const cerradas=Math.min(filas-ocupadas-apartadas,Math.round(d.cerradas/capacidad*filas)); return <button key={d.fecha} onClick={()=>useApp.getState().ir('calendario')} aria-label={`${larga(d.fecha)}: ${d.ocupadas} ocupados, ${d.apartadas} apartados y ${d.cerradas} cerrados de ${capacidad}. Abrir calendario.`} title={`${corta(d.fecha)} · ${d.ocupadas}/${capacidad} ocupados · ${d.apartadas} apartados · ${d.cerradas} cerrados`}><span className="reception-chart-pixels" style={{gridTemplateRows:`repeat(${filas},1fr)`}}>{Array.from({length:filas*2},(_,cell) => { const f=Math.floor(cell/2); return <i key={cell} className={filas-f<=ocupadas ? 'booked' : filas-f<=ocupadas+apartadas ? 'held' : filas-f<=ocupadas+apartadas+cerradas ? 'closed' : ''} /> })}</span><span className={cx('reception-chart-day',i===0 && 'today')}>{periodo<30 || i%5===0 || i===periodo-1 ? dia(d.fecha) : '·'}</span></button>})}</div></div> : <Empty icon={<BedDouble size={23} />} title="Tu ocupación empieza aquí" text="Agrega hospedajes para ver la disponibilidad de las próximas noches." />}
-    <div className="reception-chart-legend"><span><i className="booked" />Confirmado</span><span><i className="held" />Solicitud</span><span><i className="closed" />Cerrado</span><span><i />Libre</span><small>{corta(d.hoy)} — {corta(masDias(d.hoy,periodo-1))}</small></div>
+function Movimientos({ d, onElegir }: { d: Datos; onElegir: (fecha: string, vista: 'llegadas' | 'salidas') => void }) {
+  const reservas = d.reservaciones.filter(confirmada)
+  const dias = Array.from({ length: 7 }, (_, i) => {
+    const fecha = masDias(d.hoy, i)
+    return { fecha, llegadas: reservas.filter((r) => r.llegada === fecha).length, salidas: reservas.filter((r) => r.salida === fecha).length }
+  })
+  const maximo = Math.max(1, ...dias.flatMap((d) => [d.llegadas, d.salidas]))
+  const llegadas = dias.reduce((n, d) => n + d.llegadas, 0)
+  const salidas = dias.reduce((n, d) => n + d.salidas, 0)
+  return <section className="reception-panel reception-movements">
+    <PanelHeader title="Llegadas y salidas" icon={<CalendarDays size={18} />} extra={<span className="reception-count">Próximos 7 días</span>} />
+    <div className="movement-summary"><span><ArrowDownLeft size={18} /><strong>{llegadas}</strong> llegadas</span><span><ArrowUpRight size={18} /><strong>{salidas}</strong> salidas</span></div>
+    <p className="movement-explanation">Cada barra cuenta reservaciones confirmadas. Elige una para ver la agenda de ese día.</p>
+    <div className="movement-chart" aria-label="Llegadas y salidas confirmadas de los próximos siete días">
+      <div className="movement-chart-labels"><span>Día</span><span>Llegadas</span><span>Salidas</span></div>
+      {dias.map((dia, i) => <div className="movement-row" key={dia.fecha}><span className="movement-day"><strong>{i === 0 ? 'Hoy' : diaCorto(dia.fecha)}</strong><small>{corta(dia.fecha)}</small></span>{(['llegadas', 'salidas'] as const).map((tipo) => <button type="button" key={tipo} className={`movement-bar is-${tipo}`} aria-label={`${larga(dia.fecha)}: ${dia[tipo]} ${tipo}. Ver agenda.`} onClick={() => onElegir(dia.fecha, tipo)}><span className="movement-bar-track" aria-hidden="true"><i style={{ width: `${dia[tipo] / maximo * 100}%` }} /></span><strong>{dia[tipo]}</strong></button>)}</div>)}
+    </div>
+    <p className="movement-footnote">Las solicitudes por confirmar se muestran por separado.</p>
   </section>
 }
 

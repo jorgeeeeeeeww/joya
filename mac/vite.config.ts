@@ -17,7 +17,9 @@ export default defineConfig({
   server: { port: 5180, strictPort: true, host: '127.0.0.1' },
   envPrefix: ['VITE_', 'TAURI_ENV_'],
   build: {
-    target: ['safari17', 'chrome120'],
+    manifest: true,
+    target: ['safari15', 'chrome120'],
+    cssTarget: 'safari15',
     outDir: 'dist',
     emptyOutDir: true,
     chunkSizeWarningLimit: 900,

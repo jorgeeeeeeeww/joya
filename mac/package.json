@@ -1,13 +1,14 @@
 {
   "name": "la-joya-mac",
   "private": true,
-  "version": "0.3.11",
+  "version": "0.3.12",
   "type": "module",
   "description": "La Joya · Reservaciones: la app del dueño para la Mac (Tauri). Se conecta a la misma nube que la web.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
+    "medir:carga": "npm run build && node scripts/medir-carga.mjs",
     "nube": "node nube-local/servidor.mjs",
     "nube:ejemplo": "node nube-local/servidor.mjs --ejemplo",
     "probar": "node nube-local/probar.mjs",

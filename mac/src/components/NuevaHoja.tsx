@@ -130,7 +130,7 @@ function Formulario({ nueva }: { nueva: Nueva }) {
     )
 
   return (
-    <div className="pt-6">
+    <div className="app-new-booking pt-6">
       <div className="mb-5 flex items-center justify-between gap-4">
         <h2 className="heading text-[1.6rem]">{tipo === 'reservacion' ? 'Nueva reservación' : 'Cerrar fechas'}</h2>
         <Segmented
@@ -148,7 +148,7 @@ function Formulario({ nueva }: { nueva: Nueva }) {
           <Pastillas label="Hospedaje" value={cabana} onChange={setCabana} opciones={d.cabanas.map((c) => ({ value: c.id, label: c.nombre, detalle: `${TIPO[c.tipo].uno} · ${plural(c.capacidad, 'persona', 'personas')}` }))} />
           {intento && !cabana && <p className="-mt-3 text-[13px] text-danger">Elige el hospedaje</p>}
 
-          <div className="rounded-[14px] p-4 ring-1 ring-line">
+          <div className="app-new-dates rounded-[14px] p-4 ring-1 ring-line">
             <RangoFechas llegada={llegada} salida={salida} hoy={d.hoy} ocupacion={ocupacion} minimo={q?.minimo_noches ?? 1} onChange={(a, b) => (setLlegada(a), setSalida(b))} />
           </div>
 

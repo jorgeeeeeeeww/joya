@@ -227,7 +227,7 @@ export default function Calendario() {
         }}
       >
         {/* Encabezado de días */}
-        <div ref={encabezado} className="sticky top-0 z-20 flex border-b border-line bg-surface">
+        <div ref={encabezado} className="app-timeline-days sticky top-0 z-20 flex border-b border-line bg-surface">
           <div className="sticky left-0 flex shrink-0 items-center border-r border-line bg-surface px-4 text-[12px] font-medium text-ink-soft" style={{ width: NOMBRES }}>Hospedajes</div>
           <div className="flex">
             {dias.map((x) => {
@@ -247,7 +247,7 @@ export default function Calendario() {
           {/* Nombres */}
           <div className="sticky left-0 z-10 shrink-0 border-r border-line bg-surface" style={{ width: NOMBRES }}>
             {cabanas.map((c) => (
-              <button key={c.id} onClick={() => (useApp.getState().ir('cabanas'), useApp.getState().editarCabana(c.id))} className="flex w-full flex-col justify-center border-b border-line px-4 text-left hover:bg-wash" style={{ height: FILA }} title="Abrir en Hospedajes">
+              <button key={c.id} onClick={() => (useApp.getState().ir('cabanas'), useApp.getState().editarCabana(c.id))} data-tipo={c.tipo} className="app-timeline-property flex w-full flex-col justify-center border-b border-line px-4 text-left hover:bg-wash" style={{ height: FILA }} title="Abrir en Hospedajes">
                 <span className="w-full truncate text-[14px] leading-tight font-semibold text-ink" title={c.nombre}>{c.nombre}</span>
                 <span className="w-full truncate text-[12px] text-ink-soft">
                   {TIPO[c.tipo].uno} · {plural(c.capacidad, 'persona', 'personas')}
@@ -275,7 +275,7 @@ export default function Calendario() {
               <div key={x} className={cx('absolute inset-y-0', (diaSemana(x) === 5 || diaSemana(x) === 6) && 'bg-[color-mix(in_oklab,var(--ink)_3%,transparent)]', dia(x) === 1 && 'border-l border-line-strong', x < d.hoy && 'bg-[color-mix(in_oklab,var(--ink)_4.5%,transparent)]')} style={{ left: i * CELDA, width: CELDA }} />
             ))}
             {cabanas.map((c, i) => (
-              <div key={c.id} className="absolute inset-x-0 border-b border-line" style={{ top: i * FILA, height: FILA }} />
+              <div key={c.id} className="app-timeline-row absolute inset-x-0 border-b border-line" style={{ top: i * FILA, height: FILA }} />
             ))}
             {dias.includes(d.hoy) && <div className="pointer-events-none absolute inset-y-0 z-[1] w-[2px] bg-chispa-soft shadow-[0_0_10px_var(--luz)]" style={{ left: (noches(inicio, d.hoy) + 0.5) * CELDA - 1 }} />}
 
@@ -340,7 +340,7 @@ export default function Calendario() {
                     setArrastre({ tipo: 'mover', r, x0: e.clientX, y0: e.clientY, dd: 0, fila: cabanas.findIndex((c) => c.id === r.cabana_id), movio: false })
                   }}
                   onContextMenu={(e) => abrirMenu(e, r)}
-                  className={cx('absolute z-[3] flex cursor-grab flex-col justify-center overflow-hidden rounded-[8px] border-l-[3px] px-2 ring-1 ring-inset transition-shadow', a && a.movio && 'z-[6] cursor-grabbing shadow-[var(--shadow-3)]', choca && 'ring-2 ring-danger')}
+                  className={cx('app-timeline-booking absolute z-[3] flex cursor-grab flex-col justify-center overflow-hidden rounded-[8px] border-l-[3px] px-2 ring-1 ring-inset transition-shadow', a && a.movio && 'z-[6] cursor-grabbing shadow-[var(--shadow-3)]', choca && 'ring-2 ring-danger')}
                   style={{ ...tonoHospedaje(hospedaje.tipo), top: fila * FILA + 7, height: FILA - 14, left: p.left, width: p.width, borderTopLeftRadius: p.cortadaIzq ? 0 : undefined, borderBottomLeftRadius: p.cortadaIzq ? 0 : undefined, borderTopRightRadius: p.cortadaDer ? 0 : undefined, borderBottomRightRadius: p.cortadaDer ? 0 : undefined }}
                 >
                   {nombre && <span className="text-[14px] leading-tight font-semibold whitespace-nowrap">{nombre}</span>}
@@ -382,18 +382,15 @@ export default function Calendario() {
               const dias = noches(d.hoy, r.llegada)
               const falta = dias === 0 ? 'Llega hoy' : dias === 1 ? 'Llega mañana' : `Llega en ${plural(dias, 'día', 'días')}`
               return (
-                <button key={r.id} type="button" onClick={() => useApp.getState().abrir(r.id)} className="app-calendar-upcoming-card" style={{ ...tonoHospedaje(hospedaje?.tipo), borderLeftWidth: 4 }}>
-                  <span className="app-calendar-upcoming-top">
-                    <span className="app-calendar-upcoming-order" style={{ fontSize: 12 }}>{i === 0 ? 'La que sigue' : `Después · ${i + 1}`}</span>
-                    <span className="inline-flex rounded border border-current/20 px-2 py-1 text-[12px]"><EstadoReserva estado={r.estado} /></span>
+                <button key={r.id} type="button" onClick={() => useApp.getState().abrir(r.id)} className={cx('app-calendar-upcoming-card', i === 0 && 'is-next')} data-tipo={hospedaje?.tipo}>
+                  <span className="upcoming-card-header">
+                    <span className="upcoming-date-tile" aria-hidden="true"><small>{mesLargo(r.llegada).slice(0, 3)}</small><strong>{dia(r.llegada)}</strong></span>
+                    <span className="upcoming-arrival"><span className="app-calendar-upcoming-order">{i === 0 ? 'Próxima llegada' : 'Por llegar'}</span><strong>{falta}</strong></span>
+                    <EstadoReserva estado={r.estado} />
                   </span>
-                  <strong className="app-calendar-upcoming-guest">{r.nombre}</strong>
-                  <span className="app-calendar-upcoming-property">{hospedaje?.nombre ?? 'Hospedaje'} · {TIPO[hospedaje?.tipo ?? 'cabana'].uno}</span>
-                  <span className="app-calendar-upcoming-date"><CalendarDays size={14} /> {rango(r.llegada, r.salida)} · {plural(noches(r.llegada, r.salida), 'noche', 'noches')}</span>
-                  <span className="app-calendar-upcoming-bottom">
-                    <span><Users size={13} /><span className="min-w-0 truncate">{plural(r.huespedes, 'persona', 'personas')} · {falta}</span></span>
-                    <strong>{mxn(r.total)}</strong>
-                  </span>
+                  <span className="upcoming-card-identity"><strong className="app-calendar-upcoming-guest">{r.nombre}</strong><span className="app-calendar-upcoming-property">{hospedaje?.nombre ?? 'Hospedaje'}</span></span>
+                  <span className="upcoming-card-facts"><span><CalendarDays size={15} />{rango(r.llegada, r.salida)}</span><span><Users size={15} />{plural(r.huespedes, 'persona', 'personas')} · {plural(noches(r.llegada, r.salida), 'noche', 'noches')}</span></span>
+                  <span className="upcoming-card-footer"><span><small>Total de la estancia</small><strong>{mxn(r.total)}</strong></span><span className="upcoming-open">Ver reserva <ChevronRight size={16} /></span></span>
                 </button>
               )
             })}

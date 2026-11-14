@@ -40,7 +40,7 @@ export default function CalendarioMes() {
   const libres = cabanas.filter((c) => nocheDe(d, c.id, fecha).tipo === 'libre')
   const cerradas = cabanas.filter((c) => nocheDe(d, c.id, fecha).tipo === 'cerrada')
 
-  return <div className="@container mx-auto w-full min-w-0 max-w-[1600px] px-5 py-7 lg:px-7">
+  return <div className="app-month-page @container mx-auto w-full min-w-0 max-w-[1600px] px-5 py-7 lg:px-7">
     <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
       <h1 className="heading text-[34px] font-semibold text-ink">Calendario</h1>
       <div className="flex flex-wrap items-center gap-2">
@@ -70,7 +70,7 @@ export default function CalendarioMes() {
             const eventos = reservas.filter((r) => r.llegada <= iso && r.salida > iso)
             const bloqueadas = d.bloqueos.filter((b) => ids.has(b.cabana_id) && b.inicio <= iso && b.fin > iso)
             const ocupados = eventos.length + bloqueadas.length
-            return <div key={iso} className={cx('min-h-[148px] min-w-0 border-r border-b border-line p-1.5 @[800px]:p-2', iso.slice(0, 7) !== mes.slice(0, 7) && 'bg-wash', fecha === iso && 'bg-wash ring-2 ring-inset ring-line-strong')}>
+            return <div key={iso} className={cx('app-month-day min-h-[148px] min-w-0 border-r border-b border-line p-1.5 @[800px]:p-2', iso.slice(0, 7) !== mes.slice(0, 7) && 'bg-wash', fecha === iso && 'is-selected')}>
               <button type="button" aria-label={`${larga(iso)}, ${eventos.length} reservaciones, ${bloqueadas.length} cierres`} aria-pressed={fecha === iso} onClick={() => setFecha(iso)} className="mb-2 flex w-full items-center justify-between gap-1 text-left">
                 <span className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold', iso === d.hoy ? 'bg-primary text-on-primary' : 'text-ink')}>{dia(iso)}</span>
                 <span className="text-[11px] text-ink-soft" title="Hospedajes no disponibles / total">{ocupados}/{cabanas.length}</span>
@@ -78,7 +78,7 @@ export default function CalendarioMes() {
               <div className="space-y-1.5">{eventos.slice(0, 2).map((r) => {
                 const c = porId.get(r.cabana_id)
                 const titulo = `${r.nombre} · ${c?.nombre ?? 'Hospedaje'} · ${c ? TIPO[c.tipo].uno : ''} · ${estadoReserva(r.estado)} · ${rango(r.llegada, r.salida)} · ${plural(r.huespedes, 'persona', 'personas')}`
-                return <button type="button" key={r.id} onClick={() => useApp.getState().abrir(r.id)} title={titulo} aria-label={titulo} style={tonoHospedaje(c?.tipo)} className="block w-full min-w-0 overflow-hidden rounded-md border-l-[3px] px-1.5 py-2 text-left transition-[filter] hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink">
+                return <button type="button" key={r.id} onClick={() => useApp.getState().abrir(r.id)} title={titulo} aria-label={titulo} style={tonoHospedaje(c?.tipo)} className="app-calendar-booking block w-full min-w-0 overflow-hidden rounded-md border-l-[3px] px-1.5 py-2 text-left transition-[filter] hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink">
                   <span className="flex min-w-0 items-center justify-between gap-1"><span className="min-w-0 flex-1 truncate text-[12px] font-semibold leading-tight text-ink @[850px]:text-[13px]">{r.nombre}</span></span>
                   <span className="mt-1 block break-words text-[11px] font-medium leading-tight @[850px]:text-[12px]">{c?.nombre ?? 'Hospedaje'}</span>
                   <span className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1"><EstadoReserva estado={r.estado} />{r.llegada === iso && <ArrowDownLeft size={11} aria-label="Llegada" />}</span>
@@ -95,13 +95,13 @@ export default function CalendarioMes() {
             <button type="button" onClick={() => verDia(fecha)} className="ml-auto font-semibold text-key underline underline-offset-4">Ver detalle del día →</button>
           </div>
         </section>
-        <aside ref={detalle} className="min-w-0 scroll-mt-5 rounded-xl border border-line bg-surface p-5">
+        <aside ref={detalle} className="app-day-summary min-w-0 scroll-mt-5 rounded-xl border border-line bg-surface p-5">
           <h2 className="text-[20px] font-semibold capitalize text-ink">{larga(fecha)}</h2>
           <div className="my-5 grid grid-cols-3 gap-2 border-y border-line py-4">{[{ value: llegadas.length, label: 'Llegadas' }, { value: salidas.length, label: 'Salidas' }, { value: libres.length, label: 'Libres' }].map(({ value, label }) => <div key={label}><AnimatedNumber value={value} className="block text-[25px] font-semibold text-ink" /><span className="text-[12px] text-ink-soft">{label}</span></div>)}</div>
           <h3 className="mb-3 text-[15px] font-semibold text-ink">Se hospedan esta noche</h3>
           <div className="space-y-3">{estancias.map((r) => {
             const c = porId.get(r.cabana_id)
-            return <button key={r.id} onClick={() => useApp.getState().abrir(r.id)} className="w-full min-w-0 rounded-lg border border-line border-l-[4px] p-3.5 text-left" style={tonoHospedaje(c?.tipo)}>
+            return <button key={r.id} onClick={() => useApp.getState().abrir(r.id)} className="app-calendar-booking w-full min-w-0 rounded-lg border border-line border-l-[4px] p-3.5 text-left" style={tonoHospedaje(c?.tipo)}>
               <span className="block break-words text-[15px] font-semibold text-ink">{r.nombre}</span>
               <span className="mt-1 block break-words text-[13px] font-medium">{c?.nombre ?? 'Hospedaje'}{c ? ` · ${TIPO[c.tipo].uno}` : ''}</span>
               <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]"><EstadoReserva estado={r.estado} /><span className="inline-flex items-center gap-1"><Users size={12} />{r.huespedes}</span></span>

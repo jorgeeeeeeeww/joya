@@ -2,13 +2,12 @@
 // datos del huésped, mensaje de WhatsApp ya escrito e historia. Se usa en «Reservaciones» (lado a lado,
 // como en Mail) y como panel a la derecha en las demás pantallas.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeft, Ban, BedDouble, CalendarRange, Check, ChevronDown, Copy, Link2, MessageCircle, MoreHorizontal, RotateCcw, Trash2, Undo2, Wallet, X } from 'lucide-react'
 import type { Detalle, MetodoPago } from '@/lib/tipos'
 import { rpc } from '@/lib/nube'
 import { useApp } from '@/lib/store'
 import { ESTADO, METODO, MOTIVO, ORIGEN, saldo as saldoDe } from '@/lib/estados'
-import { corta, dia, diaCorto, diaLocal, hace, hora, larga, noches as contarNoches, plural, venceEn, masDias } from '@/lib/fechas'
+import { corta, diaCorto, diaLocal, hace, hora, larga, noches as contarNoches, plural, venceEn, masDias } from '@/lib/fechas'
 import { mxn } from '@/lib/dinero'
 import { ligaWhatsApp, mensajePara } from '@/lib/mensajes'
 import { abrirLiga, copiar } from '@/lib/mac'
@@ -66,8 +65,6 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
   const [editando, setEditando] = useState(false)
   const [pagando, setPagando] = useState(false)
   const [seccionActiva, setSeccionActiva] = useState('perfil')
-  // Si el pago se empezó tocando una noche de la tira, el monto ya viene con lo que hace falta para cubrir hasta ahí
-  const [montoInicial, setMontoInicial] = useState<number | null>(null)
   const masRef = useRef<HTMLButtonElement>(null)
   const [mas, setMas] = useState(false)
   const v = d.estado === 'solicitud' ? venceEn(d.vence) : null
@@ -191,26 +188,22 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
         </Seccion>
 
         <Seccion id={`pagos-${d.id}`} className="app-detail-payments" titulo="Pagos">
-          <TiraNoches d={d} onCubrir={d.estado === 'cancelada' ? undefined : (m) => (setMontoInicial(m), setPagando(true))} />
-          <div className="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-[14px] bg-line ring-1 ring-line">
+          <p className="payment-summary-caption">{falta > 0 ? 'Registra cada abono con su monto, método y referencia.' : 'Esta estancia está pagada por completo.'}</p>
+          <div className="payment-totals mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-[14px] bg-line ring-1 ring-line">
             <Dato etiqueta="Total" valor={mxn(d.total)} />
             <Dato etiqueta="Pagado" valor={mxn(d.pagado)} detalle={d.anticipo > 0 ? `Anticipo: ${mxn(d.anticipo)}` : undefined} />
-            <Dato etiqueta="Falta" valor={<span className={falta > 0 ? 'text-key' : 'text-success'}>{falta > 0 ? mxn(falta) : 'Nada'}</span>} />
+            <Dato etiqueta="Falta" valor={<span className={falta > 0 ? 'payment-outstanding' : 'text-success'}>{falta > 0 ? mxn(falta) : 'Nada'}</span>} />
           </div>
-          <AnimatePresence initial={false}>
-            {pagando && d.estado !== 'cancelada' && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                <NuevoPago key={montoInicial ?? 'sugerido'} d={d} inicial={montoInicial} onListo={(x) => (x && setD(x), setPagando(false), setMontoInicial(null))} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {pagando && d.estado !== 'cancelada' && (
+            <NuevoPago d={d} onListo={(x) => { if (x) setD(x); setPagando(false) }} />
+          )}
           {!pagando && d.estado !== 'cancelada' && falta > 0 && (
             <Button variant="primary" size="sm" className="mt-3" icon={<Wallet size={15} />} onClick={() => setPagando(true)}>
               Registrar pago
             </Button>
           )}
           {d.pagos.length > 0 && (
-            <div className="mt-4 divide-y divide-line rounded-[14px] ring-1 ring-line">
+            <div className="payment-history mt-4 divide-y divide-line rounded-[14px] ring-1 ring-line">
               {d.pagos.map((p) => (
                 <div key={p.id} className="group flex items-center gap-3 px-4 py-2.5 text-[14px]">
                   <span className="w-20 font-semibold tabular">{mxn(p.monto)}</span>
@@ -281,134 +274,35 @@ function Dato({ etiqueta, valor, detalle }: { etiqueta: string; valor: ReactNode
   )
 }
 
-/**
- * Una casilla por noche, con su día. Se van llenando conforme entra el dinero, una rayita marca hasta dónde llega el
- * anticipo y, al tocar una noche, se abre el pago ya con lo que falta para cubrir hasta esa noche.
- */
-function TiraNoches({ d, onCubrir }: { d: Detalle; onCubrir?: (monto: number) => void }) {
-  const n = Math.max(1, contarNoches(d.llegada, d.salida))
-  const fr = d.total > 0 ? Math.min(1, d.pagado / d.total) : 0
-  const antFr = d.total > 0 && d.anticipo > 0 && d.anticipo < d.total ? d.anticipo / d.total : null
-  const cubierto = d.anticipo > 0 && d.pagado >= d.anticipo
-  const corta_ = n > 12
-  const llena = 'color-mix(in oklab, var(--success) 34%, var(--surface))'
-  return (
-    <div aria-label={`${Math.round(fr * 100)} % pagado`}>
-      <div className="relative">
-        {antFr !== null && n <= 31 && (
-          <span aria-hidden className="pointer-events-none absolute -top-2.5 z-10 h-[calc(100%+10px)] w-px bg-chispa/70" style={{ left: `${antFr * 100}%` }} title="Hasta aquí llega el anticipo">
-            <span className="absolute -top-px left-1/2 h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-chispa" />
-          </span>
-        )}
-        {n > 31 ? (
-          <div className="h-3 overflow-hidden rounded-full bg-sunken ring-1 ring-line">
-            <div className="h-full rounded-full" style={{ width: `${fr * 100}%`, background: llena }} />
-          </div>
-        ) : (
-          <div className="flex gap-[3px]">
-            {Array.from({ length: n }, (_, i) => {
-              const noche = masDias(d.llegada, i)
-              const parte = Math.max(0, Math.min(1, fr * n - i))
-              // Lo que hay que haber pagado para tener cubierta esta noche
-              const objetivo = Math.min(d.total, Math.ceil((d.total * (i + 1)) / n))
-              const puede = !!onCubrir && objetivo > d.pagado
-              const Cel = puede ? 'button' : 'div'
-              return (
-                <Cel
-                  key={i}
-                  {...(puede ? { type: 'button' as const, onClick: () => onCubrir!(objetivo - d.pagado), title: `Cubrir hasta la noche del ${diaCorto(noche)} ${corta(noche)}: ${mxn(objetivo - d.pagado)}`, 'aria-label': `Registrar ${mxn(objetivo - d.pagado)} para cubrir hasta la noche del ${diaCorto(noche)} ${corta(noche)}` } : {})}
-                  className={cx('relative min-w-0 flex-1 overflow-hidden rounded-[8px] bg-sunken text-center ring-1 ring-line ring-inset', corta_ ? 'h-11' : 'h-[58px]', puede && 'pressable cursor-pointer hover:ring-line-strong')}
-                >
-                  <motion.span aria-hidden className="absolute inset-x-0 bottom-0 block" style={{ background: llena }} initial={false} animate={{ height: `${parte * 100}%` }} transition={{ duration: 0.6, delay: i * 0.025 }} />
-                  <span className="relative flex h-full flex-col items-center justify-center leading-none">
-                    {!corta_ && <span className="text-[11px] text-ink-3 uppercase">{diaCorto(noche)}</span>}
-                    <span className={cx('tabular font-semibold', corta_ ? 'text-[11px]' : 'mt-1 text-[15px]')}>{dia(noche)}</span>
-                  </span>
-                </Cel>
-              )
-            })}
-          </div>
-        )}
-      </div>
-      <div className="mt-2.5 flex items-center justify-between gap-3 text-[12px] text-ink-3">
-        <span>{plural(n, 'noche', 'noches')}{antFr !== null ? (cubierto ? ' · anticipo cubierto' : ' · falta el anticipo') : ''}</span>
-        <span className={cx('font-semibold', fr >= 1 ? 'text-success' : 'text-ink-soft')}>{fr >= 1 ? 'Pagada por completo' : fr > 0 ? `${Math.round(fr * 100)} % pagado` : 'Sin pagos todavía'}</span>
-      </div>
-      {onCubrir && fr < 1 && n <= 31 && <p className="mt-1 text-[12px] text-ink-3">Toca una noche para registrar el pago que la cubre.</p>}
-    </div>
-  )
-}
-
-/** Registrar un pago: se arrastra sobre la barra o se elige anticipo / saldo */
-function NuevoPago({ d, inicial, onListo }: { d: Detalle; inicial?: number | null; onListo: (d: Detalle | null) => void }) {
+/** Registro directo: monto escrito o sugerido, método y referencia, sin gestos ni animaciones. */
+function NuevoPago({ d, onListo }: { d: Detalle; onListo: (d: Detalle | null) => void }) {
   const falta = saldoDe(d)
   const faltaAnticipo = Math.max(0, d.anticipo - d.pagado)
-  const [monto, setMonto] = useState<number | null>(inicial ?? (faltaAnticipo > 0 ? faltaAnticipo : falta))
+  const [monto, setMonto] = useState<number | null>(faltaAnticipo > 0 ? faltaAnticipo : falta)
   const [metodo, setMetodo] = useState<MetodoPago>('transferencia')
   const [referencia, setReferencia] = useState(d.codigo)
   const [guardando, setGuardando] = useState(false)
-  const barra = useRef<HTMLDivElement>(null)
-  const pct = (x: number) => `${d.total ? Math.min(100, (x / d.total) * 100) : 0}%`
-  const desdeX = (x: number) => {
-    const r = barra.current!.getBoundingClientRect()
-    const valor = Math.round(((x - r.left) / r.width) * d.total) - d.pagado
-    const m = Math.max(0, Math.min(falta, Math.round(valor / 50) * 50))
-    // Se pega al anticipo o al saldo si queda cerca
-    const iman = [faltaAnticipo, falta].find((p) => p > 0 && Math.abs(p - m) <= d.total * 0.03)
-    setMonto(iman ?? (m || null))
-  }
-  const ok = !!monto && monto > 0
+  const ok = monto != null && Number.isFinite(monto) && monto > 0
   return (
-    <div className="mt-4 rounded-[14px] bg-sunken p-4">
-      <div className="mb-1 flex items-center justify-between text-[13px] text-ink-soft">
-        <span>Arrastra sobre la barra para elegir cuánto pagó</span>
-        <span className="font-semibold text-ink tabular">{monto ? mxn(monto) : '—'}</span>
-      </div>
-      <div
-        ref={barra}
-        role="slider"
-        aria-label="Monto del pago"
-        aria-valuemin={0}
-        aria-valuemax={falta}
-        aria-valuenow={monto ?? 0}
-        tabIndex={0}
-        className="relative my-2 h-9 cursor-ew-resize touch-none rounded-full bg-surface ring-1 ring-line ring-inset"
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId)
-          desdeX(e.clientX)
-        }}
-        onPointerMove={(e) => e.buttons === 1 && desdeX(e.clientX)}
-        onKeyDown={(e) => {
-          const paso = e.shiftKey ? 500 : 100
-          if (e.key === 'ArrowRight') setMonto((m) => Math.min(falta, (m ?? 0) + paso))
-          else if (e.key === 'ArrowLeft') setMonto((m) => Math.max(0, (m ?? 0) - paso) || null)
-          else return
-          e.preventDefault()
-        }}
-      >
-        <div className="absolute inset-y-0 left-0 rounded-full bg-sage" style={{ width: pct(d.pagado) }} />
-        <motion.div className="absolute inset-y-0 rounded-r-full bg-luz shadow-[0_0_14px_var(--luz)]" style={{ left: pct(d.pagado) }} animate={{ width: pct(monto ?? 0) }} transition={{ duration: 0.18 }} />
-        {d.anticipo > 0 && d.anticipo < d.total && (
-          <div className="absolute inset-y-[-4px] w-px bg-ink-3" style={{ left: pct(d.anticipo) }}>
-            <span className="absolute top-full mt-1 -translate-x-1/2 text-[11px] whitespace-nowrap text-ink-3">anticipo</span>
-          </div>
-        )}
-      </div>
+    <div className="app-payment-form mt-4 rounded-[14px] bg-sunken p-4">
+      <h4 className="payment-form-title"><Wallet size={18} /> Registrar un pago</h4>
+      <p className="payment-form-help">Escribe el monto recibido o elige una cantidad sugerida.</p>
       <div className="mt-5 flex flex-wrap gap-1.5">
         {faltaAnticipo > 0 && faltaAnticipo < falta && (
-          <button onClick={() => setMonto(faltaAnticipo)} className={cx('pressable h-8 rounded-full px-3 text-[13px] ring-1 ring-inset', monto === faltaAnticipo ? 'bg-ink text-paper ring-ink' : 'text-ink-soft ring-line-strong hover:text-ink')}>
+          <button type="button" aria-pressed={monto === faltaAnticipo} onClick={() => setMonto(faltaAnticipo)} className={cx('pressable h-8 rounded-full px-3 text-[13px] ring-1 ring-inset', monto === faltaAnticipo ? 'bg-ink text-paper ring-ink' : 'text-ink-soft ring-line-strong hover:text-ink')}>
             Anticipo {mxn(faltaAnticipo)}
           </button>
         )}
-        <button onClick={() => setMonto(falta)} className={cx('pressable h-8 rounded-full px-3 text-[13px] ring-1 ring-inset', monto === falta ? 'bg-ink text-paper ring-ink' : 'text-ink-soft ring-line-strong hover:text-ink')}>
+        <button type="button" aria-pressed={monto === falta} onClick={() => setMonto(falta)} className={cx('pressable h-8 rounded-full px-3 text-[13px] ring-1 ring-inset', monto === falta ? 'bg-ink text-paper ring-ink' : 'text-ink-soft ring-line-strong hover:text-ink')}>
           Todo lo que falta {mxn(falta)}
         </button>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <CampoDinero label="Monto" value={monto} onChange={setMonto} />
+        <CampoDinero label="Monto recibido" value={monto} onChange={setMonto} />
         <Campo label="Referencia" value={referencia} onChange={setReferencia} hint="El código o el número de la transferencia" />
       </div>
       <Pastillas
+        label="Método de pago"
         className="mt-3"
         value={metodo}
         onChange={setMetodo}
@@ -416,7 +310,7 @@ function NuevoPago({ d, inicial, onListo }: { d: Detalle; inicial?: number | nul
       />
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="ghost" onClick={() => onListo(null)}>
-          No
+          Cancelar
         </Button>
         <Button
           disabled={!ok}
