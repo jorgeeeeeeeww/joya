@@ -13,6 +13,7 @@ const session = () => usuario ? { user: { id: usuario } } : null
 let responder
 globalThis.__nubePrueba = {
   auth: {
+    initialize: async () => ({ error: null }),
     startAutoRefresh: async () => { fondo++ },
     getSession: async () => ({ data: { session: session() }, error: null }),
     refreshSession: async () => { renovaciones++; return { data: { session: session() }, error: null } },

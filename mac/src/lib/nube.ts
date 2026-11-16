@@ -76,7 +76,7 @@ export const nube = createClient(URL_NUBE, LLAVE_PUBLICA, {
 
 // La ventana de Tauri puede permanecer oculta durante horas en la barra de menú.
 // Conserva la renovación también en segundo plano, como una app de escritorio.
-if (enTauri) void nube.auth.startAutoRefresh()
+if (enTauri) void nube.auth.initialize().then(() => nube.auth.startAutoRefresh())
 
 export const urlFoto = (ruta: string) => `${URL_NUBE}/storage/v1/object/public/cabanas/${ruta.split('/').map(encodeURIComponent).join('/')}`
 
