@@ -54,12 +54,14 @@ jobs:
       - run: npm ci
       - name: Revisar tipos
         run: npm run typecheck
-      - name: Probar actualizaciones de datos sin recalcular vistas
-        run: node --test scripts/compartirDatos.test.mjs
+      - name: Probar sesiones, fallos de conexión y actualización de datos
+        run: npm run probar:sesion
       - name: Probar las reglas de la base
         run: npm run probar:base
       - name: Probar el contrato de punta a punta
         run: npm run probar
+      - name: Probar duplicados, empalmes, pagos y cancelaciones
+        run: npm run probar:integridad
 
   compilar:
     needs: pruebas

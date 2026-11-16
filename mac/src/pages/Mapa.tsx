@@ -37,7 +37,7 @@ export default function Mapa() {
 
   return (
     <div className="app-map-page @container mx-auto min-w-0 max-w-[1440px] px-8 pt-7 pb-10">
-      <PageHeader title="Mapa" />
+      <PageHeader title="Mapa" subtitle="Elige una fecha y haz clic en un hospedaje del mapa o de la lista para consultar sus noches." />
 
       {!hayHospedajes ? (
         <div className="card px-8 py-12 text-center">
@@ -76,7 +76,7 @@ export default function Mapa() {
               <Suspense fallback={<div className="flex h-[clamp(400px,60vh,640px)] items-center justify-center rounded-xl bg-wash text-ink-soft" role="status">Preparando vista 3D…</div>}>
                 <MapaRancho casas={casas} elegida={elegida} onElegir={elegirHospedaje} tipo={tipo} />
               </Suspense>
-              <p className="mt-2 text-center text-[12px] text-ink-soft">Haz clic en un hospedaje para abrir su calendario · Arrastra para girar · Usa + para acercarte</p>
+              <p className="mt-2 text-center text-[12px] text-ink-soft">Elige un hospedaje para ver su calendario. Usa + y − para acercar o alejar la vista.</p>
             </div>
             <aside className="flex h-[260px] min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface @[820px]:h-[clamp(360px,56vh,590px)]" aria-label="Elige un hospedaje">
               <div className="app-map-lodgings-heading">

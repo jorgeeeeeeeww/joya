@@ -1,8 +1,7 @@
-// Ajustes: horarios (se arrastran sobre el día), anticipo y apartado, datos para transferir, contacto,
+// Ajustes: horarios con selectores de hora, anticipo y apartado, datos para transferir, contacto,
 // textos legales y lo propio de esta Mac. Todo se guarda solo.
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { motion } from 'motion/react'
-import { Bell, Check, CircleAlert, Download, Globe, Landmark, LogIn, LogOut, Power } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Bell, Check, CircleAlert, Download, Globe, Landmark, Power } from 'lucide-react'
 import { useApp, recargar } from '@/lib/store'
 import { rpc, URL_NUBE, esNubeLocal } from '@/lib/nube'
 import { clabeValida, mxn } from '@/lib/dinero'
@@ -160,7 +159,7 @@ export default function Ajustes() {
           </div>
         </div>
 
-        <Bloque tono="blue" titulo="Llegada y salida" detalle="Arrastra las marcas para cambiar los horarios.">
+        <Bloque tono="blue" titulo="Llegada y salida" detalle="Escribe o elige la hora de llegada y la hora de salida.">
           <Reloj salida={f.hora_salida} llegada={f.hora_llegada} onSalida={(v) => set('hora_salida', v)} onLlegada={(v) => set('hora_llegada', v)} />
         </Bloque>
 
@@ -299,96 +298,17 @@ function Deslizador({ label, value, onChange, min, max, paso, formato }: { label
         <span className="text-[14px] font-semibold text-ink">{label}</span>
         <span className="text-[20px] font-semibold text-ink tabular">{formato(value)}</span>
       </div>
-      <input type="range" min={min} max={max} step={paso} value={value} onChange={(e) => onChange(Number(e.target.value))} className="deslizador w-full" style={{ ['--pct' as string]: `${pct}%` }} aria-label={label} />
+      <div className="flex items-center gap-3"><input type="range" min={min} max={max} step={paso} value={value} onChange={(e) => onChange(Number(e.target.value))} className="deslizador min-w-0 flex-1" style={{ ['--pct' as string]: `${pct}%` }} aria-label={label} /><input type="number" aria-label={`${label}, escribir valor`} min={min} max={max} step={paso} value={value} onChange={e => { const n = e.target.valueAsNumber; if (Number.isFinite(n) && n >= min && n <= max) onChange(n) }} className="w-20 rounded-lg border border-line bg-surface px-2 py-2 text-[14px] text-ink" /></div>
     </div>
   )
 }
 
-// ── El día: salida y llegada se arrastran ─────────────────────
-const DESDE = 6 * 60
-const HASTA = 22 * 60
-const aMin = (h: string | null, def: number) => (h ? Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5)) : def)
-const aHora = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-const doce = (m: number) => {
-  const h = Math.floor(m / 60)
-  const mm = m % 60
-  return `${h > 12 ? h - 12 : h}${mm ? `:${String(mm).padStart(2, '0')}` : ''} ${h < 12 ? 'a. m.' : 'p. m.'}`
-}
-
-function Reloj({ salida, llegada, onSalida, onLlegada }: { salida: string | null; llegada: string | null; onSalida: (h: string) => void; onLlegada: (h: string) => void }) {
-  const pista = useRef<HTMLDivElement>(null)
-  const [cual, setCual] = useState<'salida' | 'llegada' | null>(null)
-  const s = aMin(salida, 12 * 60)
-  const l = aMin(llegada, 15 * 60)
-  const x = (m: number) => `${((m - DESDE) / (HASTA - DESDE)) * 100}%`
-  const desdeX = (clientX: number, quien: 'salida' | 'llegada') => {
-    const r = pista.current!.getBoundingClientRect()
-    let m = Math.round((DESDE + ((clientX - r.left) / r.width) * (HASTA - DESDE)) / 30) * 30
-    m = Math.max(DESDE, Math.min(HASTA, m))
-    if (quien === 'salida') onSalida(aHora(Math.min(m, l)))
-    else onLlegada(aHora(Math.max(m, s)))
-  }
-  const hueco = l - s
-  const horas = useMemo(() => Array.from({ length: (HASTA - DESDE) / 60 + 1 }, (_, i) => DESDE + i * 60), [])
-  return (
-    <div className="interfaz card px-6 pt-6 pb-5">
-      <div
-        ref={pista}
-        className="relative h-[88px] touch-none"
-        onPointerMove={(e) => cual && e.buttons === 1 && desdeX(e.clientX, cual)}
-        onPointerUp={() => setCual(null)}
-        onPointerDown={(e) => {
-          // Clic en la pista: mueve la marca más cercana
-          const r = pista.current!.getBoundingClientRect()
-          const m = DESDE + ((e.clientX - r.left) / r.width) * (HASTA - DESDE)
-          const quien = Math.abs(m - s) <= Math.abs(m - l) ? 'salida' : 'llegada'
-          setCual(quien)
-          e.currentTarget.setPointerCapture(e.pointerId)
-          desdeX(e.clientX, quien)
-        }}
-      >
-        {/* El cielo del día: de la mañana a la noche */}
-        <div className="absolute inset-x-0 top-[34px] h-6 overflow-hidden rounded-full" style={{ background: 'linear-gradient(90deg, #edf2f8, #dce7f6 54%, #e7edf5)' }} />
-        {/* Tiempo para dejar todo listo */}
-        <motion.div className="absolute top-[34px] h-6 rounded-[6px] bg-[color-mix(in_oklab,var(--surface)_70%,transparent)] ring-1 ring-[color-mix(in_oklab,var(--ink)_15%,transparent)] ring-inset" animate={{ left: x(s), width: `calc(${x(l)} - ${x(s)})` }} transition={{ duration: 0.15 }}>
-          {/* Las marcas tapan las orillas: el texto largo solo sale si de verdad cabe entre las dos */}
-          {hueco >= 120 && (
-            <span className="absolute inset-0 flex items-center justify-center text-[12px] font-semibold whitespace-nowrap text-ink">
-              {hueco % 60 ? `${(hueco / 60).toFixed(1)} h` : plural(hueco / 60, 'hora', 'horas')}
-              {hueco >= 270 ? ' para dejar todo listo' : ''}
-            </span>
-          )}
-        </motion.div>
-        <Marca x={x(s)} etiqueta="Salida" hora={salida ? doce(s) : 'Sin definir'} icon={<LogOut size={14} />} activa={cual === 'salida'} definida={!!salida} />
-        <Marca x={x(l)} etiqueta="Llegada" hora={llegada ? doce(l) : 'Sin definir'} icon={<LogIn size={14} />} activa={cual === 'llegada'} definida={!!llegada} abajo />
-      </div>
-      <div className="relative mt-3 h-4 text-[11px] text-ink-soft">
-        {horas
-          .filter((m) => (m / 60) % 2 === 0)
-          .map((m) => (
-            <span key={m} className="absolute whitespace-nowrap tabular" style={{ left: x(m), transform: m === DESDE ? 'none' : m === HASTA ? 'translateX(-100%)' : 'translateX(-50%)' }}>
-              {Math.floor(m / 60) > 12 ? Math.floor(m / 60) - 12 : Math.floor(m / 60)}
-              {Math.floor(m / 60) < 12 ? ' am' : ' pm'}
-            </span>
-          ))}
-      </div>
-    </div>
-  )
-}
-
-function Marca({ x, etiqueta, hora, icon, activa, definida, abajo }: { x: string; etiqueta: string; hora: string; icon: ReactNode; activa: boolean; definida: boolean; abajo?: boolean }) {
-  return (
-    <motion.div className="absolute top-0 bottom-0 w-0" animate={{ left: x }} transition={{ duration: 0.15 }}>
-      <div className={cx('absolute top-[26px] h-10 w-[3px] -translate-x-1/2 rounded-full', definida ? 'bg-primary shadow-[0_0_12px_var(--luz)]' : 'bg-ink-3')} />
-      <div className={cx('absolute top-[28px] h-9 w-9 -translate-x-1/2 cursor-ew-resize rounded-full bg-surface shadow-[var(--shadow-2)] ring-2 transition-transform', definida ? 'ring-primary' : 'ring-line-strong', activa && 'scale-110')}>
-        <span className="flex h-full w-full items-center justify-center text-ink">{icon}</span>
-      </div>
-      <div className={cx('absolute -translate-x-1/2 text-center whitespace-nowrap', abajo ? 'top-[70px]' : '-top-[2px]')}>
-        <span className="text-[12px] text-ink-soft">{etiqueta} </span>
-        <span className="text-[15px] font-semibold text-ink">{hora}</span>
-      </div>
-    </motion.div>
-  )
+// Horarios editables con teclado o selector nativo de macOS.
+function Reloj({ salida, llegada, onSalida, onLlegada }: { salida: string | null; llegada: string | null; onSalida: (h: string | null) => void; onLlegada: (h: string | null) => void }) {
+  return <div className="grid grid-cols-2 gap-4">
+    <label className="flex flex-col gap-2 text-[13px] font-medium text-ink">Llegada a partir de<input type="time" aria-label="Hora de llegada" value={llegada?.slice(0, 5) ?? ''} step={60} onChange={e => onLlegada(e.target.value || null)} className="rounded-lg border border-line bg-surface px-3 py-2.5 text-[16px]" /></label>
+    <label className="flex flex-col gap-2 text-[13px] font-medium text-ink">Salida antes de<input type="time" aria-label="Hora de salida" value={salida?.slice(0, 5) ?? ''} step={60} onChange={e => onSalida(e.target.value || null)} className="rounded-lg border border-line bg-surface px-3 py-2.5 text-[16px]" /></label>
+  </div>
 }
 
 // ── Esta Mac ───────────────────────────────────────────────

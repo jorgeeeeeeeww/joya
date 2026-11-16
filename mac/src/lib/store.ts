@@ -24,6 +24,7 @@ export interface Nueva {
 
 interface Estado {
   sesion: Session | null | undefined
+  ponerSesion: (sesion: Session | null) => void
   datos: Datos | null
   conexion: 'conectando' | 'en-linea' | 'sin-conexion'
   /** La cuenta entró pero no es del equipo de hospedaje */
@@ -97,9 +98,10 @@ export function motivoDeEntrada(): 'vencio' | null {
   }
 }
 
-function datosGuardados(): Datos | null {
+function datosGuardados(usuario: string): Datos | null {
   try {
-    return JSON.parse(localStorage.getItem(CACHE) || 'null')
+    const copia = JSON.parse(localStorage.getItem(CACHE) || 'null')
+    return copia?.usuario === usuario && Array.isArray(copia.datos?.reservaciones) && Array.isArray(copia.datos?.cabanas) && copia.datos.ajustes ? copia.datos : null
   } catch {
     return null
   }
@@ -107,10 +109,27 @@ function datosGuardados(): Datos | null {
 
 let cargaEnCurso: Promise<void> | null = null
 let primeraCarga = true
+let generacionSesion = 0
 
 export const useApp = create<Estado>((set, get) => ({
   sesion: undefined,
-  datos: datosGuardados(),
+  datos: null,
+  ponerSesion: (sesion) => {
+    const anterior = get().sesion?.user.id
+    const usuario = sesion?.user.id
+    if (anterior === usuario && get().sesion !== undefined) {
+      set({ sesion })
+      return
+    }
+    // Una respuesta de otra sesión nunca puede repoblar datos ni caché.
+    generacionSesion++
+    cargaEnCurso = null
+    primeraCarga = true
+    if (!usuario) {
+      try { localStorage.removeItem(CACHE); localStorage.removeItem(VISTOS) } catch { /* sin almacenamiento */ }
+    }
+    set({ sesion, datos: usuario ? datosGuardados(usuario) : null, abierta: null, nueva: null, buscar: false, cabana: null, vista: 'hoy', sinPermiso: false, enVivo: false, ultimaCarga: 0, conexion: 'conectando' })
+  },
   conexion: 'conectando',
   sinPermiso: false,
   enVivo: false,
@@ -146,7 +165,7 @@ export const useApp = create<Estado>((set, get) => ({
     } catch {
       /* sin almacenamiento */
     }
-    set({ datos: null, abierta: null, nueva: null, cabana: null, vista: 'hoy', sinPermiso: false })
+    get().ponerSesion(null)
     primeraCarga = true
     void ponerInsignia(0)
     try {
@@ -158,11 +177,16 @@ export const useApp = create<Estado>((set, get) => ({
   parchar: (id, p) =>
     set((s) => (s.datos ? { datos: { ...s.datos, reservaciones: s.datos.reservaciones.map((r) => (r.id === id ? { ...r, ...p } : r)) } } : {})),
   cargar: () => {
+    const usuario = get().sesion?.user.id
+    if (!usuario) return Promise.resolve()
     if (cargaEnCurso) return cargaEnCurso
+    const generacion = generacionSesion
+    const vigente = () => generacion === generacionSesion && get().sesion?.user.id === usuario
     cargaEnCurso = (async () => {
       try {
         const hoy = get().datos?.hoy ?? hoyLocal()
         const datos = await rpc<Datos>('hosp_datos', { p_desde: masDias(hoy, -120), p_hasta: masDias(hoy, 540) })
+        if (!vigente()) return
         revisarNuevas(datos)
         const terminar = medir('datos:comparar-y-cache')
         const anteriores = get().datos
@@ -171,23 +195,25 @@ export const useApp = create<Estado>((set, get) => ({
         // Sin cambios: conserva referencias; calendarios y mapa no recalculan por cada sondeo.
         set({ datos: compartidos, conexion: 'en-linea', sinPermiso: false, ultimaCarga: Date.now() })
         try {
-          if (cambio) localStorage.setItem(CACHE, JSON.stringify(compartidos))
+          if (cambio) localStorage.setItem(CACHE, JSON.stringify({ usuario, datos: compartidos }))
         } catch {
           /* sin espacio: no pasa nada */
         }
         terminar()
       } catch (e) {
+        if (!vigente()) return
         const msg = e instanceof Error ? e.message : String(e)
         const code = (e as { code?: string }).code
         if (code === '42501') {
-          set({ sinPermiso: true, conexion: 'en-linea' })
+          set({ datos: null, sinPermiso: true, conexion: 'en-linea' })
+          try { localStorage.removeItem(CACHE) } catch { /* sin almacenamiento */ }
           return
         }
         set({ conexion: 'sin-conexion' })
         if (/sesión venció/i.test(msg)) await nube.auth.signOut()
         else if (!get().datos) toast.error('No se pudieron bajar los datos', msg)
       } finally {
-        cargaEnCurso = null
+        if (vigente()) cargaEnCurso = null
       }
     })()
     return cargaEnCurso

@@ -75,7 +75,7 @@ export default function Reservaciones() {
         <div className="scroll-area h-full min-w-0 overflow-x-hidden overflow-y-auto">
           <div className="mx-auto max-w-[1440px] px-5 py-7 min-[1200px]:px-8">
             <header className="mb-6 flex min-w-0 flex-wrap items-end justify-between gap-4">
-              <div className="min-w-0"><h1 className="text-[34px] leading-none tracking-[-.035em]">Reservaciones</h1><p className="page-intro">Huéspedes, estancias y pagos en un solo lugar.</p></div>
+              <div className="min-w-0"><h1 className="text-[34px] leading-none tracking-[-.035em]">Reservaciones</h1><p className="page-intro">Busca por huésped, código o teléfono. Abre una reserva para confirmar, cambiar fechas o registrar un pago.</p></div>
               <Button size="sm" icon={<CalendarDays size={15} />} onClick={() => useApp.getState().crear({ tipo: 'reservacion' })}>Nueva reservación</Button>
             </header>
             <div className="grid min-w-0 grid-cols-1 items-start gap-5 min-[1280px]:grid-cols-[minmax(0,1fr)_260px]">

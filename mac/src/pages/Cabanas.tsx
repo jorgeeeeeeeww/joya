@@ -49,7 +49,7 @@ export default function Cabanas() {
   return (
     <div className="flex h-full min-w-0 flex-col overflow-hidden bg-paper">
       <header className="flex min-w-0 shrink-0 flex-wrap items-end justify-between gap-4 border-b border-line px-5 py-6 min-[1200px]:px-7">
-        <div className="min-w-0"><h1 className="text-[30px] font-semibold leading-none tracking-[-.035em] text-ink">Hospedajes</h1><p className="mt-3 text-[12px] text-ink-soft">{d.cabanas.filter((c) => c.publicada).length} publicados · {d.cabanas.length} en total</p></div>
+        <div className="min-w-0"><h1 className="text-[30px] font-semibold leading-none tracking-[-.035em] text-ink">Hospedajes</h1><p className="mt-3 text-[12px] text-ink-soft">{d.cabanas.filter((c) => c.publicada).length} publicados · {d.cabanas.length} en total. Elige uno para editar su ficha y lo que aparece en la página.</p></div>
         <Button size="sm" icon={<Plus size={15} />} onClick={() => editar('nueva')}>Agregar hospedaje</Button>
       </header>
       <div className="flex min-h-0 min-w-0 flex-1">
@@ -320,7 +320,7 @@ function Editor({ original }: { original: Cabana | null }) {
 const NOMBRE_DIA = ['', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
 function nochesFinde(n: number[]) {
   const nombres = n.map((x) => NOMBRE_DIA[x]).filter(Boolean)
-  return nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}` : (nombres[0] ?? 'fin de semana')
+  return nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : (nombres[0] ?? 'fin de semana')
 }
 
 function Bloque({ titulo, detalle, children, tono = 'blue' }: { tono?: string; titulo: string; detalle?: string; children: React.ReactNode }) {

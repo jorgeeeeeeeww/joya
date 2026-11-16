@@ -13,7 +13,7 @@ export const estadoReserva = (estado: Estado) => estado === 'solicitud' ? 'Solic
 export function EstadoReserva({ estado, soloIcono = false }: { estado: Estado; soloIcono?: boolean }) {
   const Icono = estado === 'solicitud' ? Clock3 : estado === 'pagada' ? BadgeCheck : Check
   return <span data-estado={estado} title={estadoReserva(estado)} className="app-booking-status inline-flex min-w-0 max-w-full items-center gap-1 text-[11px] font-medium" aria-label={soloIcono ? estadoReserva(estado) : undefined}>
-    <Icono size={13} strokeWidth={1.8} className="shrink-0" aria-hidden="true" />{!soloIcono && <span className="min-w-0 truncate">{estadoReserva(estado)}</span>}
+    <Icono size={13} strokeWidth={1.8} className="shrink-0" aria-hidden="true" />{!soloIcono && <span className="min-w-0 truncate keep-truncate">{estadoReserva(estado)}</span>}
   </span>
 }
 

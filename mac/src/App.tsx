@@ -37,7 +37,11 @@ const acciones = {
     a().pedirHoy()
   }),
   actualizar: conSesion(() => {
-    void a().cargar().then(() => toast.success('Datos al día'))
+    void a().cargar().then(() => {
+      if (!a().sesion) return
+      if (a().conexion === 'en-linea' && !a().sinPermiso) toast.success('Datos al día')
+      else if (a().conexion === 'sin-conexion') toast.error('Sin conexión con la nube', 'Se siguen mostrando los últimos datos disponibles.')
+    })
   }),
 }
 
@@ -45,11 +49,11 @@ export default function App() {
   const sesion = useApp((s) => s.sesion)
   if (sinNubeDelRancho) return <SinNube />
   useEffect(() => {
-    void nube.auth.getSession().then(({ data }) => useApp.setState({ sesion: data.session }))
+    void nube.auth.getSession().then(({ data }) => useApp.getState().ponerSesion(data.session))
     const { data } = nube.auth.onAuthStateChange((e, s) => {
       // Si la sesión se cerró sola (venció), Entrar lo explica y deja el correo escrito
       if (e === 'SIGNED_OUT' && !esSalidaManual() && useApp.getState().sesion) marcarVencida(useApp.getState().sesion?.user.email)
-      useApp.setState({ sesion: s })
+      useApp.getState().ponerSesion(s)
     })
     // Desde la pantalla de Entrar, para que el menú de la Mac nunca salga en inglés
     void ponerMenu(acciones)

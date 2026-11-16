@@ -42,15 +42,15 @@ export default function CalendarioMes() {
 
   return <div className="app-month-page @container mx-auto w-full min-w-0 max-w-[1600px] px-5 py-7 lg:px-7">
     <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-      <h1 className="heading text-[34px] font-semibold text-ink">Calendario</h1>
+      <div><h1 className="heading text-[34px] font-semibold text-ink">Calendario</h1><p className="mt-2 text-[13px] text-ink-soft">Consulta el mes completo o revisa las noches libres de cada hospedaje.</p></div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex rounded-full border border-line bg-sunken p-1" aria-label="Vista del calendario">
-          {['mes', 'unidades'].map((v) => <button key={v} aria-pressed={vista === v} onClick={() => setVista(v)} className={cx('rounded-full px-4 py-2 text-[13px] font-medium', vista === v && 'bg-surface text-ink shadow-sm')}>{v === 'mes' ? 'Mes' : 'Por hospedaje'}</button>)}
+          {['mes', 'unidades'].map((v) => <button key={v} aria-pressed={vista === v} onClick={() => setVista(v)} className={cx('rounded-full px-4 py-2 text-[13px] font-medium', vista === v && 'bg-surface text-ink shadow-sm')}>{v === 'mes' ? 'Mes completo' : 'Noches por hospedaje'}</button>)}
         </div>
         <Button icon={<Plus size={15} />} onClick={() => useApp.getState().crear({ tipo: 'reservacion' })}>Nueva reservación</Button>
       </div>
     </div>
-    {vista === 'unidades' ? <div className="h-[850px] min-w-0"><CalendarioLinea /></div> : <>
+    {vista === 'unidades' ? <CalendarioLinea /> : <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <Button variant="outline" size="icon-sm" aria-label="Mes anterior" onClick={() => setMes(otroMes(mes, -1))}><ChevronLeft size={17} /></Button>

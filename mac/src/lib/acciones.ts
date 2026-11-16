@@ -46,7 +46,7 @@ export async function registrarPago(id: string, monto: number, metodo: MetodoPag
   if (!(await hayRed())) return null
   const d = await hacer(() => rpc<Detalle>('hosp_registrar_pago', { p: { reservacion_id: id, monto, metodo, referencia: referencia || null, fecha: fecha || null } }), 'No se pudo registrar el pago')
   if (!d) return null
-  const pago = d.pagos.at(-1)
+  const pago = d.pagos[d.pagos.length - 1]
   toast.undo(`Pago de ${mxn(monto)} registrado`, () => pago && void hacer(() => rpc('hosp_borrar_pago', { p_id: pago.id }), 'No se pudo quitar el pago'), d.estado === 'pagada' ? 'La reservación quedó pagada' : d.estado === 'confirmada' ? 'La reservación está confirmada' : undefined, true)
   return d
 }
@@ -61,10 +61,16 @@ export async function borrarPago(pagoId: string, monto: number) {
 /** Mover o alargar (desde el calendario). Se ve al instante y la nube recalcula el total. */
 export async function moverReservacion(r: Reservacion, cambio: { cabana_id?: string; llegada?: ISODate; salida?: ISODate }) {
   if (!(await hayRed())) return null
+  const usuario = useApp.getState().sesion?.user.id
   const antes = { cabana_id: r.cabana_id, llegada: r.llegada, salida: r.salida, total: r.total }
   useApp.getState().parchar(r.id, cambio)
   const d = await hacer(() => rpc<Detalle>('hosp_actualizar_reservacion', { p_id: r.id, p: cambio }), 'No se pudo mover la reservación')
-  if (!d) return null
+  if (!d) {
+    // La recarga también puede fallar sin internet: deshacer la vista provisional ahora.
+    const actual = useApp.getState().datos?.reservaciones.find(x => x.id === r.id)
+    if (usuario === useApp.getState().sesion?.user.id && actual && Object.entries(cambio).every(([k, v]) => actual[k as keyof Reservacion] === v)) useApp.getState().parchar(r.id, antes)
+    return null
+  }
   const extra = d.total !== r.total ? ` · total ${mxn(r.total)} → ${mxn(d.total)}` : ''
   toast.undo(`${r.nombre.split(' ')[0]}: ${rango(d.llegada, d.salida)}${d.cabana_id !== r.cabana_id ? ` en ${d.cabana}` : ''}`, () => {
     useApp.getState().parchar(r.id, antes)
@@ -87,17 +93,21 @@ export async function guardarCierre(b: Partial<Bloqueo> & { cabana_id: string; i
 
 export async function moverCierre(b: Bloqueo, cambio: { cabana_id?: string; inicio?: ISODate; fin?: ISODate }) {
   if (!(await hayRed())) return null
+  const usuario = useApp.getState().sesion?.user.id
   const antes = { cabana_id: b.cabana_id, inicio: b.inicio, fin: b.fin }
   useApp.setState((s) => (s.datos ? { datos: { ...s.datos, bloqueos: s.datos.bloqueos.map((x) => (x.id === b.id ? { ...x, ...cambio } : x)) } } : {}))
   const r = await hacer(() => rpc<Bloqueo>('hosp_guardar_bloqueo', { p: { id: b.id, ...cambio } }), 'No se pudo mover el cierre')
+  if (!r) useApp.setState(s => s.sesion?.user.id === usuario && s.datos ? { datos: { ...s.datos, bloqueos: s.datos.bloqueos.map(x => x.id === b.id && Object.entries(cambio).every(([k, v]) => x[k as keyof Bloqueo] === v) ? { ...x, ...antes } : x) } } : {})
   if (r) toast.undo(`Cierre movido a ${rango(r.inicio, r.fin)}`, () => void hacer(() => rpc('hosp_guardar_bloqueo', { p: { id: b.id, ...antes } }), 'No se pudo deshacer'))
   return r
 }
 
 export async function borrarCierre(b: Bloqueo) {
   if (!(await hayRed())) return null
+  const usuario = useApp.getState().sesion?.user.id
   useApp.setState((s) => (s.datos ? { datos: { ...s.datos, bloqueos: s.datos.bloqueos.filter((x) => x.id !== b.id) } } : {}))
   const ok = await hacer(() => rpc('hosp_borrar_bloqueo', { p_id: b.id }).then(() => true), 'No se pudo abrir esas fechas')
+  if (!ok) useApp.setState(s => s.sesion?.user.id === usuario && s.datos && !s.datos.bloqueos.some(x => x.id === b.id) ? { datos: { ...s.datos, bloqueos: [...s.datos.bloqueos, b] } } : {})
   if (ok) toast.undo(`Abriste ${rango(b.inicio, b.fin)}`, () => void hacer(() => rpc('hosp_guardar_bloqueo', { p: { cabana_id: b.cabana_id, inicio: b.inicio, fin: b.fin, motivo: b.motivo } }), 'No se pudo deshacer'))
   return ok
 }
