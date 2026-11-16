@@ -24,7 +24,7 @@ const salida = await build({
       }
     },
     load(id) {
-      if (id === '\0auditoria:./nube') return 'export const nube={auth:{signOut:async()=>({error:null})}};export const rpc=(...args)=>globalThis.__auditoriaRPC(...args)'
+      if (id === '\0auditoria:./nube') return 'export const nube={auth:{signOut:async()=>{globalThis.__cierresSesion++;return {error:null}}}};export const rpc=(...args)=>globalThis.__auditoriaRPC(...args)'
       if (id === '\0auditoria:./mac') return 'export const avisosPermitidos=async()=>false;export const ponerInsignia=(...a)=>globalThis.__auditoriaAviso(...a);export const avisar=async()=>{}'
       if (id === '\0auditoria:./sonido') return 'export const sonarAviso=async()=>{}'
       if (id === '\0auditoria:@/components/ui') return 'export const toast={error:(...a)=>globalThis.__auditoriaAviso(...a),action:()=>{}}'
@@ -42,7 +42,20 @@ await rmdir(temporal)
 const sesion = id => ({ user: { id }, access_token: `token-${id}` })
 const datos = marca => ({ hoy: '2026-11-15', ahora: marca, cabanas: [], reservaciones: [], ajustes: {}, bloqueos: [], temporadas: [] })
 const pendiente = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b }); return { promise, resolve, reject } }
-function limpiar() { useApp.getState().ponerSesion(null); memoria.clear(); avisos.length = 0 }
+function limpiar() { useApp.getState().ponerSesion(null); memoria.clear(); avisos.length = 0; globalThis.__cierresSesion = 0 }
+
+test('un error de token no cierra la sesión ni borra los datos recuperables', async () => {
+  limpiar()
+  useApp.getState().ponerSesion(sesion('A'))
+  globalThis.__auditoriaRPC = async () => datos('A')
+  await useApp.getState().cargar()
+  globalThis.__auditoriaRPC = async () => { throw Object.assign(new Error('Tu sesión venció. Vuelve a entrar.'), { code: 'PGRST301' }) }
+  await useApp.getState().cargar()
+  assert.equal(globalThis.__cierresSesion, 0)
+  assert.equal(useApp.getState().sesion.user.id, 'A')
+  assert.equal(useApp.getState().datos.ahora, 'A')
+  assert.equal(useApp.getState().conexion, 'sin-conexion')
+})
 
 test('la cuenta B no muestra la copia guardada por A y una copia antigua sin dueño se descarta', () => {
   limpiar()

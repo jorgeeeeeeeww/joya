@@ -74,6 +74,10 @@ export const nube = createClient(URL_NUBE, LLAVE_PUBLICA, {
   global: { fetch: fetchNube },
 })
 
+// La ventana de Tauri puede permanecer oculta durante horas en la barra de menú.
+// Conserva la renovación también en segundo plano, como una app de escritorio.
+if (enTauri) void nube.auth.startAutoRefresh()
+
 export const urlFoto = (ruta: string) => `${URL_NUBE}/storage/v1/object/public/cabanas/${ruta.split('/').map(encodeURIComponent).join('/')}`
 
 export class ErrorNube extends Error {
@@ -95,7 +99,22 @@ function explicar(mensaje: string, code?: string) {
 export async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
   const terminar = medir(`rpc:${fn}`)
   try {
-  const { data, error } = await nube.rpc(fn, args)
+  const { data: inicial } = await nube.auth.getSession()
+  const usuario = inicial.session?.user.id
+  let { data, error } = await nube.rpc(fn, args)
+  if (error && (error.code === 'PGRST301' || error.code === 'PGRST303')) {
+    // La nube rechazó la petición antes de ejecutarla. Renueva una sola vez;
+    // un fallo temporal nunca debe provocar un cierre de sesión desde aquí.
+    const { data: actual } = await nube.auth.getSession()
+    if (usuario && actual.session?.user.id === usuario) {
+      const renovada = await nube.auth.refreshSession()
+      if (renovada.error) throw new ErrorNube(explicar(renovada.error.message, renovada.error.code), renovada.error.code)
+      if (renovada.data.session?.user.id === usuario) {
+        const { data: vigente } = await nube.auth.getSession()
+        if (vigente.session?.user.id === usuario) ({ data, error } = await nube.rpc(fn, args))
+      }
+    }
+  }
   if (error) throw new ErrorNube(explicar(error.message, error.code), error.code)
   return data as T
   } finally { terminar() }

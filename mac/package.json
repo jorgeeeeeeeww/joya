@@ -1,7 +1,7 @@
 {
   "name": "la-joya-mac",
   "private": true,
-  "version": "0.3.14",
+  "version": "0.3.15",
   "type": "module",
   "description": "La Joya · Reservaciones: la app del dueño para la Mac (Tauri). Se conecta a la misma nube que la web.",
   "scripts": {
@@ -14,7 +14,7 @@
     "probar": "node nube-local/probar.mjs",
     "probar:base": "node nube-local/probar-base.mjs",
     "probar:integridad": "node scripts/probar-integridad.mjs",
-    "probar:sesion": "node --test scripts/sesion.test.mjs scripts/compartirDatos.test.mjs",
+    "probar:sesion": "node --test scripts/sesion.test.mjs scripts/compartirDatos.test.mjs scripts/nube.test.mjs",
     "tauri": "tauri",
     "icono": "tauri icon src-tauri/icons/icono.svg"
   },

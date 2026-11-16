@@ -210,8 +210,9 @@ export const useApp = create<Estado>((set, get) => ({
           return
         }
         set({ conexion: 'sin-conexion' })
-        if (/sesión venció/i.test(msg)) await nube.auth.signOut()
-        else if (!get().datos) toast.error('No se pudieron bajar los datos', msg)
+        // Auth renueva la sesión y comunica las revocaciones reales. Un fallo
+        // de consulta o de internet no debe cerrar una sesión recuperable.
+        if (!get().datos) toast.error('No se pudieron bajar los datos', msg)
       } finally {
         if (vigente()) cargaEnCurso = null
       }
