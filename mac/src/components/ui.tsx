@@ -285,7 +285,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, side =
     <AnimatePresence>
       {open && (
         <div className={cx('fixed inset-0 z-50', side === 'center' && 'flex items-center justify-center p-6')} role="dialog" aria-modal="true">
-          <motion.div className="absolute inset-0 bg-[color-mix(in_oklab,var(--ink)_28%,transparent)] backdrop-blur-[4px]" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.24 } }} exit={{ opacity: 0, transition: { duration: 0.18 } }} onClick={onClose} />
+          <motion.div className={cx('absolute inset-0', side === 'right' ? 'bg-[color-mix(in_oklab,var(--ink)_12%,transparent)]' : 'bg-[color-mix(in_oklab,var(--ink)_26%,transparent)]')} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.24 } }} exit={{ opacity: 0, transition: { duration: 0.18 } }} onClick={onClose} />
           <motion.div
             ref={panelRef}
             tabIndex={-1}

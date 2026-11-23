@@ -133,6 +133,18 @@ jobs:
             if (process.env.TAURI_SIGNING_PRIVATE_KEY) c.bundle = { createUpdaterArtifacts: true }
             const nube = process.env.VITE_SUPABASE_URL?.replace(/\/$/, '')
             if (nube) c.plugins = { updater: { endpoints: [nube + '/storage/v1/object/public/versiones/latest.json'] } }
+            // La app del rancho no necesita hablar con la nube local de pruebas: se le quita ese permiso
+            // (de la política de contenido y de las peticiones por Rust). Sin la nube real se deja, para probar.
+            if (nube) {
+              const fs = require('node:fs')
+              const sinLocal = (v) => v.split(' ').filter((x) => !/127\.0\.0\.1|localhost:/.test(x)).join(' ')
+              const csp = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8')).app.security.csp
+              c.app = { security: { csp: { 'img-src': sinLocal(csp['img-src']), 'connect-src': sinLocal(csp['connect-src']) } } }
+              const ruta = 'src-tauri/capabilities/default.json'
+              const cap = JSON.parse(fs.readFileSync(ruta, 'utf8'))
+              for (const p of cap.permissions) if (p && p.identifier === 'http:default') p.allow = p.allow.filter((x) => !/127\.0\.0\.1|localhost/.test(x.url))
+              fs.writeFileSync(ruta, JSON.stringify(cap, null, 2))
+            }
             require('node:fs').writeFileSync(require('node:path').join(process.env.RUNNER_TEMP, 'compilacion.json'), JSON.stringify(c))
           "
           npx tauri build --target "${{ matrix.destino }}" --config "$RUNNER_TEMP/compilacion.json"

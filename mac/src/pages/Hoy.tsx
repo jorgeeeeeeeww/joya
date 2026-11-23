@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, BedDouble, CalendarDays, Check, CheckCheck, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, DoorOpen, Globe2, LockKeyhole, MessageCircle, Plus, Users, Wallet } from 'lucide-react'
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, BedDouble, CalendarDays, Check, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, DoorOpen, Globe2, LockKeyhole, MessageCircle, Users, Wallet } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { activa, ORIGEN, saldo } from '@/lib/estados'
 import { corta, diaCorto, larga, masDias, noches, rango, venceEn, plural } from '@/lib/fechas'
@@ -27,8 +27,6 @@ export default function Hoy() {
   const casas = casasDe(d,d.hoy)
   const ocupadas = casas.filter(c => c.estado === 'reservada').length
   const solicitudes = d.reservaciones.filter(r => activa(r) && r.estado === 'solicitud').sort((a,b) => (a.vence || '').localeCompare(b.vence || ''))
-  const llegan = d.reservaciones.filter(r => confirmada(r) && r.llegada === d.hoy)
-  const salen = d.reservaciones.filter(r => confirmada(r) && r.salida === d.hoy)
   const proximas = d.reservaciones.filter(r => confirmada(r) && r.llegada > d.hoy).sort((a,b) => a.llegada.localeCompare(b.llegada))
   const cobros = d.reservaciones.filter(r => confirmada(r) && saldo(r) > 0 && r.salida >= d.hoy && r.llegada <= masDias(d.hoy,7)).sort((a,b) => a.llegada.localeCompare(b.llegada))
   const totalCobrar = cobros.reduce((s,r) => s + saldo(r),0)
@@ -36,31 +34,26 @@ export default function Hoy() {
   const porcentaje = d.cabanas.length ? Math.round(ocupadas/d.cabanas.length*100) : 0
   return <div className="reception-dashboard">
     <div className="reception-main">
-      <header className="reception-heading"><div><div className="reception-title-line"><h1>Vista general</h1></div><p className="mt-2 text-[13px] text-ink-soft">Empieza por las solicitudes pendientes; después revisa las llegadas, salidas y cobros de hoy.</p></div><span className="reception-date"><CalendarDays size={15} />{larga(d.hoy)}</span></header>
+      <header className="reception-heading"><div><div className="reception-title-line"><h1>Vista general</h1></div><p className="mt-2 text-[13px] text-ink-soft">{solicitudes.length ? `Tienes ${plural(solicitudes.length, 'solicitud', 'solicitudes')} por confirmar. Después revisa llegadas, salidas y cobros.` : 'Sin solicitudes por confirmar. Aquí están las llegadas, salidas y cobros.'}</p></div><span className="reception-date"><CalendarDays size={15} />{larga(d.hoy)}</span></header>
+      {/* Lo urgente primero: las solicitudes solo ocupan lugar cuando hay alguna */}
+      {solicitudes.length > 0 && <section id="reception-requests" className="reception-panel reception-requests"><PanelHeader title="Solicitudes por confirmar" icon={<Clock3 size={17} />} extra={<span className="reception-count">{plural(solicitudes.length, 'pendiente', 'pendientes')}</span>} />
+        <div className="reception-request-list">{solicitudes.map(r => <Solicitud key={r.id} r={r} d={d} onMenu={e => abrirMenu(e,r)} />)}</div>
+      </section>}
       <div className="reception-metrics">
         <section className="reception-panel reception-metric"><header><BedDouble size={19} /><h2>Ocupación esta noche</h2><button aria-label="Ver ocupación en el mapa" onClick={() => useApp.getState().ir('mapa')}><ArrowUpRight size={17} /></button></header><div className="reception-metric-body"><div className="reception-metric-number"><AnimatedNumber value={porcentaje} /><small>%</small><span className="reception-metric-note">{ocupadas} de {d.cabanas.length} hospedajes</span></div><div className="reception-progress" aria-hidden="true"><span style={{width: `${porcentaje}%`}} /></div><p><Users size={14} /><strong><AnimatedNumber value={huespedes} /> huéspedes</strong> esta noche</p></div></section>
         <section className="reception-panel reception-metric"><header><Wallet size={19} /><h2>Por cobrar</h2><button aria-label="Ver reservaciones con pagos pendientes" onClick={() => {useApp.getState().setFiltro('atender'); useApp.getState().ir('reservaciones')}}><ArrowUpRight size={17} /></button></header><div className="reception-metric-body"><div className="reception-metric-number reception-money"><AnimatedNumber value={totalCobrar} format="money" /><span className="reception-metric-note">{cobros.length} estancias con saldo</span></div><p className="reception-metric-explainer">Estancias en curso y llegadas en 7 días.</p></div></section>
       </div>
-      <div className="reception-daily-strip">
-        <button onClick={() => document.getElementById('reception-requests')?.scrollIntoView({behavior:'smooth'})}><span className="reception-small-icon amber"><Clock3 size={17} /></span><span><strong><AnimatedNumber value={solicitudes.length} /></strong><small>Solicitudes pendientes</small></span><ChevronRight size={15} /></button>
-        <button onClick={() => {setAgendaFecha(d.hoy); setAgendaVista('llegadas'); document.getElementById('reception-agenda')?.scrollIntoView({behavior:'smooth'})}}><span className="reception-small-icon green"><ArrowDownLeft size={18} /></span><span><strong><AnimatedNumber value={llegan.length} /></strong><small>Llegadas de hoy</small></span><ChevronRight size={15} /></button>
-        <button onClick={() => {setAgendaFecha(d.hoy); setAgendaVista('salidas'); document.getElementById('reception-agenda')?.scrollIntoView({behavior:'smooth'})}}><span className="reception-small-icon blue"><ArrowUpRight size={18} /></span><span><strong><AnimatedNumber value={salen.length} /></strong><small>Salidas de hoy</small></span><ChevronRight size={15} /></button>
-      </div>
       <Movimientos d={d} onElegir={(fecha, vista) => { setAgendaFecha(fecha); setAgendaVista(vista) }} />
-      <section id="reception-requests" className="reception-panel reception-requests"><PanelHeader title="Solicitudes por confirmar" icon={<Clock3 size={17} />} extra={<span className="reception-count">{solicitudes.length} pendientes</span>} />
-        {solicitudes.length ? <div className="reception-request-list">{solicitudes.map(r => <Solicitud key={r.id} r={r} d={d} onMenu={e => abrirMenu(e,r)} />)}</div> : <Empty icon={<CheckCheck size={23} />} title="Todo al día" text="Las solicitudes nuevas de la página aparecerán aquí." />}
-      </section>
       <section className="reception-panel"><PanelHeader title="Próximas llegadas" icon={<DoorOpen size={17} />} extra={<button className="reception-text-link" onClick={abrirReservas}>Ver todas <ArrowRight size={14} /></button>} />
         {proximas.length ? <div className="reception-table-scroll"><table className="reception-arrivals-table"><thead><tr><th>Huésped / hospedaje</th><th>Estancia</th><th>Estado</th><th className="number">Por cobrar</th></tr></thead><tbody>{proximas.slice(0,5).map(r => <tr key={r.id} onContextMenu={e => abrirMenu(e,r)}><td><button className="reception-guest" onClick={() => useApp.getState().abrir(r.id)}><span className="reception-avatar">{iniciales(r.nombre)}</span><span><strong>{r.nombre}</strong><small>{nombreDe(d,r.cabana_id)}</small></span></button></td><td><span className="reception-nowrap">{rango(r.llegada,r.salida)}</span><small>{plural(noches(r.llegada,r.salida), 'noche', 'noches')} · {plural(r.huespedes, 'persona', 'personas')}</small></td><td><EstadoReserva r={r} /></td><td className="number"><strong>{mxn(saldo(r))}</strong></td></tr>)}</tbody></table></div> : <Empty icon={<CalendarDays size={23} />} title="Sin próximas llegadas" text="Las reservaciones confirmadas aparecerán aquí." />}
       </section>
-      <div className="reception-bottom-grid"><Canales d={d} /><section className="reception-panel"><PanelHeader title="Cobros a seguir" icon={<CircleDollarSign size={17} />} extra={<span className="reception-count">7 días</span>} />{cobros.length ? <div className="reception-payment-list">{cobros.slice(0,3).map(r => <button key={r.id} onClick={() => useApp.getState().abrir(r.id)}><span><strong>{r.nombre}</strong><small>{nombreDe(d,r.cabana_id)}</small></span><b>{mxn(saldo(r))}</b><ChevronRight size={14} /></button>)}</div> : <Empty icon={<Check size={23} />} title="Sin saldos pendientes" text="Las estancias de esta semana están al corriente." />}</section></div>
+      {cobros.length > 0 && <section className="reception-panel"><PanelHeader title="Cobros a seguir" icon={<CircleDollarSign size={17} />} extra={<span className="reception-count">7 días</span>} /><div className="reception-payment-list">{cobros.slice(0,5).map(r => <button key={r.id} onClick={() => useApp.getState().abrir(r.id)}><span><strong>{r.nombre}</strong><small>{nombreDe(d,r.cabana_id)}</small></span><b>{mxn(saldo(r))}</b><ChevronRight size={14} /></button>)}</div></section>}
       <details className="reception-preparation"><summary>Revisar preparación y publicación de los hospedajes</summary><ListoParaAbrir /></details>
 
     </div>
     <aside className="reception-rail">
       <Agenda d={d} fecha={agendaFecha} setFecha={setAgendaFecha} vista={agendaVista} setVista={setAgendaVista} />
-      <section className="reception-rail-section"><div className="reception-rail-heading"><h2>Disponibilidad de hoy</h2><BedDouble size={17} /></div><div className="reception-availability">{([{tipo:'cabana',nombre:'Cabañas'},{tipo:'casa',nombre:'Casas'},{tipo:'habitacion',nombre:'Habitaciones'}] as const).map(t => { const c = casas.filter(c => c.tipo === t.tipo); const libres = c.filter(c => c.estado === 'libre').length; return <button key={t.tipo} className={libres === 0 ? 'is-full' : ''} onClick={() => useApp.getState().ir('mapa')}><span>{t.nombre}<small>{plural(c.length, 'hospedaje', 'hospedajes')}</small></span><b><AnimatedNumber value={libres} /><small>{libres === 1 ? ' libre' : ' libres'}</small></b></button> })}</div><button className="reception-text-link" onClick={() => useApp.getState().ir('mapa')}>Explorar el mapa <ArrowUpRight size={14} /></button></section>
-      <section className="reception-rail-section"><div className="reception-rail-heading"><h2>Acciones de recepción</h2><Plus size={17} /></div><div className="reception-quick-actions"><button onClick={() => useApp.getState().crear({tipo:'reservacion'})}><Plus size={16} />Nueva reservación<ChevronRight size={14} /></button><button onClick={() => useApp.getState().crear({tipo:'cierre',llegada:d.hoy,salida:masDias(d.hoy,1)})}><LockKeyhole size={16} />Cerrar fechas<ChevronRight size={14} /></button><button onClick={() => useApp.getState().ir('calendario')}><CalendarDays size={16} />Consultar calendario<ChevronRight size={14} /></button></div></section>
+      <section className="reception-rail-section"><div className="reception-rail-heading"><h2>Disponibilidad de hoy</h2><BedDouble size={17} /></div><div className="reception-availability">{([{tipo:'cabana',nombre:'Cabañas'},{tipo:'casa',nombre:'Casas'},{tipo:'habitacion',nombre:'Habitaciones'}] as const).map(t => { const c = casas.filter(c => c.tipo === t.tipo); const libres = c.filter(c => c.estado === 'libre').length; return <button key={t.tipo} className={libres === 0 ? 'is-full' : ''} onClick={() => useApp.getState().ir('mapa')}><span>{t.nombre}<small>{plural(c.length, 'hospedaje', 'hospedajes')}</small></span><b><AnimatedNumber value={libres} /><small>{libres === 1 ? ' libre' : ' libres'}</small></b></button> })}</div><div className="flex flex-col items-start gap-1"><button className="reception-text-link" onClick={() => useApp.getState().ir('mapa')}>Explorar el mapa <ArrowUpRight size={14} /></button><button className="reception-text-link" onClick={() => useApp.getState().crear({tipo:'cierre',llegada:d.hoy,salida:masDias(d.hoy,1)})}><LockKeyhole size={14} /> Cerrar fechas</button></div></section>
       <div className="reception-rail-note"><Globe2 size={18} /><div><strong>{d.ajustes.reservas_web ? 'La página recibe solicitudes' : 'Reservas web en pausa'}</strong><button onClick={() => useApp.getState().ir('ajustes')}>Revisar configuración <ArrowRight size={13} /></button></div></div>
     </aside>
     {menu}
@@ -101,11 +94,6 @@ function Movimientos({ d, onElegir }: { d: Datos; onElegir: (fecha: string, vist
     </div>
     <p className="movement-footnote">Las solicitudes por confirmar se muestran por separado.</p>
   </section>
-}
-
-function Canales({d}:{d:Datos}) {
-  const reservas=d.reservaciones.filter(r => activa(r) && r.salida>d.hoy && r.llegada<=masDias(d.hoy,30))
-  return <section className="reception-panel"><PanelHeader title="Origen de las reservas" icon={<Globe2 size={17} />} extra={<span className="reception-count">30 días</span>} /><div className="reception-channels">{Object.entries(ORIGEN).map(([key,label])=>{const n=reservas.filter(r=>r.origen===key).length; const pct=reservas.length?Math.round(n/reservas.length*100):0;return <div key={key}><span>{label}</span><div><i style={{width:`${pct}%`}} /></div><b>{n}</b><small>{pct}%</small></div>})}<p>Incluye solicitudes vigentes.</p></div></section>
 }
 
 function Agenda({d,fecha,setFecha,vista,setVista}:{d:Datos;fecha:string;setFecha:(s:string)=>void;vista:'llegadas'|'salidas';setVista:(s:'llegadas'|'salidas')=>void}) {

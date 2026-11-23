@@ -44,9 +44,12 @@ export async function cambiarEstado(r: Pick<Reservacion, 'id' | 'estado' | 'nomb
 
 export async function registrarPago(id: string, monto: number, metodo: MetodoPago, referencia?: string, fecha?: ISODate) {
   if (!(await hayRed())) return null
-  const d = await hacer(() => rpc<Detalle>('hosp_registrar_pago', { p: { reservacion_id: id, monto, metodo, referencia: referencia || null, fecha: fecha || null } }), 'No se pudo registrar el pago')
+  // Identificador propio del pago: si la petición llega dos veces (se perdió la respuesta y se reintentó),
+  // la nube reconoce que es el mismo y no lo registra otra vez
+  const pagoId = crypto.randomUUID()
+  const d = await hacer(() => rpc<Detalle>('hosp_registrar_pago', { p: { id: pagoId, reservacion_id: id, monto, metodo, referencia: referencia || null, fecha: fecha || null } }), 'No se pudo registrar el pago')
   if (!d) return null
-  const pago = d.pagos[d.pagos.length - 1]
+  const pago = d.pagos.find((x) => x.id === pagoId) ?? d.pagos[d.pagos.length - 1]
   toast.undo(`Pago de ${mxn(monto)} registrado`, () => pago && void hacer(() => rpc('hosp_borrar_pago', { p_id: pago.id }), 'No se pudo quitar el pago'), d.estado === 'pagada' ? 'La reservación quedó pagada' : d.estado === 'confirmada' ? 'La reservación está confirmada' : undefined, true)
   return d
 }

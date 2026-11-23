@@ -1,19 +1,17 @@
 import { useState } from 'react'
-import { ChevronRight, RefreshCw, Search, Settings2 } from 'lucide-react'
+import { RefreshCw, Search, Settings2 } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { Notificaciones } from './Notificaciones'
 import { CMD } from '@/lib/mac'
 
-const nombres = { hoy: 'Vista general', mapa: 'Mapa del rancho', calendario: 'Calendario', reservaciones: 'Reservaciones', cabanas: 'Hospedajes', ajustes: 'Ajustes' }
-
 export function Topbar() {
-  const vista = useApp(s => s.vista)
   const vivo = useApp(s => s.enVivo)
   const conexion = useApp(s => s.conexion)
   const [cargando, setCargando] = useState(false)
-  return <header className="reception-topbar">
-    <div className="reception-breadcrumb"><span>La Joya</span><ChevronRight size={13} /><strong>{nombres[vista]}</strong></div>
-    <button className="reception-search" onClick={() => useApp.getState().setBuscar(true)} aria-label="Buscar reservaciones y huéspedes"><Search size={17} /><span>Buscar en La Joya…</span><kbd>{CMD}K</kbd></button>
+  // Sin migas («La Joya › Calendario»): repetían el título de cada pantalla. El único buscador de la app vive aquí,
+  // y la franja sirve para arrastrar la ventana, como la barra de herramientas de una app de Mac.
+  return <header className="reception-topbar" data-tauri-drag-region>
+    <button className="reception-search" onClick={() => useApp.getState().setBuscar(true)} aria-label="Buscar reservaciones y huéspedes"><Search size={17} /><span>Buscar huésped, código o teléfono…</span><kbd>{CMD}F</kbd></button>
     <div className="reception-topbar-actions">
       <span className="reception-live"><i className={conexion === 'sin-conexion' ? 'offline' : vivo ? '' : 'pending'} />{conexion === 'sin-conexion' ? 'Sin conexión' : vivo ? 'En vivo' : 'Actualizando'}</span>
       <button className="reception-icon-button" disabled={cargando} aria-label="Actualizar datos" title="Actualizar datos" onClick={async () => { setCargando(true); try { await useApp.getState().cargar() } finally { setCargando(false) } }}><RefreshCw size={17} className={cargando ? 'animate-spin' : ''} /></button>

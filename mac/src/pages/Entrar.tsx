@@ -106,7 +106,7 @@ export default function Entrar() {
               Entrar
             </Button>
             {detalle && <pre className="mt-3 rounded-[10px] bg-sunken px-3 py-2 text-[12px] leading-snug whitespace-pre-wrap break-all text-ink-soft select-text">{detalle}</pre>}
-            <p className="mt-4 text-[13px] text-ink-3">La sesión se queda guardada en esta Mac. Si olvidaste la contraseña, Jorge la cambia desde la nube.</p>
+            <p className="mt-4 text-[13px] text-ink-3">La sesión se queda guardada en esta Mac.</p>
           </motion.div>
           {esNubeLocal && (
             <motion.div variants={fadeRise} className="mt-7 flex items-start gap-3 rounded-[14px] bg-butter-soft p-4 text-[13px]">

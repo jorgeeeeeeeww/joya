@@ -1,7 +1,7 @@
 // Barra lateral flotante, igual que la del PWA: la luz y el día arriba, nueva reservación y búsqueda,
 // las cuatro secciones y abajo Ajustes, la conexión y tu cuenta.
 import { useRef, useState } from 'react'
-import { BedDouble, CalendarRange, ChevronsUpDown, Inbox, LogOut, Map as MapaIcono, Plus, RefreshCw, Search, Settings, Sun } from 'lucide-react'
+import { BedDouble, CalendarRange, ChevronsUpDown, Inbox, LogOut, Map as MapaIcono, Plus, RefreshCw, Settings, Sun } from 'lucide-react'
 import { useApp, type Vista } from '@/lib/store'
 import { CMD, enMac } from '@/lib/mac'
 import { activa } from '@/lib/estados'
@@ -59,11 +59,6 @@ export function Barra() {
           <Button variant="primary" size="sm" className="app-sidebar-new-reservation w-full" title={`Nueva reservación (${CMD}N)`} aria-label={`Nueva reservación (${CMD}N)`} icon={<Plus size={16} strokeWidth={2} />} onClick={() => useApp.getState().crear({ tipo: 'reservacion' })}>
             <span className="app-sidebar-new-reservation-label">Nueva reservación</span>
           </Button>
-          <button onClick={() => useApp.getState().setBuscar(true)} title={`Buscar (${CMD}F)`} className="pressable flex h-9 w-full items-center gap-2 rounded-[10px] px-2.5 text-[13px] text-ink-3 ring-1 ring-line ring-inset hover:bg-wash hover:text-ink-soft">
-            <Search size={15} strokeWidth={1.8} />
-            <span className="flex-1 text-left">Buscar</span>
-            <kbd className="tecla">{CMD}F</kbd>
-          </button>
         </div>
 
         <p className="reception-nav-label">RECEPCIÓN</p>

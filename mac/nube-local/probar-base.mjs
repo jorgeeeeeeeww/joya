@@ -54,6 +54,7 @@ const pg = new PGlite({ extensions: { btree_gist } })
 await pg.exec(await readFile(join(AQUI, 'supabase-local.sql'), 'utf8'))
 await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261105000000_hospedaje.sql'), 'utf8'))
 await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261112000000_avisos_al_celular.sql'), 'utf8'))
+await pg.exec(await readFile(join(RAIZ, 'supabase', 'migrations', '20261122000000_pagos_sin_duplicar_y_version.sql'), 'utf8'))
 await pg.exec(TAP)
 
 let prueba = await readFile(join(RAIZ, 'supabase', 'tests', 'database', 'hospedaje.test.sql'), 'utf8')

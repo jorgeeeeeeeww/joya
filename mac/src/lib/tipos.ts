@@ -138,6 +138,8 @@ export interface Datos {
   reservaciones: Reservacion[]
   bloqueos: Bloqueo[]
   avisos_sin_enviar: number
+  /** Contador de cambios de la nube (falta si la base aún no tiene hosp_version) */
+  version?: number
 }
 
 export interface Cotizacion {

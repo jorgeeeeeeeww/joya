@@ -36,21 +36,57 @@ async function cargarRust(): Promise<Fetch | null> {
   return fetchRust
 }
 
+// ── Tiempo límite ──
+// Ninguna petición se queda esperando para siempre: con internet muy lento, «Confirmar» o «Registrar pago» se
+// quedaban cargando sin avisar. Subir fotos tiene más margen. (A mano y no con AbortSignal.timeout: Safari 15 no lo trae.)
+const LIMITE_MS = 15_000
+const LIMITE_ARCHIVOS_MS = 90_000
+export class TiempoAgotado extends Error {
+  constructor() {
+    super('La nube tardó demasiado en contestar')
+    this.name = 'TiempoAgotado'
+  }
+}
+async function conLimite(pedir: Fetch, entrada: Parameters<Fetch>[0], init: Parameters<Fetch>[1]): Promise<Response> {
+  const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url
+  const corte = new AbortController()
+  let agotado = false
+  const reloj = setTimeout(() => {
+    agotado = true
+    corte.abort()
+  }, url.includes('/storage/v1/') ? LIMITE_ARCHIVOS_MS : LIMITE_MS)
+  // Si quien llama ya traía su propia señal para cancelar, se respeta
+  const ajena = init?.signal
+  const alCancelar = () => corte.abort()
+  if (ajena?.aborted) corte.abort()
+  else ajena?.addEventListener('abort', alCancelar, { once: true })
+  try {
+    return await pedir(entrada, { ...init, signal: corte.signal })
+  } catch (e) {
+    if (agotado) throw new TiempoAgotado()
+    throw e
+  } finally {
+    clearTimeout(reloj)
+    ajena?.removeEventListener('abort', alCancelar)
+  }
+}
+
 const fetchNube: Fetch = async (entrada, init) => {
-  if (!enTauri || esNubeLocal) return fetch(entrada, init)
+  if (!enTauri || esNubeLocal) return conLimite(fetch, entrada, init)
   const rust = await cargarRust()
   if (rust) {
     try {
-      const r = await rust(entrada, init)
+      const r = await conLimite(rust, entrada, init)
       rustFunciono = true
       return r
     } catch (e) {
       estadoRed.errorRust = textoDe(e)
-      // Si Rust ya había funcionado, el fallo es de la red de ese momento: no se repite la petición por otro lado
-      if (rustFunciono) throw e
+      // Si Rust ya había funcionado, el fallo es de la red de ese momento: no se repite la petición por otro lado.
+      // Tampoco si se agotó el tiempo: la petición pudo haber llegado, y repetirla la mandaría dos veces.
+      if (rustFunciono || e instanceof TiempoAgotado) throw e
     }
   }
-  return fetch(entrada, init)
+  return conLimite(fetch, entrada, init)
 }
 
 /** Prueba directa por Rust (para el diagnóstico de la pantalla de entrada): qué respondió y cuánto difiere el reloj de la Mac */
@@ -89,6 +125,7 @@ export class ErrorNube extends Error {
 }
 
 function explicar(mensaje: string, code?: string) {
+  if (/tardó demasiado/i.test(mensaje)) return 'La nube tardó demasiado en contestar. Revisa el internet; si estabas guardando algo, comprueba si quedó antes de repetirlo.'
   if (/fetch|network|load failed|conexi/i.test(mensaje)) return 'Sin conexión con la nube. Revisa el internet e intenta de nuevo.'
   if (code === 'PGRST301' || code === 'PGRST303' || /jwt/i.test(mensaje)) return 'Tu sesión venció. Vuelve a entrar.'
   if (code === '42501' && !/solo/i.test(mensaje)) return 'Tu cuenta no tiene permiso para esto.'

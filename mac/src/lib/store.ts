@@ -50,6 +50,8 @@ interface Estado {
   editarCabana: (id: string | 'nueva' | null) => void
   setFiltro: (f: Estado['filtro']) => void
   cargar: () => Promise<void>
+  /** Revisión ligera: pregunta a la nube si cambió algo y solo entonces baja todo */
+  revisar: () => Promise<void>
   salir: () => Promise<void>
   parchar: (id: string, p: Partial<Reservacion>) => void
 }
@@ -110,6 +112,15 @@ function datosGuardados(usuario: string): Datos | null {
 let cargaEnCurso: Promise<void> | null = null
 let primeraCarga = true
 let generacionSesion = 0
+// Sondeo ligero (22 nov): cada 30 s se pregunta «¿cambió algo?» (hosp_version, un número) en vez de bajar todo.
+let revisionEnCurso: Promise<void> | null = null
+/** La base todavía no tiene hosp_version: se baja todo como antes */
+let sinVersion = false
+/** Después de notar un cambio, la siguiente revisión baja todo otra vez (el contador sube un instante antes de que el cambio quede guardado) */
+let confirmarCambio = false
+let ultimaCompleta = 0
+/** Aunque nada avise, cada 5 minutos se baja todo */
+const COMPLETA_CADA_MS = 5 * 60_000
 
 export const useApp = create<Estado>((set, get) => ({
   sesion: undefined,
@@ -124,6 +135,9 @@ export const useApp = create<Estado>((set, get) => ({
     // Una respuesta de otra sesión nunca puede repoblar datos ni caché.
     generacionSesion++
     cargaEnCurso = null
+    revisionEnCurso = null
+    confirmarCambio = false
+    ultimaCompleta = 0
     primeraCarga = true
     if (!usuario) {
       try { localStorage.removeItem(CACHE); localStorage.removeItem(VISTOS) } catch { /* sin almacenamiento */ }
@@ -187,6 +201,7 @@ export const useApp = create<Estado>((set, get) => ({
         const hoy = get().datos?.hoy ?? hoyLocal()
         const datos = await rpc<Datos>('hosp_datos', { p_desde: masDias(hoy, -120), p_hasta: masDias(hoy, 540) })
         if (!vigente()) return
+        ultimaCompleta = Date.now()
         revisarNuevas(datos)
         const terminar = medir('datos:comparar-y-cache')
         const anteriores = get().datos
@@ -218,6 +233,49 @@ export const useApp = create<Estado>((set, get) => ({
       }
     })()
     return cargaEnCurso
+  },
+  revisar: () => {
+    const usuario = get().sesion?.user.id
+    if (!usuario) return Promise.resolve()
+    const d = get().datos
+    // Sin datos, sin contador o ya toca: se baja todo
+    if (!d || d.version == null || sinVersion || confirmarCambio || Date.now() - ultimaCompleta > COMPLETA_CADA_MS) {
+      confirmarCambio = false
+      return get().cargar()
+    }
+    if (cargaEnCurso) return cargaEnCurso
+    if (revisionEnCurso) return revisionEnCurso
+    const generacion = generacionSesion
+    const vigente = () => generacion === generacionSesion && get().sesion?.user.id === usuario
+    revisionEnCurso = (async () => {
+      try {
+        const v = await rpc<{ v: number; hoy: ISODate; avisos_sin_enviar: number }>('hosp_version')
+        if (!vigente()) return
+        const actual = get().datos
+        if (actual && v.v === actual.version && v.hoy === actual.hoy && v.avisos_sin_enviar === actual.avisos_sin_enviar) {
+          set({ conexion: 'en-linea', sinPermiso: false, ultimaCarga: Date.now() })
+          return
+        }
+        confirmarCambio = true
+        await get().cargar()
+      } catch (e) {
+        if (!vigente()) return
+        const code = (e as { code?: string }).code
+        const msg = e instanceof Error ? e.message : String(e)
+        // La base aún no tiene la función (migración sin aplicar): se sigue como antes, bajando todo
+        if (code === 'PGRST202' || code === '42883' || /hosp_version/i.test(msg)) {
+          sinVersion = true
+          await get().cargar()
+          return
+        }
+        // Permiso retirado u otro fallo: la carga completa sabe explicarlo
+        if (code === '42501') await get().cargar()
+        else set({ conexion: 'sin-conexion' })
+      } finally {
+        if (vigente()) revisionEnCurso = null
+      }
+    })()
+    return revisionEnCurso
   },
 }))
 

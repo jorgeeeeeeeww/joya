@@ -92,6 +92,7 @@ function Marco() {
   if (buscar) capas.current.buscar = true
   const Pantalla = pantallas[vista]
   const cargar = useApp((s) => s.cargar)
+  const revisar = useApp((s) => s.revisar)
   const mainRef = useRef<HTMLElement>(null)
   const [pidiendoAvisos, setPidiendoAvisos] = useState(false)
   useLayoutEffect(() => {
@@ -101,12 +102,13 @@ function Marco() {
   const ultimaAbierta = useRef(abierta)
   if (abierta) ultimaAbierta.current = abierta
 
-  // Datos: al entrar, cada 30 s, al volver a la ventana y cuando vuelve el internet.
+  // Datos: al entrar se baja todo. Cada 30 s, al volver a la ventana y cuando vuelve el internet se hace la
+  // revisión ligera (pregunta si cambió algo y solo entonces baja todo; además baja todo cada 5 minutos).
   // En la Mac sigue revisando con la ventana escondida: de eso depende el aviso de cada solicitud.
   useEffect(() => {
     void cargar()
-    const cada = setInterval(() => (enMac || document.visibilityState === 'visible') && void cargar(), 30_000)
-    const alVolver = () => document.visibilityState === 'visible' && void cargar()
+    const cada = setInterval(() => (enMac || document.visibilityState === 'visible') && void revisar(), 30_000)
+    const alVolver = () => document.visibilityState === 'visible' && void revisar()
     window.addEventListener('focus', alVolver)
     window.addEventListener('online', alVolver)
     document.addEventListener('visibilitychange', alVolver)
@@ -116,15 +118,18 @@ function Marco() {
       window.removeEventListener('online', alVolver)
       document.removeEventListener('visibilitychange', alVolver)
     }
-  }, [cargar])
+  }, [cargar, revisar])
 
   // Tiempo real: la nube avisa «hubo cambios» en el canal privado «hospedaje» y aquí se vuelve a bajar
   useEffect(() => {
     let canal: RealtimeChannel | null = null
     let espera: ReturnType<typeof setTimeout> | undefined
     let vivo = true
+    let yaEstuvoConectado = false
     void (async () => {
-      await nube.realtime.setAuth(sesion.access_token)
+      // La llave más reciente (puede haberse renovado desde que se pintó la pantalla)
+      const { data } = await nube.auth.getSession()
+      await nube.realtime.setAuth(data.session?.access_token ?? sesion.access_token)
       if (!vivo) return
       canal = nube
         .channel('hospedaje', { config: { private: true } })
@@ -132,7 +137,13 @@ function Marco() {
           clearTimeout(espera)
           espera = setTimeout(() => void useApp.getState().cargar(), 250)
         })
-        .subscribe((estado) => useApp.setState({ enVivo: estado === 'SUBSCRIBED' }))
+        .subscribe((estado) => {
+          const conectado = estado === 'SUBSCRIBED'
+          useApp.setState({ enVivo: conectado })
+          // Al reconectar se baja todo: lo que cambió mientras el canal estuvo caído no llegó por él
+          if (conectado && yaEstuvoConectado) void useApp.getState().cargar()
+          if (conectado) yaEstuvoConectado = true
+        })
     })()
     return () => {
       vivo = false
@@ -140,7 +151,14 @@ function Marco() {
       useApp.setState({ enVivo: false })
       if (canal) void nube.removeChannel(canal)
     }
-  }, [sesion.user.id, sesion.access_token])
+    // Solo se rearma al cambiar de cuenta. Antes dependía también de la llave de la sesión y el canal se
+    // desarmaba cada vez que se renovaba (más o menos cada hora): una solicitud que llegara justo ahí tardaba en avisar.
+  }, [sesion.user.id])
+
+  // Cuando la sesión se renueva, el canal recibe la llave nueva sin desconectarse
+  useEffect(() => {
+    void nube.realtime.setAuth(sesion.access_token)
+  }, [sesion.access_token])
 
   // Atajos de teclado (en el navegador también funcionan con Ctrl)
   useEffect(() => {

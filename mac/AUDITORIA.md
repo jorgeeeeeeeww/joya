@@ -99,3 +99,30 @@ Otro ajuste: cuando hay solicitudes por atender, ponerlas **arriba del plano**, 
 **Necesito de ti:**
 - Tu aprobación.
 - Que me digas qué versión de macOS tiene la iMac.
+
+---
+
+## Auditoría de conexión del 22 de noviembre (versión 0.3.15)
+
+Tres riesgos arreglados en la copia local (sin subir a git ni aplicar en la nube real):
+
+- **Pago duplicado:** cada pago lleva un identificador propio (`acciones.ts`) y `hosp_registrar_pago` ignora el repetido. Antes, si la respuesta se perdía y la petición se reintentaba, quedaban dos pagos.
+- **Tiempo límite:** toda petición a la nube se corta a los 15 s (90 s al subir fotos) y lo explica (`nube.ts`, `conLimite`). Si se agota el tiempo no se reintenta por el segundo camino, porque la petición pudo haber llegado.
+- **Sondeo ligero:** cada 30 s se pregunta `hosp_version` (un número) y solo se baja todo si cambió; además se baja todo cada 5 minutos y una vez más después de cada cambio (`store.ts`, `revisar`). Si la base aún no tiene `hosp_version`, la app baja todo como antes.
+- **Base:** migración `supabase/migrations/20261122000000_pagos_sin_duplicar_y_version.sql`. Se puede aplicar antes o después de actualizar la app.
+- **Probado:** tipos sin errores, `probar:base` 26/26, `probar` 61/61 (5 revisiones nuevas), `probar:sesion` 18/18, y en la app local: una bajada completa al entrar y después solo `hosp_version`. **Sin probar:** registrar un pago desde la pantalla, la Mac real y el corte de 15 s con internet lento de verdad.
+
+Pendiente de esta auditoría: el canal en vivo se rearma con cada renovación de sesión y no vuelve a bajar al reconectar; cambios de `avisos-hospedaje` sin subir; recuperar contraseña; la versión instalable permite la nube local; y las mejoras de diseño (Hoy saturada, controles duplicados, calendario con barras continuas, detalle sin desenfoque).
+
+### Segunda parte del 22 de noviembre: resto de la conexión y diseño (versión 0.3.16, sin publicar)
+
+- **Canal en vivo:** ya no se rearma con cada renovación de sesión (solo al cambiar de cuenta); la llave nueva se le pasa sin desconectar, y al reconectar se baja todo (`App.tsx`).
+- **Recuperar contraseña: descartado por Jorge** (22 nov): la sesión no se cierra en la Mac del rancho, así que no hace falta. Se quitó de la app y no se subió ninguna página a la web.
+- **Versión instalable sin nube local:** `app-mac.yml` quita `127.0.0.1` y `localhost` de la política de contenido y de las peticiones por Rust cuando se compila con la nube real.
+- **Hoy:** las solicitudes van arriba y solo aparecen si hay; se quitaron los tres contadores repetidos, «Origen de las reservas» y «Acciones de recepción» («Cerrar fechas» quedó junto a la disponibilidad); «Cobros a seguir» solo sale si hay saldos.
+- **Duplicados:** un solo buscador (barra de arriba, ⌘F), sin migas, y «Nueva reservación» solo en la barra lateral. La barra de arriba arrastra la ventana.
+- **Calendario del mes:** cada estancia es una barra continua que cruza sus noches y las semanas; las semanas vacías son más bajas.
+- **Paneles:** el detalle y el buscador se abren sin desenfocar el fondo.
+- **Nombres:** la pestaña «Por atender» de Reservaciones ahora dice «Por confirmar o cobrar», que es lo que contiene.
+- **Probado:** tipos, `probar` 61/61, `probar:base` 26/26, `probar:sesion` 18/18, compila, y a la vista en la app local (Hoy, Calendario, detalle). **Sin probar:** la Mac real; el paso nuevo de `app-mac.yml` solo se ensayó a mano.
+- **No se hizo:** guardar la sesión en el Llavero de macOS y la barra lateral translúcida (las dos necesitan código de Rust que aquí no se puede compilar ni probar), y la firma con cuenta de Apple (necesita la cuenta).

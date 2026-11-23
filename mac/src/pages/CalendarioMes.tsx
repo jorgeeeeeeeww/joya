@@ -10,6 +10,10 @@ import { AnimatedNumber } from '@/components/AnimatedNumber'
 import { EstadoReserva, estadoReserva, LeyendaHospedajes, tonoHospedaje } from '@/components/CalendarioEtiquetas'
 import CalendarioLinea from './CalendarioLinea'
 
+/** Carriles de barras que caben en cada semana; lo demás se anuncia como «+N más» */
+const CARRILES = 3
+const diasEntre = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000)
+
 function otroMes(iso: string, n: number) {
   const f = new Date(`${inicioDeMes(iso)}T12:00:00Z`)
   f.setUTCMonth(f.getUTCMonth() + n)
@@ -34,6 +38,7 @@ export default function CalendarioMes() {
   const inicio = masDias(mes, -((diaSemana(mes) + 6) % 7))
   const total = Math.ceil((((diaSemana(mes) + 6) % 7) + dia(masDias(otroMes(mes, 1), -1))) / 7) * 7
   const dias = Array.from({ length: total }, (_, i) => masDias(inicio, i))
+  const semanas = Array.from({ length: total / 7 }, (_, s) => dias.slice(s * 7, s * 7 + 7))
   const estancias = reservas.filter((r) => r.llegada <= fecha && r.salida > fecha)
   const llegadas = reservas.filter((r) => r.llegada === fecha)
   const salidas = reservas.filter((r) => r.salida === fecha)
@@ -47,7 +52,6 @@ export default function CalendarioMes() {
         <div className="flex rounded-full border border-line bg-sunken p-1" aria-label="Vista del calendario">
           {['mes', 'unidades'].map((v) => <button key={v} aria-pressed={vista === v} onClick={() => setVista(v)} className={cx('rounded-full px-4 py-2 text-[13px] font-medium', vista === v && 'bg-surface text-ink shadow-sm')}>{v === 'mes' ? 'Mes completo' : 'Noches por hospedaje'}</button>)}
         </div>
-        <Button icon={<Plus size={15} />} onClick={() => useApp.getState().crear({ tipo: 'reservacion' })}>Nueva reservación</Button>
       </div>
     </div>
     {vista === 'unidades' ? <CalendarioLinea /> : <>
@@ -66,27 +70,45 @@ export default function CalendarioMes() {
       <div className="grid min-w-0 items-start gap-5 @[1140px]:grid-cols-[minmax(0,1fr)_300px]">
         <section className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface" aria-label="Calendario mensual">
           <div className="grid grid-cols-7 border-b border-line bg-wash">{['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((s) => <div key={s} className="py-3 text-center text-[12px] font-semibold text-ink-soft">{s}</div>)}</div>
-          <div className="grid grid-cols-7">{dias.map((iso) => {
-            const eventos = reservas.filter((r) => r.llegada <= iso && r.salida > iso)
-            const bloqueadas = d.bloqueos.filter((b) => ids.has(b.cabana_id) && b.inicio <= iso && b.fin > iso)
-            const ocupados = eventos.length + bloqueadas.length
-            return <div key={iso} data-fecha={iso} className={cx('app-month-day min-h-[148px] min-w-0 border-r border-b border-line p-1.5 @[800px]:p-2', iso.slice(0, 7) !== mes.slice(0, 7) && 'bg-wash', fecha === iso && 'is-selected')}>
-              <button type="button" aria-label={`${larga(iso)}, ${eventos.length} reservaciones, ${bloqueadas.length} cierres`} aria-pressed={fecha === iso} onClick={() => setFecha(iso)} className="mb-2 flex w-full items-center justify-between gap-1 text-left">
-                <span className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold', iso === d.hoy ? 'bg-primary text-on-primary' : 'text-ink')}>{dia(iso)}</span>
-                <span className="text-[11px] text-ink-soft" title="Hospedajes no disponibles / total">{ocupados}/{cabanas.length}</span>
-              </button>
-              <div className="space-y-1.5">{eventos.slice(0, 2).map((r) => {
+          {/* Cada estancia es UNA barra que cruza sus noches (antes era una tarjeta repetida por día) */}
+          <div>{semanas.map((semana) => {
+            const ini = semana[0]!
+            const fin = masDias(ini, 7)
+            const carriles: number[] = []
+            const barras = reservas.filter((r) => r.llegada < fin && r.salida > ini).sort((a, b) => a.llegada.localeCompare(b.llegada) || b.salida.localeCompare(a.salida)).map((r) => {
+              const c0 = Math.max(0, diasEntre(ini, r.llegada))
+              const c1 = Math.min(7, diasEntre(ini, r.salida))
+              let carril = carriles.findIndex((hasta) => hasta <= c0)
+              if (carril < 0) carril = carriles.push(0) - 1
+              carriles[carril] = c1
+              return { r, c0, c1, carril }
+            })
+            return <div key={ini} className="cal-semana" style={{ gridTemplateRows: `40px repeat(${Math.max(1, Math.min(CARRILES, carriles.length))}, 31px) minmax(26px, auto)` }}>
+              {semana.map((iso, i) => {
+                const eventos = barras.filter((b) => b.c0 <= i && b.c1 > i)
+                const bloqueadas = d.bloqueos.filter((b) => ids.has(b.cabana_id) && b.inicio <= iso && b.fin > iso)
+                const ocultas = eventos.filter((b) => b.carril >= CARRILES).length
+                return <div key={iso} data-fecha={iso} style={{ gridColumn: i + 1 }} onClick={() => setFecha(iso)} className={cx('app-month-day cal-dia', iso.slice(0, 7) !== mes.slice(0, 7) && 'bg-wash', fecha === iso && 'is-selected')}>
+                  <button type="button" aria-label={`${larga(iso)}, ${eventos.length} reservaciones, ${bloqueadas.length} cierres`} aria-pressed={fecha === iso} onClick={() => setFecha(iso)} className="flex w-full items-center justify-between gap-1 text-left">
+                    <span className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold', iso === d.hoy ? 'bg-primary text-on-primary' : 'text-ink')}>{dia(iso)}</span>
+                    <span className="text-[11px] text-ink-soft" title="Hospedajes no disponibles / total">{eventos.length + bloqueadas.length}/{cabanas.length}</span>
+                  </button>
+                  {(ocultas > 0 || bloqueadas.length > 0) && <div className="cal-pie">
+                    {ocultas > 0 && <button type="button" onClick={(e) => { e.stopPropagation(); verDia(iso) }} className="font-semibold">+{ocultas} más</button>}
+                    {bloqueadas.length > 0 && <button type="button" onClick={(e) => { e.stopPropagation(); verDia(iso) }} className="inline-flex items-center gap-1"><Lock size={11} className="shrink-0" />{bloqueadas.length} {bloqueadas.length === 1 ? 'cierre' : 'cierres'}</button>}
+                  </div>}
+                </div>
+              })}
+              {barras.filter((b) => b.carril < CARRILES).map(({ r, c0, c1, carril }) => {
                 const c = porId.get(r.cabana_id)
                 const titulo = `${r.nombre} · ${c?.nombre ?? 'Hospedaje'} · ${c ? TIPO[c.tipo].uno : ''} · ${estadoReserva(r.estado)} · ${rango(r.llegada, r.salida)} · ${plural(r.huespedes, 'persona', 'personas')}`
-                return <button type="button" key={r.id} onClick={() => useApp.getState().abrir(r.id)} title={titulo} aria-label={titulo} style={tonoHospedaje(c?.tipo)} className="app-calendar-booking block w-full min-w-0 overflow-hidden rounded-md border-l-[3px] px-1.5 py-2 text-left transition-[filter] hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink">
-                  <span className="flex min-w-0 items-center justify-between gap-1"><span className="min-w-0 flex-1 truncate text-[12px] font-semibold leading-tight text-ink @[850px]:text-[13px]">{r.nombre}</span></span>
-                  <span className="mt-1 block break-words text-[11px] font-medium leading-tight @[850px]:text-[12px]">{c?.nombre ?? 'Hospedaje'}</span>
-                  <span className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1"><EstadoReserva estado={r.estado} />{r.llegada === iso && <ArrowDownLeft size={11} aria-label="Llegada" />}</span>
+                return <button type="button" key={r.id} onClick={() => useApp.getState().abrir(r.id)} title={titulo} aria-label={titulo} style={{ ...tonoHospedaje(c?.tipo), gridColumn: `${c0 + 1} / ${c1 + 1}`, gridRow: carril + 2 }} className={cx('app-calendar-booking cal-barra', r.llegada >= ini && 'empieza', r.salida <= fin && 'termina')}>
+                  {r.llegada >= ini && <ArrowDownLeft size={12} className="shrink-0" aria-label="Llegada" />}
+                  <span className="cal-barra-nombre">{r.nombre}</span>
+                  {c1 - c0 > 1 && <span className="cal-barra-lugar">{c?.nombre ?? 'Hospedaje'}</span>}
+                  <EstadoReserva estado={r.estado} soloIcono />
                 </button>
               })}
-                {eventos.length > 2 && <button type="button" onClick={() => verDia(iso)} className="w-full rounded py-1 text-left text-[12px] font-semibold text-ink-soft">+{eventos.length - 2} reservas</button>}
-                {bloqueadas.length > 0 && <button type="button" onClick={() => verDia(iso)} className="inline-flex max-w-full items-center gap-1 text-[11px] text-ink-soft"><Lock size={11} className="shrink-0" />{bloqueadas.length} {bloqueadas.length === 1 ? 'cierre' : 'cierres'}</button>}
-              </div>
             </div>
           })}</div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-4 text-[12px] text-ink-soft" aria-label="Estados de reservación">

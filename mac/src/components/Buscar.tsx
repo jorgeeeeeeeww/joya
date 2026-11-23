@@ -23,7 +23,7 @@ export function Buscar() {
     <AnimatePresence>
       {abierto && (
         <div className="fixed inset-0 z-[60] flex justify-center pt-[12vh]" role="dialog" aria-modal="true" aria-label="Buscar">
-          <motion.div className="absolute inset-0 bg-[color-mix(in_oklab,var(--ink)_22%,transparent)] backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setBuscar(false)} />
+          <motion.div className="absolute inset-0 bg-[color-mix(in_oklab,var(--ink)_22%,transparent)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setBuscar(false)} />
           <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.2 } }} exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }} className="relative h-fit w-[min(620px,calc(100vw-48px))] overflow-hidden rounded-[18px] bg-surface shadow-[var(--shadow-3)] ring-1 ring-line">
             <Panel onCerrar={() => setBuscar(false)} />
           </motion.div>

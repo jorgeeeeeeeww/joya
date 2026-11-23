@@ -302,3 +302,21 @@
 :root[data-app-design='reservations'] .app-login-form h2 { color:#233e61; font-family:var(--font-display); font-weight:750; }
 :root[data-app-design='reservations'] .app-new-booking { font-family:var(--font-sans); }.app-new-booking h2 { color:#233e61; font-family:var(--font-display); font-weight:750; }.app-new-dates { background:#f5f8fd; border:1px solid #d2dff0; }
 @media(max-width:800px) { .movement-chart-labels,.movement-row { grid-template-columns:66px minmax(0,1fr) minmax(0,1fr); gap:8px; }.movement-chart { padding-inline:14px; }.notification-header { padding:16px; } }
+
+/* ── Calendario del mes (22 nov): una barra por estancia, que cruza sus noches ── */
+.cal-semana { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); grid-template-rows:40px repeat(3,31px) minmax(28px,auto); border-bottom:1px solid var(--line); }
+.cal-semana:last-child { border-bottom:0; }
+.cal-dia { grid-row:1 / -1; display:flex; flex-direction:column; justify-content:space-between; min-width:0; padding:6px 8px; border-right:1px solid var(--line); cursor:pointer; }
+.cal-dia:nth-child(7) { border-right:0; }
+.cal-barra { z-index:1; align-self:center; display:flex; align-items:center; gap:6px; min-width:0; height:27px; padding:0 9px; border:0 solid; border-radius:0; font-size:12px; text-align:left; transition:filter .15s; }
+.cal-barra:hover { filter:brightness(.96); }
+.cal-barra.empieza { margin-left:6px; border-left-width:3px; border-top-left-radius:8px; border-bottom-left-radius:8px; }
+.cal-barra.termina { margin-right:6px; border-top-right-radius:8px; border-bottom-right-radius:8px; }
+.cal-barra-nombre { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; color:var(--ink); }
+.cal-barra-lugar { flex:1 1 0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.85; }
+.cal-barra .app-booking-status { margin-left:auto; flex:none; }
+.cal-pie { display:flex; flex-wrap:wrap; gap:2px 8px; font-size:11px; color:var(--ink-soft); }
+
+/* ── Barra de arriba (22 nov): sin migas; el buscador único toma el lugar y la franja arrastra la ventana ── */
+.reception-topbar .reception-search { width:340px; max-width:46%; }
+.reception-topbar .reception-search, .reception-topbar .reception-topbar-actions { -webkit-app-region:no-drag; }
