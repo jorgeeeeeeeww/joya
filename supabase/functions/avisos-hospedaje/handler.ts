@@ -1,6 +1,7 @@
 // Lógica de la función «avisos-hospedaje», sin nada propio de Deno (corre igual en la nube local).
 // Toma los avisos pendientes (tabla hospedaje_avisos), los manda y los marca: los correos con Resend y los avisos
 // al celular del dueño con ntfy (ntfy.sh).
+import { correoHtml } from './plantilla.ts'
 
 export interface Correo {
   id: number
@@ -45,7 +46,7 @@ async function enviarConResend(c: Correo, env: EntornoAvisos): Promise<{ ok: boo
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.resendKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: env.remitente || 'La Joya <onboarding@resend.dev>', to: [c.para], subject: c.asunto, text: c.cuerpo }),
+    body: JSON.stringify({ from: env.remitente || 'La Joya <onboarding@resend.dev>', to: [c.para], subject: c.asunto, text: c.cuerpo, html: correoHtml(c.asunto, c.cuerpo) }),
   })
   if (r.ok) {
     const j = (await r.json().catch(() => ({}))) as { id?: string }

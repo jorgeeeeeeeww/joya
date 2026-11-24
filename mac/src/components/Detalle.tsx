@@ -215,7 +215,7 @@ function Contenido({ d, setD, enPanel, onCerrar }: { d: Detalle; setD: (d: Detal
                     title="Quitar este pago"
                     aria-label={`Quitar el pago de ${mxn(p.monto)}`}
                     onClick={async () => {
-                      const x = await borrarPago(p.id, p.monto)
+                      const x = await borrarPago(p, setD)
                       if (x) setD(x)
                     }}
                     className="flex h-7 w-7 items-center justify-center rounded-full text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-wash hover:text-danger focus-visible:opacity-100"

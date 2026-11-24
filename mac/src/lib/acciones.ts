@@ -2,7 +2,7 @@
 // toast (con «Deshacer» cuando se puede) y vuelve a bajar los datos.
 import { rpc } from './nube'
 import { recargar, useApp } from './store'
-import type { Bloqueo, Detalle, Estado, ISODate, MetodoPago, Reservacion } from './tipos'
+import type { Bloqueo, Detalle, Estado, ISODate, MetodoPago, Pago, Reservacion } from './tipos'
 import { toast } from '@/components/ui'
 import { rango } from './fechas'
 import { mxn } from './dinero'
@@ -54,10 +54,14 @@ export async function registrarPago(id: string, monto: number, metodo: MetodoPag
   return d
 }
 
-export async function borrarPago(pagoId: string, monto: number) {
+export async function borrarPago(pago: Pago, alDeshacer?: (d: Detalle) => void) {
   if (!(await hayRed())) return null
-  const d = await hacer(() => rpc<Detalle>('hosp_borrar_pago', { p_id: pagoId }), 'No se pudo quitar el pago')
-  if (d) toast.success(`Se quitó el pago de ${mxn(monto)}`)
+  const d = await hacer(() => rpc<Detalle>('hosp_borrar_pago', { p_id: pago.id }), 'No se pudo quitar el pago')
+  // Un clic de más no debe perder un pago: «Deshacer» lo vuelve a poner igual (mismo id, monto, método, fecha y referencia)
+  if (d) {
+    const volver = { id: pago.id, reservacion_id: pago.reservacion_id, monto: pago.monto, metodo: pago.metodo, fecha: pago.fecha, referencia: pago.referencia }
+    toast.undo(`Se quitó el pago de ${mxn(pago.monto)}`, () => void hacer(() => rpc<Detalle>('hosp_registrar_pago', { p: volver }), 'No se pudo volver a poner el pago').then((x) => x && alDeshacer?.(x)), undefined, true)
+  }
   return d
 }
 

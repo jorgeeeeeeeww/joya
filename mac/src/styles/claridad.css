@@ -28,10 +28,14 @@
   background: var(--surface);
   box-shadow: var(--shadow-1);
 }
-:root[data-app-design='reservations'] :is(.app-shell,[role='dialog']) :is(button,a,input,select,textarea):focus-visible {
+:root[data-app-design='reservations'] :is(.app-shell,[role='dialog']) :is(button,a,select,input[type='checkbox'],input[type='radio']):focus-visible {
   outline: 3px solid var(--selection-ring);
   outline-offset: 3px;
 }
+/* Al escribir no se dibuja un marco encima del texto (tapaba la etiqueta del campo): la caja del campo ya
+   cambia de color sola. Los campos sueltos, sin caja, solo cambian el color de su borde. */
+:root[data-app-design='reservations'] :is(.app-shell,[role='dialog']) :is(input:not([type='checkbox']):not([type='radio']):not([type='range']),textarea):focus-visible { outline: none; box-shadow: none; }
+:root[data-app-design='reservations'] :is(.app-shell,[role='dialog']) :is(input,textarea):not(.fx-input):not(.campo-libre):focus { border-color: var(--selection-ring); }
 :root[data-app-design='reservations'] :is(.app-shell,[role='dialog']) :is(label:focus-within,.fx-field:focus-within) { border-color: var(--selection-ring); }
 :root[data-app-design='reservations'] :is(.app-shell,[role='dialog']) :is(.reception-panel-heading,.reception-metric > header) { background:var(--wash); padding-block:17px; }
 :root[data-app-design='reservations'] :is(.app-shell,[role='dialog']) :is(.reception-panel-heading h2,.reception-metric > header h2,.reception-rail-heading h2) { font-size:17px; font-weight:700; }

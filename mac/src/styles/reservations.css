@@ -142,11 +142,9 @@
 }
 .app-shell:not([data-vista='mapa']) button.bg-ink:hover { background-color: var(--primary-hover); }
 
+/* Sin marco al escribir en campos de texto: su caja ya se ilumina (ver claridad.css) */
 .app-shell:not([data-vista='mapa']) button:focus-visible,
 .app-login button:focus-visible,
-.app-login input:focus-visible,
-.app-shell:not([data-vista='mapa']) input:focus-visible,
-.app-shell:not([data-vista='mapa']) textarea:focus-visible,
 .app-shell:not([data-vista='mapa']) select:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--primary) 28%, transparent);
   outline-offset: 2px;
