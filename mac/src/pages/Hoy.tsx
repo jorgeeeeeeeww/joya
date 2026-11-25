@@ -7,7 +7,9 @@ import { mxn } from '@/lib/dinero'
 import { nombreDe } from '@/lib/ocupacion'
 import { casasDe } from '@/lib/casas'
 import { cambiarEstado } from '@/lib/acciones'
-import type { Datos, Reservacion } from '@/lib/tipos'
+import type { Bloqueo, Datos, Reservacion } from '@/lib/tipos'
+import { esApartado, notaDe } from '@/lib/apartados'
+import { HojaApartado } from '@/components/HojaApartado'
 import { AnimatedNumber } from '@/components/AnimatedNumber'
 import { Button, cx } from '@/components/ui'
 import { ListoParaAbrir } from '@/components/Listo'
@@ -16,6 +18,8 @@ import { avisarPorWhatsApp, useMenuReservacion } from '@/components/menuReservac
 const abrirReservas = () => { useApp.getState().setFiltro('proximas'); useApp.getState().ir('reservaciones') }
 const iniciales = (nombre: string) => nombre.trim().split(/\s+/).slice(0,2).map(s => s[0]).join('')
 const confirmada = (r: Reservacion) => activa(r) && r.estado !== 'solicitud'
+/** Noches que apartó el dueño (sin reservación): también llegan y se van */
+const apartadosDe = (d: Datos) => d.bloqueos.filter(esApartado)
 
 export default function Hoy() {
   const d = useApp(s => s.datos)!
@@ -23,6 +27,7 @@ export default function Hoy() {
   const [agendaVista,setAgendaVista] = useState<'llegadas'|'salidas'>('llegadas')
   const [, tick] = useState(0)
   const { menu, abrirMenu } = useMenuReservacion()
+  const [apartado, setApartado] = useState<Bloqueo | null>(null)
   useEffect(() => { const t = setInterval(() => tick(n => n + 1), 60_000); return () => clearInterval(t) }, [])
   const casas = casasDe(d,d.hoy)
   const ocupadas = casas.filter(c => c.estado === 'reservada').length
@@ -52,11 +57,12 @@ export default function Hoy() {
 
     </div>
     <aside className="reception-rail">
-      <Agenda d={d} fecha={agendaFecha} setFecha={setAgendaFecha} vista={agendaVista} setVista={setAgendaVista} />
+      <Agenda d={d} fecha={agendaFecha} setFecha={setAgendaFecha} vista={agendaVista} setVista={setAgendaVista} onApartado={setApartado} />
       <section className="reception-rail-section"><div className="reception-rail-heading"><h2>Disponibilidad de hoy</h2><BedDouble size={17} /></div><div className="reception-availability">{([{tipo:'cabana',nombre:'Cabañas'},{tipo:'casa',nombre:'Casas'},{tipo:'habitacion',nombre:'Habitaciones'}] as const).map(t => { const c = casas.filter(c => c.tipo === t.tipo); const libres = c.filter(c => c.estado === 'libre').length; return <button key={t.tipo} className={libres === 0 ? 'is-full' : ''} onClick={() => useApp.getState().ir('mapa')}><span>{t.nombre}<small>{plural(c.length, 'hospedaje', 'hospedajes')}</small></span><b><AnimatedNumber value={libres} /><small>{libres === 1 ? ' libre' : ' libres'}</small></b></button> })}</div><div className="flex flex-col items-start gap-1"><button className="reception-text-link" onClick={() => useApp.getState().ir('mapa')}>Explorar el mapa <ArrowUpRight size={14} /></button><button className="reception-text-link" onClick={() => useApp.getState().crear({tipo:'cierre',llegada:d.hoy,salida:masDias(d.hoy,1)})}><LockKeyhole size={14} /> Cerrar fechas</button></div></section>
       <div className="reception-rail-note"><Globe2 size={18} /><div><strong>{d.ajustes.reservas_web ? 'La página recibe solicitudes' : 'Reservas web en pausa'}</strong><button onClick={() => useApp.getState().ir('ajustes')}>Revisar configuración <ArrowRight size={13} /></button></div></div>
     </aside>
     {menu}
+    <HojaApartado apartado={apartado} onCerrar={() => setApartado(null)} />
   </div>
 }
 
@@ -77,9 +83,10 @@ function Solicitud({r,d,onMenu}:{r:Reservacion;d:Datos;onMenu:(e:React.MouseEven
 
 function Movimientos({ d, onElegir }: { d: Datos; onElegir: (fecha: string, vista: 'llegadas' | 'salidas') => void }) {
   const reservas = d.reservaciones.filter(confirmada)
+  const apartados = apartadosDe(d)
   const dias = Array.from({ length: 7 }, (_, i) => {
     const fecha = masDias(d.hoy, i)
-    return { fecha, llegadas: reservas.filter((r) => r.llegada === fecha).length, salidas: reservas.filter((r) => r.salida === fecha).length }
+    return { fecha, llegadas: reservas.filter((r) => r.llegada === fecha).length + apartados.filter((b) => b.inicio === fecha).length, salidas: reservas.filter((r) => r.salida === fecha).length + apartados.filter((b) => b.fin === fecha).length }
   })
   const maximo = Math.max(1, ...dias.flatMap((d) => [d.llegadas, d.salidas]))
   const llegadas = dias.reduce((n, d) => n + d.llegadas, 0)
@@ -87,7 +94,7 @@ function Movimientos({ d, onElegir }: { d: Datos; onElegir: (fecha: string, vist
   return <section className="reception-panel reception-movements">
     <PanelHeader title="Llegadas y salidas" icon={<CalendarDays size={18} />} extra={<span className="reception-count">Próximos 7 días</span>} />
     <div className="movement-summary"><span><ArrowDownLeft size={18} /><strong>{llegadas}</strong> llegadas</span><span><ArrowUpRight size={18} /><strong>{salidas}</strong> salidas</span></div>
-    <p className="movement-explanation">Cada barra cuenta reservaciones confirmadas. Elige una para ver la agenda de ese día.</p>
+    <p className="movement-explanation">Cada barra cuenta reservaciones confirmadas y fechas apartadas por el dueño. Elige una para ver la agenda de ese día.</p>
     <div className="movement-chart" aria-label="Llegadas y salidas confirmadas de los próximos siete días">
       <div className="movement-chart-labels"><span>Día</span><span>Llegadas</span><span>Salidas</span></div>
       {dias.map((dia, i) => <div className="movement-row" key={dia.fecha}><span className="movement-day"><strong>{i === 0 ? 'Hoy' : diaCorto(dia.fecha)}</strong><small>{corta(dia.fecha)}</small></span>{(['llegadas', 'salidas'] as const).map((tipo) => <button type="button" key={tipo} className={`movement-bar is-${tipo}`} aria-label={`${larga(dia.fecha)}: ${dia[tipo]} ${tipo}. Ver agenda.`} onClick={() => onElegir(dia.fecha, tipo)}><span className="movement-bar-track" aria-hidden="true"><i style={{ width: `${dia[tipo] / maximo * 100}%` }} /></span><strong>{dia[tipo]}</strong></button>)}</div>)}
@@ -96,10 +103,13 @@ function Movimientos({ d, onElegir }: { d: Datos; onElegir: (fecha: string, vist
   </section>
 }
 
-function Agenda({d,fecha,setFecha,vista,setVista}:{d:Datos;fecha:string;setFecha:(s:string)=>void;vista:'llegadas'|'salidas';setVista:(s:'llegadas'|'salidas')=>void}) {
+function Agenda({d,fecha,setFecha,vista,setVista,onApartado}:{d:Datos;fecha:string;setFecha:(s:string)=>void;vista:'llegadas'|'salidas';setVista:(s:'llegadas'|'salidas')=>void;onApartado:(b:Bloqueo)=>void}) {
   const lista=d.reservaciones.filter(r=>confirmada(r) && (vista==='llegadas'?r.llegada:r.salida)===fecha).sort((a,b)=>(a.hora_llegada||'').localeCompare(b.hora_llegada||''))
-  return <section id="reception-agenda" className="reception-rail-section reception-agenda"><div className="reception-rail-heading"><h2>Agenda de recepción</h2><CalendarDays size={17} /></div><p className="reception-caption first-letter:uppercase">{larga(fecha)}</p><div className="reception-agenda-date"><button aria-label="Día anterior" onClick={()=>setFecha(masDias(fecha,-1))}><ChevronLeft size={15}/></button><button className="reception-date-today" onClick={()=>setFecha(d.hoy)}>{fecha===d.hoy?'Hoy':corta(fecha)}<span>{diaCorto(fecha)}</span></button><button aria-label="Día siguiente" onClick={()=>setFecha(masDias(fecha,1))}><ChevronRight size={15}/></button></div><div className="reception-agenda-tabs" aria-label="Movimientos del día">{(['llegadas','salidas'] as const).map(v=><button key={v} aria-pressed={vista===v} onClick={()=>setVista(v)}>{v==='llegadas'?'Llegadas':'Salidas'}<span>{d.reservaciones.filter(r=>confirmada(r)&&(v==='llegadas'?r.llegada:r.salida)===fecha).length}</span></button>)}</div>
-    <div className="reception-agenda-list">{lista.length ? lista.map(r=><article key={r.id}><div className="reception-agenda-time"><i/>{vista==='llegadas'?r.hora_llegada||d.ajustes.hora_llegada||'Por definir':d.ajustes.hora_salida||'Por definir'}</div><button className="reception-agenda-guest" onClick={()=>useApp.getState().abrir(r.id)}><strong>{r.nombre}</strong><span>{nombreDe(d,r.cabana_id)}</span><small><Users size={12}/>{plural(r.huespedes, 'persona', 'personas')} · {plural(noches(r.llegada,r.salida), 'noche', 'noches')}</small></button><div className="reception-agenda-card-footer"><EstadoReserva r={r}/>{r.telefono && <button title={`WhatsApp de ${r.nombre}`} aria-label={`Abrir WhatsApp de ${r.nombre}`} onClick={()=>void avisarPorWhatsApp(r.id)}><MessageCircle size={15}/></button>}</div></article>) : <Empty icon={<CalendarDays size={22}/>} title={`Sin ${vista}`} text="No hay movimientos programados para este día." />}</div>
+  const apartados=apartadosDe(d)
+  const delDueno=apartados.filter(b=>(vista==='llegadas'?b.inicio:b.fin)===fecha)
+  const cuenta=(v:'llegadas'|'salidas')=>d.reservaciones.filter(r=>confirmada(r)&&(v==='llegadas'?r.llegada:r.salida)===fecha).length+apartados.filter(b=>(v==='llegadas'?b.inicio:b.fin)===fecha).length
+  return <section id="reception-agenda" className="reception-rail-section reception-agenda"><div className="reception-rail-heading"><h2>Agenda de recepción</h2><CalendarDays size={17} /></div><p className="reception-caption first-letter:uppercase">{larga(fecha)}</p><div className="reception-agenda-date"><button aria-label="Día anterior" onClick={()=>setFecha(masDias(fecha,-1))}><ChevronLeft size={15}/></button><button className="reception-date-today" onClick={()=>setFecha(d.hoy)}>{fecha===d.hoy?'Hoy':corta(fecha)}<span>{diaCorto(fecha)}</span></button><button aria-label="Día siguiente" onClick={()=>setFecha(masDias(fecha,1))}><ChevronRight size={15}/></button></div><div className="reception-agenda-tabs" aria-label="Movimientos del día">{(['llegadas','salidas'] as const).map(v=><button key={v} aria-pressed={vista===v} onClick={()=>setVista(v)}>{v==='llegadas'?'Llegadas':'Salidas'}<span>{cuenta(v)}</span></button>)}</div>
+    <div className="reception-agenda-list">{lista.length || delDueno.length ? <>{lista.map(r=><article key={r.id}><div className="reception-agenda-time"><i/>{vista==='llegadas'?r.hora_llegada||d.ajustes.hora_llegada||'Por definir':d.ajustes.hora_salida||'Por definir'}</div><button className="reception-agenda-guest" onClick={()=>useApp.getState().abrir(r.id)}><strong>{r.nombre}</strong><span>{nombreDe(d,r.cabana_id)}</span><small><Users size={12}/>{plural(r.huespedes, 'persona', 'personas')} · {plural(noches(r.llegada,r.salida), 'noche', 'noches')}</small></button><div className="reception-agenda-card-footer"><EstadoReserva r={r}/>{r.telefono && <button title={`WhatsApp de ${r.nombre}`} aria-label={`Abrir WhatsApp de ${r.nombre}`} onClick={()=>void avisarPorWhatsApp(r.id)}><MessageCircle size={15}/></button>}</div></article>)}{delDueno.map(b=><article key={b.id}><div className="reception-agenda-time"><i/>{vista==='llegadas'?d.ajustes.hora_llegada||'Por definir':d.ajustes.hora_salida||'Por definir'}</div><button className="reception-agenda-guest" onClick={()=>onApartado(b)}><strong>{notaDe(b) ?? 'Apartado por el dueño'}</strong><span>{nombreDe(d,b.cabana_id)}</span><small>{plural(noches(b.inicio,b.fin), 'noche', 'noches')} · sin reservación</small></button><div className="reception-agenda-card-footer"><span className="reception-status owner"><i />Apartado</span></div></article>)}</> : <Empty icon={<CalendarDays size={22}/>} title={`Sin ${vista}`} text="No hay movimientos programados para este día." />}</div>
     <button className="reception-text-link" onClick={()=>useApp.getState().ir('calendario')}>Ver calendario completo<ArrowRight size={14}/></button>
   </section>
 }

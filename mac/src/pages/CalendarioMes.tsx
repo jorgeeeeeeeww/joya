@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDownLeft, ArrowUpRight, ChevronLeft, ChevronRight, Lock, Plus, Users } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, CalendarCheck, ChevronLeft, ChevronRight, Lock, Plus, Users } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { activa } from '@/lib/estados'
 import { dia, diaSemana, inicioDeMes, larga, masDias, mesLargo, noches, plural, rango } from '@/lib/fechas'
@@ -9,6 +9,12 @@ import { Button, cx } from '@/components/ui'
 import { AnimatedNumber } from '@/components/AnimatedNumber'
 import { EstadoReserva, estadoReserva, LeyendaHospedajes, tonoHospedaje } from '@/components/CalendarioEtiquetas'
 import CalendarioLinea from './CalendarioLinea'
+import { HojaApartado } from '@/components/HojaApartado'
+import { esApartado, notaDe } from '@/lib/apartados'
+import type { Bloqueo, Reservacion } from '@/lib/tipos'
+
+/** Una barra del calendario: una reservación o unas noches que apartó el dueño */
+type Estancia = { id: string; cabana_id: string; llegada: string; salida: string } & ({ r: Reservacion; b?: undefined } | { b: Bloqueo; r?: undefined })
 
 /** Carriles de barras que caben en cada semana; lo demás se anuncia como «+N más» */
 const CARRILES = 3
@@ -27,6 +33,7 @@ export default function CalendarioMes() {
   const [mes, setMes] = useState(inicioDeMes(d.hoy))
   const [fecha, setFecha] = useState(d.hoy)
   const [unidad, setUnidad] = useState('todas')
+  const [apartado, setApartado] = useState<Bloqueo | null>(null)
   const detalle = useRef<HTMLElement>(null)
   const verDia = (iso: string) => { setFecha(iso); detalle.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }
   useEffect(() => { if (irAHoy) { setMes(inicioDeMes(d.hoy)); setFecha(d.hoy) } }, [irAHoy, d.hoy])
@@ -39,9 +46,16 @@ export default function CalendarioMes() {
   const total = Math.ceil((((diaSemana(mes) + 6) % 7) + dia(masDias(otroMes(mes, 1), -1))) / 7) * 7
   const dias = Array.from({ length: total }, (_, i) => masDias(inicio, i))
   const semanas = Array.from({ length: total / 7 }, (_, s) => dias.slice(s * 7, s * 7 + 7))
+  const apartados = d.bloqueos.filter((b) => esApartado(b) && ids.has(b.cabana_id))
+  // Las barras: cada reservación y cada apartado del dueño cruzan sus noches igual
+  const todas: Estancia[] = [
+    ...reservas.map((r) => ({ id: r.id, cabana_id: r.cabana_id, llegada: r.llegada, salida: r.salida, r })),
+    ...apartados.map((b) => ({ id: b.id, cabana_id: b.cabana_id, llegada: b.inicio, salida: b.fin, b })),
+  ]
   const estancias = reservas.filter((r) => r.llegada <= fecha && r.salida > fecha)
-  const llegadas = reservas.filter((r) => r.llegada === fecha)
-  const salidas = reservas.filter((r) => r.salida === fecha)
+  const apartadosNoche = apartados.filter((b) => b.inicio <= fecha && b.fin > fecha)
+  const llegadas = todas.filter((e) => e.llegada === fecha)
+  const salidas = todas.filter((e) => e.salida === fecha)
   const libres = cabanas.filter((c) => nocheDe(d, c.id, fecha).tipo === 'libre')
   const cerradas = cabanas.filter((c) => nocheDe(d, c.id, fecha).tipo === 'cerrada')
 
@@ -75,21 +89,21 @@ export default function CalendarioMes() {
             const ini = semana[0]!
             const fin = masDias(ini, 7)
             const carriles: number[] = []
-            const barras = reservas.filter((r) => r.llegada < fin && r.salida > ini).sort((a, b) => a.llegada.localeCompare(b.llegada) || b.salida.localeCompare(a.salida)).map((r) => {
+            const barras = todas.filter((r) => r.llegada < fin && r.salida > ini).sort((a, b) => a.llegada.localeCompare(b.llegada) || b.salida.localeCompare(a.salida)).map((r) => {
               const c0 = Math.max(0, diasEntre(ini, r.llegada))
               const c1 = Math.min(7, diasEntre(ini, r.salida))
               let carril = carriles.findIndex((hasta) => hasta <= c0)
               if (carril < 0) carril = carriles.push(0) - 1
               carriles[carril] = c1
-              return { r, c0, c1, carril }
+              return { e: r, c0, c1, carril }
             })
             return <div key={ini} className="cal-semana" style={{ gridTemplateRows: `40px repeat(${Math.max(1, Math.min(CARRILES, carriles.length))}, 31px) minmax(26px, auto)` }}>
               {semana.map((iso, i) => {
                 const eventos = barras.filter((b) => b.c0 <= i && b.c1 > i)
-                const bloqueadas = d.bloqueos.filter((b) => ids.has(b.cabana_id) && b.inicio <= iso && b.fin > iso)
+                const bloqueadas = d.bloqueos.filter((b) => !esApartado(b) && ids.has(b.cabana_id) && b.inicio <= iso && b.fin > iso)
                 const ocultas = eventos.filter((b) => b.carril >= CARRILES).length
                 return <div key={iso} data-fecha={iso} style={{ gridColumn: i + 1 }} onClick={() => setFecha(iso)} className={cx('app-month-day cal-dia', iso.slice(0, 7) !== mes.slice(0, 7) && 'bg-wash', fecha === iso && 'is-selected')}>
-                  <button type="button" aria-label={`${larga(iso)}, ${eventos.length} reservaciones, ${bloqueadas.length} cierres`} aria-pressed={fecha === iso} onClick={() => setFecha(iso)} className="flex w-full items-center justify-between gap-1 text-left">
+                  <button type="button" aria-label={`${larga(iso)}, ${eventos.length} ocupados, ${bloqueadas.length} cierres`} aria-pressed={fecha === iso} onClick={() => setFecha(iso)} className="flex w-full items-center justify-between gap-1 text-left">
                     <span className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold', iso === d.hoy ? 'bg-primary text-on-primary' : 'text-ink')}>{dia(iso)}</span>
                     <span className="text-[11px] text-ink-soft" title="Hospedajes no disponibles / total">{eventos.length + bloqueadas.length}/{cabanas.length}</span>
                   </button>
@@ -99,8 +113,19 @@ export default function CalendarioMes() {
                   </div>}
                 </div>
               })}
-              {barras.filter((b) => b.carril < CARRILES).map(({ r, c0, c1, carril }) => {
-                const c = porId.get(r.cabana_id)
+              {barras.filter((b) => b.carril < CARRILES).map(({ e, c0, c1, carril }) => {
+                const c = porId.get(e.cabana_id)
+                if (e.b) {
+                  const nota = notaDe(e.b)
+                  const titulo = `Apartado por el dueño${nota ? ` · ${nota}` : ''} · ${c?.nombre ?? 'Hospedaje'} · ${rango(e.llegada, e.salida)}`
+                  return <button type="button" key={e.id} onClick={() => setApartado(e.b!)} title={titulo} aria-label={titulo} style={{ gridColumn: `${c0 + 1} / ${c1 + 1}`, gridRow: carril + 2 }} className={cx('app-calendar-booking cal-barra es-apartado', e.llegada >= ini && 'empieza', e.salida <= fin && 'termina')}>
+                    {e.llegada >= ini && <ArrowDownLeft size={12} className="shrink-0" aria-label="Llegada" />}
+                    <span className="cal-barra-nombre">{nota ?? 'Apartado'}</span>
+                    {c1 - c0 > 1 && <span className="cal-barra-lugar">{c?.nombre ?? 'Hospedaje'}</span>}
+                    <CalendarCheck size={13} strokeWidth={1.8} className="ml-auto shrink-0" aria-label="Apartado por el dueño" />
+                  </button>
+                }
+                const r = e.r!
                 const titulo = `${r.nombre} · ${c?.nombre ?? 'Hospedaje'} · ${c ? TIPO[c.tipo].uno : ''} · ${estadoReserva(r.estado)} · ${rango(r.llegada, r.salida)} · ${plural(r.huespedes, 'persona', 'personas')}`
                 return <button type="button" key={r.id} onClick={() => useApp.getState().abrir(r.id)} title={titulo} aria-label={titulo} style={{ ...tonoHospedaje(c?.tipo), gridColumn: `${c0 + 1} / ${c1 + 1}`, gridRow: carril + 2 }} className={cx('app-calendar-booking cal-barra', r.llegada >= ini && 'empieza', r.salida <= fin && 'termina')}>
                   {r.llegada >= ini && <ArrowDownLeft size={12} className="shrink-0" aria-label="Llegada" />}
@@ -113,6 +138,7 @@ export default function CalendarioMes() {
           })}</div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-4 text-[12px] text-ink-soft" aria-label="Estados de reservación">
             <EstadoReserva estado="confirmada" /><EstadoReserva estado="pagada" /><EstadoReserva estado="solicitud" />
+            <span className="inline-flex items-center gap-1 font-medium text-[var(--violet-ink)]"><CalendarCheck size={13} />Apartado por el dueño</span>
             <span className="inline-flex items-center gap-1"><ArrowDownLeft size={12} />Llegada</span><span>No disponibles / total</span>
             <button type="button" onClick={() => verDia(fecha)} className="ml-auto font-semibold text-key underline underline-offset-4">Ver detalle del día →</button>
           </div>
@@ -130,8 +156,16 @@ export default function CalendarioMes() {
               <span className="mt-2 block text-[12px]">{rango(r.llegada, r.salida)} · {plural(noches(r.llegada, r.salida), 'noche', 'noches')}</span>
               <span className="mt-2 block text-[14px] font-semibold">{mxn(r.total)} <span className="text-[11px] font-normal">total</span></span>
             </button>
-          })}{!estancias.length && <p className="text-[13px] text-ink-soft">Sin reservaciones esta noche.</p>}</div>
-          {salidas.length > 0 && <div className="mt-5"><h3 className="mb-2 text-[15px] font-semibold text-ink">Salen este día</h3>{salidas.map((r) => <button key={r.id} onClick={() => useApp.getState().abrir(r.id)} className="flex w-full min-w-0 items-start gap-2 border-b border-line py-2.5 text-left"><ArrowUpRight size={14} className="mt-0.5 shrink-0 text-ink-soft" /><span className="min-w-0"><span className="block break-words text-[14px] font-medium text-ink">{r.nombre}</span><span className="block break-words text-[12px] text-ink-soft">{porId.get(r.cabana_id)?.nombre ?? 'Hospedaje'}</span></span></button>)}</div>}
+          })}{apartadosNoche.map((b) => {
+            const c = porId.get(b.cabana_id)
+            return <button key={b.id} onClick={() => setApartado(b)} className="app-calendar-booking es-apartado w-full min-w-0 rounded-lg border border-l-[4px] p-3.5 text-left">
+              <span className="block break-words text-[15px] font-semibold">{notaDe(b) ?? 'Apartado'}</span>
+              <span className="mt-1 block break-words text-[13px] font-medium">{c?.nombre ?? 'Hospedaje'}{c ? ` · ${TIPO[c.tipo].uno}` : ''}</span>
+              <span className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium"><CalendarCheck size={13} />Apartado por el dueño · sin reservación</span>
+              <span className="mt-2 block text-[12px]">{rango(b.inicio, b.fin)} · {plural(noches(b.inicio, b.fin), 'noche', 'noches')}</span>
+            </button>
+          })}{!estancias.length && !apartadosNoche.length && <p className="text-[13px] text-ink-soft">Sin reservaciones esta noche.</p>}</div>
+          {salidas.length > 0 && <div className="mt-5"><h3 className="mb-2 text-[15px] font-semibold text-ink">Salen este día</h3>{salidas.map((e) => <button key={e.id} onClick={() => (e.b ? setApartado(e.b) : useApp.getState().abrir(e.id))} className="flex w-full min-w-0 items-start gap-2 border-b border-line py-2.5 text-left"><ArrowUpRight size={14} className="mt-0.5 shrink-0 text-ink-soft" /><span className="min-w-0"><span className="block break-words text-[14px] font-medium text-ink">{e.r ? e.r.nombre : `Apartado${notaDe(e.b) ? ` · ${notaDe(e.b)}` : ''}`}</span><span className="block break-words text-[12px] text-ink-soft">{porId.get(e.cabana_id)?.nombre ?? 'Hospedaje'}</span></span></button>)}</div>}
           {cerradas.length > 0 && <div className="mt-5"><h3 className="mb-2 text-[15px] font-semibold text-ink">Fechas cerradas</h3>{cerradas.map((c) => { const n = nocheDe(d, c.id, fecha); return <p key={c.id} className="mb-2 text-[12px] text-ink-soft"><Lock size={12} className="mr-1 inline" />{c.nombre}{n.tipo === 'cerrada' && n.b.motivo ? ` · ${n.b.motivo}` : ''}</p> })}</div>}
           <div className="mt-6 space-y-2">
             {fecha >= d.hoy && libres.length > 0 && <Button className="w-full" icon={<Plus size={14} />} onClick={() => useApp.getState().crear({ tipo: 'reservacion', llegada: fecha, salida: masDias(fecha, 1), ...(unidad !== 'todas' ? { cabana_id: unidad } : {}) })}>Reservar este día</Button>}
@@ -141,6 +175,7 @@ export default function CalendarioMes() {
         </aside>
       </div>
       {!d.cabanas.length && <p className="mt-5 text-[14px] text-ink-soft">Agrega un hospedaje para comenzar a organizar tus fechas.</p>}
+      <HojaApartado apartado={apartado} onCerrar={() => setApartado(null)} />
     </>}
   </div>
 }

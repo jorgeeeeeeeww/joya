@@ -22,6 +22,8 @@ export interface CasaEscena {
   linea: string
   /** Alguien llega ese día */
   llega?: boolean
+  /** Ocupada porque el dueño apartó esas noches (sin reservación) */
+  dueno?: boolean
 }
 
 // Plano → pantalla: u = z (de norte a sur, de izquierda a derecha) y v = −x (el oeste abajo)

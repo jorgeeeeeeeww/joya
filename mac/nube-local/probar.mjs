@@ -232,7 +232,38 @@ console.log('\n4. Reservación por teléfono, cancelación y apartados que vence
   revisar(r2?.estado === 'cancelada' && r2?.motivo_cancelacion === 'vencida', 'Una solicitud vencida se cancela sola y libera las fechas', r2)
 }
 
-console.log('\n5. Tiempo real')
+console.log('\n5. El dueño aparta fechas en «Apartar fechas» (sin reservación)')
+{
+  // Así lo guarda la app (src/lib/apartados.ts): un cierre con motivo «Apartado: nota»
+  const ini = masDias(domingo, 50)
+  const fin = masDias(ini, 2)
+  await espera(800)
+  const { data: antes } = await dueno.rpc('hosp_datos')
+  const correosAntes = (await fetch(`${URL_NUBE}/__correos`).then((x) => x.json())).length
+  const ap = await dueno.rpc('hosp_guardar_bloqueo', { p: { cabana_id: cabana.id, inicio: ini, fin, motivo: 'Apartado: Familia Ramírez' } })
+  revisar(!ap.error && ap.data?.motivo === 'Apartado: Familia Ramírez', 'El dueño aparta dos noches anotando de quién son', ap.error?.message ?? ap.data)
+  const { data: disp } = await web.rpc('disponibilidad', { p_desde: ini, p_hasta: masDias(fin, 3) })
+  const ocup = disp?.find((d) => d.cabana === 'cabana-prueba')?.ocupado
+  revisar(ocup?.length === 1 && ocup[0].desde === ini && ocup[0].hasta === fin && !JSON.stringify(disp).includes('Ramírez'), 'La web ve esas noches ocupadas, sin el nombre', disp)
+  const encima = await reservar({ ...huesped, telefono: '3312121212', llegada: ini, salida: fin })
+  revisar(encima.motivo === 'no_disponible', 'Nadie puede reservar esas noches en la web', encima)
+  const salidaLibre = await web.rpc('cotizar', { p_cabana: 'cabana-prueba', p_llegada: fin, p_salida: masDias(fin, 1), p_huespedes: 2 })
+  revisar(salidaLibre.data?.ok, 'El día que se van queda libre para otra llegada', salidaLibre.data)
+  const { data: despues } = await dueno.rpc('hosp_datos')
+  revisar(despues.reservaciones.length === antes.reservaciones.length && despues.bloqueos.some((b) => b.id === ap.data?.id) && despues.avisos_sin_enviar === antes.avisos_sin_enviar, 'No se crea reservación (ni código ni pagos) ni avisos pendientes', [antes.reservaciones.length, despues.reservaciones.length, antes.avisos_sin_enviar, despues.avisos_sin_enviar])
+  await espera(800)
+  const correosDespues = await fetch(`${URL_NUBE}/__correos`).then((x) => x.json())
+  revisar(correosDespues.length === correosAntes, 'No sale ningún correo ni aviso al celular', correosDespues.slice(correosAntes).map((c) => `${c.para ?? c.canal}: ${c.asunto ?? c.cuerpo}`))
+  const encimado = await dueno.rpc('hosp_guardar_bloqueo', { p: { cabana_id: cabana.id, inicio: masDias(ini, 1), fin: masDias(fin, 1), motivo: 'Apartado' } })
+  revisar(!!encimado.error, 'No deja apartar encima de otro apartado', encimado.data)
+  const tel = await dueno.rpc('hosp_crear_reservacion', { p: { cabana_id: cabana.id, llegada: ini, salida: fin, huespedes: 2, nombre: 'Encima del apartado', origen: 'telefono' } })
+  revisar(!!tel.error, 'Recepción tampoco puede capturar una reservación encima', tel.data)
+  const quitar = await dueno.rpc('hosp_borrar_bloqueo', { p_id: ap.data?.id })
+  const { data: disp2 } = await web.rpc('disponibilidad', { p_desde: ini, p_hasta: masDias(fin, 3) })
+  revisar(!quitar.error && !disp2?.find((d) => d.cabana === 'cabana-prueba')?.ocupado?.length, 'Al quitar el apartado la web vuelve a ofrecer esas noches', quitar.error?.message ?? disp2)
+}
+
+console.log('\n6. Tiempo real')
 {
   let llegó = false
   const canal = dueno.channel('hospedaje', { config: { private: true } }).on('broadcast', { event: 'cambio' }, () => (llegó = true))

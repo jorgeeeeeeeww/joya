@@ -242,7 +242,7 @@
 .availability-instructions { display:flex; flex-wrap:wrap; gap:10px 20px; margin:18px 0 12px; font-size:12px; color:var(--ink-soft); }
 .availability-instructions > span { display:flex; align-items:center; gap:7px; }
 .availability-instructions i { width:11px; height:11px; border-radius:3px; }
-.availability-instructions [data-tipo='libre'] { background:#b6dbc4; }.availability-instructions [data-tipo='reservada'] { background:#9dbbe3; }.availability-instructions [data-tipo='apartada'] { background:#e4c182; }.availability-instructions [data-tipo='cerrada'] { background:#c6cbd0; }
+.availability-instructions [data-tipo='libre'] { background:#b6dbc4; }.availability-instructions [data-tipo='reservada'] { background:#9dbbe3; }.availability-instructions [data-tipo='apartada'] { background:#e4c182; }.availability-instructions [data-tipo='cerrada'] { background:#c6cbd0; }.availability-instructions [data-tipo='dueno'] { background:#cdbde6; }
 .availability-table-scroll { max-height:min(640px,65vh); overflow:auto; border:1px solid var(--line); border-radius:12px; background:var(--surface); scrollbar-color:var(--line-strong) transparent; }
 .availability-table { width:100%; min-width:720px; table-layout:fixed; border-collapse:separate; border-spacing:0; text-align:left; }
 .availability-table th,.availability-table td { border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
@@ -259,7 +259,7 @@
 .availability-table td > button { display:flex; min-height:66px; width:100%; min-width:0; flex-direction:column; justify-content:center; gap:5px; padding:8px 6px; border:1px solid transparent; border-radius:7px; text-align:center; transition:filter .15s,box-shadow .15s; }
 .availability-table td > button strong { font-size:12px; font-weight:650; }
 .availability-table td > button span { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
-.availability-table td > button[data-tipo='libre'] { background:#f0f8f2; color:#326448; border-color:#d4e7da; }.availability-table td > button[data-tipo='reservada'] { background:#e7effc; color:#305d95; border-color:#c8d9f0; }.availability-table td > button[data-tipo='apartada'] { background:#fff4dd; color:#80511c; border-color:#ead3a5; }.availability-table td > button[data-tipo='cerrada'] { background:#f0f1f3; color:#5c6470; border-color:#d9dde3; }
+.availability-table td > button[data-tipo='libre'] { background:#f0f8f2; color:#326448; border-color:#d4e7da; }.availability-table td > button[data-tipo='reservada'] { background:#e7effc; color:#305d95; border-color:#c8d9f0; }.availability-table td > button[data-tipo='apartada'] { background:#fff4dd; color:#80511c; border-color:#ead3a5; }.availability-table td > button[data-tipo='cerrada'] { background:#f0f1f3; color:#5c6470; border-color:#d9dde3; } .availability-table td > button[data-tipo='dueno'] { background:#f4f0fb; color:#5e4589; border-color:#dccff0; }
 .availability-table td > button:hover:not(:disabled) { filter:brightness(.96); box-shadow:0 2px 6px #233e6115; }.availability-table td > button:disabled { opacity:.55; cursor:default; }
 .availability-table button:focus-visible,.availability-controls :is(input,select):focus-visible { outline:2px solid #6487b8; outline-offset:2px; }
 .availability-note { margin:14px 0 0; }
@@ -324,3 +324,11 @@
 /* ── Barra de arriba (22 nov): sin migas; el buscador único toma el lugar y la franja arrastra la ventana ── */
 .reception-topbar .reception-search { width:340px; max-width:46%; }
 .reception-topbar .reception-search, .reception-topbar .reception-topbar-actions { -webkit-app-region:no-drag; }
+
+/* ── Fechas que apartó el dueño («Apartar fechas»): violeta en toda la app, sin reservación ── */
+.cal-barra.es-apartado { background:var(--violet-soft); color:var(--violet-ink); border-color:#b09acc; border-style:dashed; }
+.cal-barra.es-apartado.empieza { border-left-style:solid; }
+.cal-barra.es-apartado .cal-barra-nombre { color:var(--violet-ink); }
+.app-calendar-booking.es-apartado { background:var(--violet-soft); color:var(--violet-ink); border-color:#b09acc; }
+.reception-status.owner { color:var(--violet-ink); background:var(--violet-soft); border-color:#dccff0; }.reception-status.owner i { background:#8a70b5; }
+.app-shell[data-vista='mapa'] .app-map-lodging-dot.is-owner { background:#8a70b5; }

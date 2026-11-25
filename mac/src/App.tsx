@@ -75,7 +75,7 @@ export default function App() {
   )
 }
 
-const VISTAS: Vista[] = ['hoy', 'mapa', 'calendario', 'reservaciones', 'cabanas']
+const VISTAS: Vista[] = ['hoy', 'mapa', 'calendario', 'reservaciones', 'cabanas', 'apartar']
 const AVISOS_PREGUNTADO = 'la-joya-mac:avisos-preguntado'
 
 function Marco() {

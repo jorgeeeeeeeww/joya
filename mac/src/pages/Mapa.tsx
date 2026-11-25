@@ -11,6 +11,7 @@ import type { Cabana, ISODate } from '@/lib/tipos'
 import { Button, PageHeader, Sheet, cx } from '@/components/ui'
 import type { CasaEscena } from '@/components/plano'
 import { casasDe } from '@/lib/casas'
+import { esApartado, etiquetaApartado, notaDe } from '@/lib/apartados'
 import { Noches } from '@/components/Noches'
 import { CalendarioCabana } from '@/components/CalendarioCabana'
 import { AnimatedNumber } from '@/components/AnimatedNumber'
@@ -91,10 +92,10 @@ export default function Mapa() {
               <div className="app-map-lodgings-list">
                 {resultados.map((c) => (
                   <button key={c.id} type="button" aria-pressed={elegida === c.id} title={c.linea} onClick={() => elegirHospedaje(c.id)} data-estado={c.estado} data-tipo={c.tipo} className="app-map-lodging">
-                    <span className={cx('app-map-lodging-dot', c.estado === 'reservada' ? 'is-reserved' : c.estado === 'apartada' ? 'is-request' : c.estado === 'cerrada' ? 'is-closed' : 'is-free')} />
+                    <span className={cx('app-map-lodging-dot', c.dueno ? 'is-owner' : c.estado === 'reservada' ? 'is-reserved' : c.estado === 'apartada' ? 'is-request' : c.estado === 'cerrada' ? 'is-closed' : 'is-free')} />
                     <span className="app-map-lodging-copy">
                       <strong style={{ fontSize: 14 }}>{c.nombre}</strong>
-                      <small style={{ fontSize: 12 }}>{TIPO[c.tipo].uno} · {c.estado === 'reservada' ? 'Ocupada' : c.estado === 'apartada' ? 'Solicitud' : c.estado === 'cerrada' ? 'Cerrada' : 'Libre'}</small>
+                      <small style={{ fontSize: 12 }}>{TIPO[c.tipo].uno} · {c.dueno ? 'Apartada' : c.estado === 'reservada' ? 'Ocupada' : c.estado === 'apartada' ? 'Solicitud' : c.estado === 'cerrada' ? 'Cerrada' : 'Libre'}</small>
                     </span>
                     <span className="app-map-lodging-arrow" aria-hidden="true">›</span>
                   </button>
@@ -132,8 +133,11 @@ function FichaCabana({ cabana, noche, onCerrar }: { cabana: Cabana; noche: ISODa
   const d = useApp((s) => s.datos)!
   const abrir = useApp((s) => s.abrir)
   const n = nocheDe(d, cabana.id, noche)
-  const proximas = d.reservaciones
-    .filter((r) => r.cabana_id === cabana.id && activa(r) && r.salida > d.hoy)
+  // Reservaciones y noches que apartó el dueño, juntas por fecha
+  const proximas = [
+    ...d.reservaciones.filter((r) => r.cabana_id === cabana.id && activa(r) && r.salida > d.hoy).map((r) => ({ id: r.id, llegada: r.llegada, salida: r.salida, r, b: null })),
+    ...d.bloqueos.filter((b) => b.cabana_id === cabana.id && esApartado(b) && b.fin > d.hoy).map((b) => ({ id: b.id, llegada: b.inicio, salida: b.fin, r: null, b })),
+  ]
     .sort((a, b) => a.llegada.localeCompare(b.llegada))
     .slice(0, 4)
   const estado =
@@ -141,7 +145,9 @@ function FichaCabana({ cabana, noche, onCerrar }: { cabana: Cabana; noche: ISODa
       ? { t: `Ocupado · ${n.r.nombre}`, c: 'text-chispa' }
       : n.tipo === 'apartada'
         ? { t: `Solicitud de ${n.r.nombre}`, c: 'text-chispa' }
-        : n.tipo === 'cerrada'
+        : n.tipo === 'dueno'
+          ? { t: etiquetaApartado(n.b), c: 'text-[var(--violet-ink)]' }
+          : n.tipo === 'cerrada'
           ? { t: `Cerrado${n.b.motivo ? `: ${n.b.motivo.toLowerCase()}` : ''}`, c: 'text-ink-soft' }
           : { t: 'Libre', c: 'text-success' }
   return (
@@ -188,12 +194,22 @@ function FichaCabana({ cabana, noche, onCerrar }: { cabana: Cabana; noche: ISODa
       </div>
 
       <div className="mt-8">
-        <h3 className="mb-2 text-[15px] font-semibold text-ink">Próximas reservaciones</h3>
+        <h3 className="mb-2 text-[15px] font-semibold text-ink">Próximas estancias</h3>
         {proximas.length === 0 ? (
-          <p className="text-[13px] text-ink-soft">No hay reservaciones próximas.</p>
+          <p className="text-[13px] text-ink-soft">No hay estancias próximas.</p>
         ) : (
           <ul className="divide-y divide-line rounded-[var(--r-md)] ring-1 ring-line ring-inset">
-            {proximas.map((r) => (
+            {proximas.map(({ id, r, b }) => b ? (
+              <li key={id} className="flex items-center gap-3 px-4 py-3">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#8a70b5]" />
+                <span className="min-w-0 flex-1">
+                  <span className="block break-words text-[14px] font-semibold text-[var(--violet-ink)]">{notaDe(b) ?? 'Apartado'}</span>
+                  <span className="block text-[13px] text-ink-soft">
+                    {rango(b.inicio, b.fin)} · {plural(noches(b.inicio, b.fin), 'noche', 'noches')} · apartado por el dueño
+                  </span>
+                </span>
+              </li>
+            ) : r && (
               <li key={r.id}>
                 <button type="button" onClick={() => abrir(r.id)} className="pressable flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-wash">
                   <span className={cx('h-2.5 w-2.5 shrink-0 rounded-full', r.estado === 'solicitud' ? 'bg-chispa-soft' : 'bg-chispa')} />

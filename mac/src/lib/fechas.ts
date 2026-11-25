@@ -30,6 +30,11 @@ export const larga = (iso: ISODate) => `${DIA[diaSemana(iso)]} ${dia(iso)} de ${
 export function rango(a: ISODate, b: ISODate) {
   return a.slice(0, 7) === b.slice(0, 7) ? `${dia(a)} – ${corta(b)}` : `${corta(a)} – ${corta(b)}`
 }
+/** «Del viernes 12 al domingo 14 de diciembre» o, si cambia de mes, «Del miércoles 30 de diciembre al sábado 2 de enero» */
+export function delAl(a: ISODate, b: ISODate) {
+  const conDia = (iso: ISODate) => `${DIA[diaSemana(iso)]} ${dia(iso)}`
+  return a.slice(0, 7) === b.slice(0, 7) ? `Del ${conDia(a)} al ${conDia(b)} de ${mesLargo(b)}` : `Del ${larga(a)} al ${larga(b)}`
+}
 export const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`
 
 /** Hoy en Jalisco (la nube manda el suyo; este es el respaldo) */

@@ -1,7 +1,7 @@
 // Barra lateral flotante, igual que la del PWA: la luz y el día arriba, nueva reservación y búsqueda,
-// las cuatro secciones y abajo Ajustes, la conexión y tu cuenta.
+// las secciones de recepción, «Apartar fechas» para el dueño y abajo Ajustes, la conexión y tu cuenta.
 import { useRef, useState } from 'react'
-import { BedDouble, CalendarRange, ChevronsUpDown, Inbox, LogOut, Map as MapaIcono, Plus, RefreshCw, Settings, Sun } from 'lucide-react'
+import { BedDouble, CalendarCheck, CalendarRange, ChevronsUpDown, Inbox, LogOut, Map as MapaIcono, Plus, RefreshCw, Settings, Sun } from 'lucide-react'
 import { useApp, type Vista } from '@/lib/store'
 import { CMD, enMac } from '@/lib/mac'
 import { activa } from '@/lib/estados'
@@ -9,6 +9,7 @@ import { esNubeLocal } from '@/lib/nube'
 import { Button, MenuList, Popover, cx } from './ui'
 import { Marca } from './Loto'
 import { anticiparVista } from '@/lib/vistas'
+import { esApartado } from '@/lib/apartados'
 
 const SECCIONES: { vista: Vista; label: string; icon: typeof Sun; atajo: string }[] = [
   { vista: 'hoy', label: 'Hoy', icon: Sun, atajo: '1' },
@@ -43,7 +44,8 @@ export function Barra() {
 
   const solicitudes = datos?.reservaciones.filter((r) => r.estado === 'solicitud' && activa(r)).length ?? 0
   const hoy = datos?.hoy
-  const movimientos = hoy ? datos!.reservaciones.filter((r) => activa(r) && (r.llegada === hoy || r.salida === hoy)).length : 0
+  // Llegadas y salidas de hoy: reservaciones y también lo que apartó el dueño
+  const movimientos = hoy ? datos!.reservaciones.filter((r) => activa(r) && (r.llegada === hoy || r.salida === hoy)).length + datos!.bloqueos.filter((b) => esApartado(b) && (b.inicio === hoy || b.fin === hoy)).length : 0
   const estado = conexion === 'sin-conexion' ? { texto: 'Sin conexión', punto: 'bg-danger' } : enVivo ? { texto: 'En vivo', punto: 'bg-success' } : { texto: 'Conectando', punto: 'bg-chispa-soft' }
 
   return (
@@ -62,10 +64,16 @@ export function Barra() {
         </div>
 
         <p className="reception-nav-label">RECEPCIÓN</p>
-        <nav className="flex flex-1 flex-col gap-px px-2.5" aria-label="Secciones">
+        <nav className="flex flex-col gap-px px-2.5" aria-label="Secciones">
           {SECCIONES.map((s) => (
             <Renglon key={s.vista} vista={s.vista} activo={vista === s.vista} label={s.label} icon={s.icon} atajo={s.atajo} onClick={() => ir(s.vista)} cuenta={s.vista === 'hoy' ? solicitudes || movimientos : undefined} urgente={s.vista === 'hoy' && solicitudes > 0} />
           ))}
+        </nav>
+
+        {/* El calendario sencillo del dueño: aparta noches sin crear una reservación */}
+        <p className="reception-nav-label">DUEÑO</p>
+        <nav className="flex flex-1 flex-col gap-px px-2.5" aria-label="Del dueño">
+          <Renglon vista="apartar" activo={vista === 'apartar'} label="Apartar fechas" icon={CalendarCheck} atajo="6" onClick={() => ir('apartar')} />
         </nav>
 
         <div className="flex flex-col gap-px border-t border-line px-2.5 pt-2.5 pb-2.5">

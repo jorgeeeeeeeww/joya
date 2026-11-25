@@ -179,7 +179,7 @@ export async function alPedirNuevaReservacion(hacer: () => void): Promise<() => 
 
 // ── Menú de arriba de la Mac ──
 export interface AccionesMenu {
-  ir: (vista: 'hoy' | 'mapa' | 'calendario' | 'reservaciones' | 'cabanas' | 'ajustes') => void
+  ir: (vista: 'hoy' | 'mapa' | 'calendario' | 'reservaciones' | 'cabanas' | 'apartar' | 'ajustes') => void
   nuevaReservacion: () => void
   nuevoCierre: () => void
   buscar: () => void
@@ -239,6 +239,7 @@ export async function ponerMenu(a: AccionesMenu) {
         await item('v-cal', 'Calendario', 'CmdOrCtrl+3', () => a.ir('calendario')),
         await item('v-res', 'Reservaciones', 'CmdOrCtrl+4', () => a.ir('reservaciones')),
         await item('v-cab', 'Cabañas', 'CmdOrCtrl+5', () => a.ir('cabanas')),
+        await item('v-apartar', 'Apartar fechas', 'CmdOrCtrl+6', () => a.ir('apartar')),
         await sep(),
         await item('ir-hoy', 'Ir a hoy en el calendario', 'CmdOrCtrl+T', a.irAHoy),
         await item('recargar', 'Actualizar', 'CmdOrCtrl+R', a.actualizar),

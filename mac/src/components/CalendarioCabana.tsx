@@ -1,6 +1,7 @@
 // El calendario de un solo hospedaje, mes por mes. Cada día se ve de otra manera según lo que pase esa noche:
 //   · ocupado   → color fuerte lleno, con el nombre de quien llega ese día
 //   · solicitud → contorno punteado que late
+//   · apartado por el dueño → violeta, con su nota el primer día
 //   · cerrado   → rayado
 //   · libre     → vacío
 // Tocar una reservación abre su detalle; tocar un día libre empieza una reservación nueva para ese hospedaje.
@@ -8,6 +9,7 @@ import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { nocheDe } from '@/lib/ocupacion'
+import { etiquetaApartado, notaDe } from '@/lib/apartados'
 import { dia, diaSemana, inicioDeMes, larga, masDias, mesLargo } from '@/lib/fechas'
 import type { Cabana, ISODate } from '@/lib/tipos'
 import { cx } from './ui'
@@ -86,6 +88,14 @@ export function CalendarioCabana({ cabana, mesInicial }: { cabana: Cabana; mesIn
               </button>
             )
           }
+          if (n.tipo === 'dueno') {
+            return (
+              <div key={i} title={`${larga(iso)} · ${etiquetaApartado(n.b)}`} className={cx(base, comun, 'bg-[var(--violet-soft,#f2edfa)] text-[var(--violet-ink,#695095)] ring-1 ring-[#cdbde6] ring-inset')}>
+                {numero}
+                <span className="w-full truncate text-[12px] leading-tight">{n.b.inicio === iso ? (notaDe(n.b)?.split(' ')[0] ?? 'Apartado') : ''}</span>
+              </div>
+            )
+          }
           if (n.tipo === 'cerrada') {
             return (
               <div key={i} title={n.b.motivo ? `Cerrado: ${n.b.motivo}` : 'Cerrado'} className={cx(base, comun, 'rayas bg-sunken text-ink-soft ring-1 ring-line ring-inset')}>
@@ -113,6 +123,7 @@ export function CalendarioCabana({ cabana, mesInicial }: { cabana: Cabana; mesIn
       <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-ink-soft">
         <Leyenda clase="bg-chispa" texto="Ocupado" />
         <Leyenda clase="bg-[color-mix(in_oklab,var(--chispa)_16%,transparent)] ring-1 ring-chispa ring-inset" texto="Solicitud" />
+        <Leyenda clase="bg-[var(--violet-soft,#f2edfa)] ring-1 ring-[#cdbde6] ring-inset" texto="Apartado" />
         <Leyenda clase="rayas bg-sunken ring-1 ring-line ring-inset" texto="Cerrado" />
         <Leyenda clase="bg-secondary ring-1 ring-line ring-inset" texto="Libre" />
       </div>

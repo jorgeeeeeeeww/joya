@@ -4,8 +4,10 @@ import { rpc } from './nube'
 import { recargar, useApp } from './store'
 import type { Bloqueo, Detalle, Estado, ISODate, MetodoPago, Pago, Reservacion } from './tipos'
 import { toast } from '@/components/ui'
-import { rango } from './fechas'
+import { plural, noches, rango } from './fechas'
 import { mxn } from './dinero'
+import { motivoApartado, notaDe } from './apartados'
+import { nombreDe } from './ocupacion'
 
 const mensaje = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -116,5 +118,42 @@ export async function borrarCierre(b: Bloqueo) {
   const ok = await hacer(() => rpc('hosp_borrar_bloqueo', { p_id: b.id }).then(() => true), 'No se pudo abrir esas fechas')
   if (!ok) useApp.setState(s => s.sesion?.user.id === usuario && s.datos && !s.datos.bloqueos.some(x => x.id === b.id) ? { datos: { ...s.datos, bloqueos: [...s.datos.bloqueos, b] } } : {})
   if (ok) toast.undo(`Abriste ${rango(b.inicio, b.fin)}`, () => void hacer(() => rpc('hosp_guardar_bloqueo', { p: { cabana_id: b.cabana_id, inicio: b.inicio, fin: b.fin, motivo: b.motivo } }), 'No se pudo deshacer'))
+  return ok
+}
+
+// ── Fechas que aparta el dueño (un cierre con motivo «Apartado»: sin código, sin pagos y sin avisos) ──
+
+/** Se ve en la pantalla al instante; si la nube no lo acepta, se quita solo */
+const ponerBloqueo = (b: Bloqueo) => useApp.setState((s) => (s.datos && !s.datos.bloqueos.some((x) => x.id === b.id) ? { datos: { ...s.datos, bloqueos: [...s.datos.bloqueos, b] } } : {}))
+const quitarBloqueo = (id: string) => useApp.setState((s) => (s.datos ? { datos: { ...s.datos, bloqueos: s.datos.bloqueos.filter((x) => x.id !== id) } } : {}))
+
+export async function apartarFechas(a: { cabana_id: string; inicio: ISODate; fin: ISODate; nota: string }) {
+  if (!(await hayRed())) return null
+  const r = await hacer(() => rpc<Bloqueo>('hosp_guardar_bloqueo', { p: { cabana_id: a.cabana_id, inicio: a.inicio, fin: a.fin, motivo: motivoApartado(a.nota) } }), 'No se pudieron apartar esas noches')
+  if (!r) return null
+  ponerBloqueo(r)
+  const lugar = nombreDe(useApp.getState().datos, r.cabana_id)
+  toast.undo(`Apartaste ${lugar}`, () => void quitarSinAviso(r), `${rango(r.inicio, r.fin)} · ${plural(noches(r.inicio, r.fin), 'noche', 'noches')}${notaDe(r) ? ` · ${notaDe(r)}` : ''}`, true)
+  return r
+}
+
+async function quitarSinAviso(b: Bloqueo) {
+  quitarBloqueo(b.id)
+  const ok = await hacer(() => rpc('hosp_borrar_bloqueo', { p_id: b.id }).then(() => true), 'No se pudo deshacer')
+  if (!ok) ponerBloqueo(b)
+}
+
+export async function quitarApartado(b: Bloqueo) {
+  if (!(await hayRed())) return null
+  const usuario = useApp.getState().sesion?.user.id
+  quitarBloqueo(b.id)
+  const ok = await hacer(() => rpc('hosp_borrar_bloqueo', { p_id: b.id }).then(() => true), 'No se pudo quitar el apartado')
+  if (!ok) {
+    if (useApp.getState().sesion?.user.id === usuario) ponerBloqueo(b)
+    return null
+  }
+  const lugar = nombreDe(useApp.getState().datos, b.cabana_id)
+  // «Deshacer» lo vuelve a apartar igual (mismo hospedaje, mismas noches y la misma nota)
+  toast.undo(`Quitaste el apartado de ${lugar}`, () => void hacer(() => rpc<Bloqueo>('hosp_guardar_bloqueo', { p: { cabana_id: b.cabana_id, inicio: b.inicio, fin: b.fin, motivo: b.motivo } }), 'No se pudo volver a apartar').then((x) => x && ponerBloqueo(x)), `${rango(b.inicio, b.fin)} · la página las vuelve a ofrecer`, true)
   return ok
 }

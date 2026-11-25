@@ -1,15 +1,17 @@
-// Qué pasa en cada hospedaje cada noche: reservada, apartada (solicitud), cerrada o libre.
+// Qué pasa en cada hospedaje cada noche: reservada, apartada (solicitud), apartada por el dueño, cerrada o libre.
 import type { Bloqueo, Cabana, Datos, ISODate, Reservacion, TipoHospedaje } from './tipos'
 import { activa } from './estados'
+import { esApartado } from './apartados'
 import type { EstadoDia } from '@/components/campos'
 
-export type Noche = { tipo: 'reservada'; r: Reservacion } | { tipo: 'apartada'; r: Reservacion } | { tipo: 'cerrada'; b: Bloqueo } | { tipo: 'libre' }
+/** «apartada» es una solicitud que espera confirmación; «dueno» son noches que el dueño apartó (sin reservación) */
+export type Noche = { tipo: 'reservada'; r: Reservacion } | { tipo: 'apartada'; r: Reservacion } | { tipo: 'dueno'; b: Bloqueo } | { tipo: 'cerrada'; b: Bloqueo } | { tipo: 'libre' }
 
 export function nocheDe(d: Datos, cabanaId: string, iso: ISODate, ahora = Date.now()): Noche {
   const r = d.reservaciones.find((x) => x.cabana_id === cabanaId && x.llegada <= iso && iso < x.salida && activa(x, ahora))
   if (r) return r.estado === 'solicitud' ? { tipo: 'apartada', r } : { tipo: 'reservada', r }
   const b = d.bloqueos.find((x) => x.cabana_id === cabanaId && x.inicio <= iso && iso < x.fin)
-  if (b) return { tipo: 'cerrada', b }
+  if (b) return esApartado(b) ? { tipo: 'dueno', b } : { tipo: 'cerrada', b }
   return { tipo: 'libre' }
 }
 
@@ -18,7 +20,9 @@ export function ocupacionDe(d: Datos | null, cabanaId: string | null, ignorar?: 
   return (iso: ISODate): EstadoDia => {
     if (!d || !cabanaId) return 'libre'
     if (d.reservaciones.some((x) => x.id !== ignorar && x.cabana_id === cabanaId && x.llegada <= iso && iso < x.salida && activa(x))) return 'ocupado'
-    if (d.bloqueos.some((x) => x.cabana_id === cabanaId && x.inicio <= iso && iso < x.fin)) return 'cerrado'
+    const b = d.bloqueos.find((x) => x.cabana_id === cabanaId && x.inicio <= iso && iso < x.fin)
+    // Lo que apartó el dueño cuenta como ocupado: alguien se va a quedar
+    if (b) return esApartado(b) ? 'ocupado' : 'cerrado'
     return 'libre'
   }
 }
